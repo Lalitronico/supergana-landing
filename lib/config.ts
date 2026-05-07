@@ -11,8 +11,15 @@ export const SITE = {
 } as const;
 
 // Versioned subdir: bumping this folder invalidates all cached assets.
-// (Cleaner than ?v= query strings, which require images.localPatterns config.)
 const ASSET_DIR = "v3";
 
-export const gen = (name: string) => `/generated/${ASSET_DIR}/${name}.png`;
-export const character = (name: string) => `/characters/v2/${name}.png`;
+// basePath injected at build time (e.g. "/supergana-landing" for GitHub Pages,
+// empty for local dev). Manually prefixed because Next.js 16 + output:export
+// + images.unoptimized doesn't auto-apply basePath to <Image src>.
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
+export const asset = (path: string) =>
+  `${BASE}${path.startsWith("/") ? path : `/${path}`}`;
+
+export const gen = (name: string) => asset(`/generated/${ASSET_DIR}/${name}.png`);
+export const character = (name: string) => asset(`/characters/v2/${name}.png`);

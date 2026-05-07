@@ -1,3 +1,5 @@
+import { character } from "./config";
+
 export type CaseId = "mundial" | "liga" | "clasicos" | "aniversarios";
 
 export type CaseData = {
@@ -21,7 +23,7 @@ export const CASES: CaseData[] = [
     icon: "🏆",
     title: "Activa el mes más visto del planeta",
     body: "Una quiniela por fase: grupos, octavos, finales. Tu marca presente cada vez que abren el celular para revisar resultados.",
-    character: "/characters/v2/bandana.png",
+    character: character("bandana"),
     bg: "bg-red",
     text: "text-cream",
     badge: "5,000M de espectadores",
@@ -33,7 +35,7 @@ export const CASES: CaseData[] = [
     icon: "📅",
     title: "Aprovecha cada jornada",
     body: "Activaciones recurrentes que mantienen tu comunidad jugando todo el torneo. Ideal para marcas con presencia continua.",
-    character: "/characters/v2/dino.png",
+    character: character("dino"),
     bg: "bg-green",
     text: "text-ink",
     badge: "17 jornadas seguidas",
@@ -45,7 +47,7 @@ export const CASES: CaseData[] = [
     icon: "⚡",
     title: "El partido que detiene a México",
     body: "América-Chivas, Madrid-Barça, Boca-River. Conversación garantizada — tu marca en el centro de la afición.",
-    character: "/characters/v2/oso.png",
+    character: character("oso"),
     bg: "bg-blue",
     text: "text-cream",
     badge: "Top 1 trending del día",
@@ -57,7 +59,7 @@ export const CASES: CaseData[] = [
     icon: "🎉",
     title: "Celebra con tu audiencia",
     body: "¿Lanzas producto? ¿Cumples 10 años? Una quiniela es la forma menos genérica de hacer ruido con tu comunidad.",
-    character: "/characters/v2/lince.png",
+    character: character("lince"),
     bg: "bg-pink",
     text: "text-ink",
     badge: "+47% engagement vs post",

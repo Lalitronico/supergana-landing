@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { CASES } from "@/lib/useCases";
+import { asset } from "@/lib/config";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
@@ -67,7 +68,7 @@ export function MundialHero() {
         {/* VISUAL side */}
         <div className="relative min-h-[280px] border-t-[3px] border-ink md:min-h-[460px] md:border-l-[3px] md:border-t-0">
           <Image
-            src="/cases/v1/mundial-stadium.png"
+            src={asset("/cases/v1/mundial-stadium.png")}
             alt="Personajes de Supergana en el estadio celebrando un gol de México"
             fill
             sizes="(min-width: 768px) 50vw, 100vw"

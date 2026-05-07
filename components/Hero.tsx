@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { CharacterFloat } from "./CharacterFloat";
-import { SITE, gen } from "@/lib/config";
+import { SITE, gen, character } from "@/lib/config";
 
 export function Hero() {
   return (
@@ -83,7 +83,7 @@ export function Hero() {
           <div className="relative min-h-[440px] md:col-span-5 md:min-h-[500px]">
             {/* Top-right: gato with World Cup — slightly bigger as focal anchor */}
             <CharacterFloat
-              src="/characters/v2/gato.png"
+              src={character("gato")}
               alt=""
               width={320}
               height={320}
@@ -96,7 +96,7 @@ export function Hero() {
             />
             {/* Top-left: mexicano — bumped up to visually match gato's body height */}
             <CharacterFloat
-              src="/characters/v2/mexicano.png"
+              src={character("mexicano")}
               alt=""
               width={300}
               height={320}
@@ -108,7 +108,7 @@ export function Hero() {
             />
             {/* Bottom-center: nuevo (Champions) — pulled up + sized to match the top duo */}
             <CharacterFloat
-              src="/characters/v2/nuevo.png"
+              src={character("nuevo")}
               alt=""
               width={280}
               height={320}
