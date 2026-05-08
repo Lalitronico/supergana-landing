@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
+import { CalProvider } from "@/components/CalProvider";
 import "./globals.css";
 
 const bricolage = Bricolage_Grotesque({
@@ -55,6 +56,7 @@ export default function RootLayout({
   return (
     <html lang="es-MX" className={`${bricolage.variable} ${inter.variable}`}>
       <body className="min-h-screen bg-cream text-ink antialiased">
+        <CalProvider />
         {children}
       </body>
     </html>

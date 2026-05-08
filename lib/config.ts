@@ -1,7 +1,9 @@
 export const SITE = {
   name: "Supergana",
   tagline: "Quinielas listas para tu marca",
-  bookingUrl: "https://cal.com/supergana/demo",
+  bookingCalLink: "supergana",
+  bookingNamespace: "demo",
+  bookingUrl: "https://cal.com/supergana",
   contactEmail: "hola@supergana.mx",
   whatsapp: "https://wa.me/521000000000",
   social: {

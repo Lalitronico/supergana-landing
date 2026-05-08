@@ -123,17 +123,18 @@ export function Navbar() {
             aria-hidden
             className="hidden h-6 w-px bg-cream/20 md:inline-block"
           />
-          <motion.a
-            href={SITE.bookingUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <motion.button
+            type="button"
+            data-cal-namespace={SITE.bookingNamespace}
+            data-cal-link={SITE.bookingCalLink}
+            data-cal-config='{"layout":"month_view"}'
             whileHover={{ y: -2 }}
             whileTap={{ y: 0, scale: 0.97 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
             className="inline-flex h-12 items-center rounded-full bg-yellow px-6 text-base font-bold text-ink transition-colors hover:bg-cream"
           >
             Agendar demo
-          </motion.a>
+          </motion.button>
         </div>
       </nav>
     </motion.header>

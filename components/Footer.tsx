@@ -1,4 +1,5 @@
 import { SITE } from "@/lib/config";
+import { BookDemoButton } from "./BookDemoButton";
 
 export function Footer() {
   return (
@@ -48,14 +49,9 @@ export function Footer() {
             </p>
             <ul className="mt-4 space-y-2 text-sm">
               <li>
-                <a
-                  href={SITE.bookingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-yellow"
-                >
+                <BookDemoButton className="cursor-pointer text-left hover:text-yellow">
                   Agendar demo
-                </a>
+                </BookDemoButton>
               </li>
               <li>
                 <a

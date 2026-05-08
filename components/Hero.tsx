@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { CharacterFloat } from "./CharacterFloat";
-import { SITE, gen, character } from "@/lib/config";
+import { BookDemoButton } from "./BookDemoButton";
+import { gen, character } from "@/lib/config";
 
 export function Hero() {
   return (
@@ -60,14 +61,9 @@ export function Hero() {
               nada. Te entregamos el kit listo para publicar.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
-              <a
-                href={SITE.bookingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-cartoon inline-flex h-14 items-center rounded-full bg-red px-7 text-base font-bold text-cream"
-              >
+              <BookDemoButton className="btn-cartoon inline-flex h-14 items-center rounded-full bg-red px-7 text-base font-bold text-cream">
                 Agendar demo →
-              </a>
+              </BookDemoButton>
               <a
                 href="#como-funciona"
                 className="text-base font-bold underline decoration-2 underline-offset-4 hover:text-red"

@@ -1,13 +1,13 @@
 "use client";
 
 import { motion, useReducedMotion } from "framer-motion";
-import { SITE } from "@/lib/config";
+import { BookDemoButton } from "../BookDemoButton";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 
 const INFO_ROWS: { label: string; value: string }[] = [
   { label: "Evento", value: "Demo Supergana" },
-  { label: "Duración", value: "25 minutos" },
+  { label: "Duración", value: "30 minutos" },
   { label: "Fecha", value: "Esta semana" },
   { label: "Asiento", value: "Tu Marca · Fila 1" },
 ];
@@ -168,14 +168,9 @@ export function StadiumTicket() {
             </dl>
 
             <div className="flex flex-col gap-2">
-              <a
-                href={SITE.bookingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-cartoon inline-flex h-14 w-full items-center justify-center rounded-full bg-yellow px-6 text-base font-bold text-ink"
-              >
+              <BookDemoButton className="btn-cartoon inline-flex h-14 w-full items-center justify-center rounded-full bg-yellow px-6 text-base font-bold text-ink">
                 Reservar mi lugar →
-              </a>
+              </BookDemoButton>
               <span className="text-center text-[10px] uppercase tracking-wider text-ink/50">
                 Sin compromiso · Sin demo grabada
               </span>

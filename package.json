@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@calcom/embed-react": "^1.5.3",
     "@google/genai": "^1.52.0",
     "@imgly/background-removal-node": "^1.4.5",
     "framer-motion": "^12.38.0",
