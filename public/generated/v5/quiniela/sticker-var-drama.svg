@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 320" role="img" aria-label="VAR drama sticker">
+  <rect x="42" y="54" width="250" height="165" rx="26" fill="#FAF7F0" stroke="#0A0A0A" stroke-width="12"/>
+  <rect x="66" y="80" width="202" height="92" rx="14" fill="#092239" stroke="#0A0A0A" stroke-width="8"/>
+  <path d="M91 127h152" stroke="#FFD93D" stroke-width="8" stroke-linecap="round"/>
+  <path d="m151 103 47 24-47 24z" fill="#FF4757" stroke="#0A0A0A" stroke-width="7"/>
+  <path d="M95 198h116" stroke="#0A0A0A" stroke-width="8" stroke-linecap="round"/>
+  <path d="M310 86c48 16 72 49 72 99" fill="none" stroke="#EF0107" stroke-width="13" stroke-linecap="round"/>
+  <path d="M333 214c-24 0-42-18-42-42" fill="none" stroke="#1E90FF" stroke-width="13" stroke-linecap="round"/>
+  <text x="104" y="145" font-family="Arial Black, sans-serif" font-size="54" fill="#FAF7F0" stroke="#0A0A0A" stroke-width="3">VAR</text>
+  <path d="m331 40 12 25 27 4-20 19 5 27-24-13-24 13 5-27-20-19 27-4z" fill="#FFD93D" stroke="#0A0A0A" stroke-width="6"/>
+</svg>

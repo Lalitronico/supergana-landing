@@ -36,7 +36,6 @@ export function TriviaDemo() {
 
   useEffect(() => {
     if (prefersReduced) {
-      setMode({ kind: "question", index: 0, phase: "asking" });
       return;
     }
     if (!inView) return;
@@ -410,4 +409,3 @@ function Leaderboard() {
     </div>
   );
 }
-

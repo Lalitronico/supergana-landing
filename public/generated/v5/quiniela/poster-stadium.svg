@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" role="img" aria-label="Cartoon stadium poster background">
+  <defs>
+    <radialGradient id="lights" cx="50%" cy="10%" r="75%">
+      <stop offset="0" stop-color="#FFD93D" stop-opacity=".55"/>
+      <stop offset=".42" stop-color="#1E90FF" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#061827"/>
+    </radialGradient>
+    <pattern id="dots" width="20" height="20" patternUnits="userSpaceOnUse">
+      <circle cx="3" cy="3" r="2" fill="#FAF7F0" opacity=".16"/>
+    </pattern>
+  </defs>
+  <rect width="1600" height="1000" fill="#061827"/>
+  <rect width="1600" height="1000" fill="url(#lights)"/>
+  <rect width="1600" height="1000" fill="url(#dots)"/>
+  <path d="M0 592C222 483 452 429 690 429c338 0 634 80 910 238v333H0Z" fill="#0F643B" stroke="#0A0A0A" stroke-width="12"/>
+  <path d="M0 552c260-165 532-248 816-248 278 0 539 75 784 225" fill="none" stroke="#FAF7F0" stroke-opacity=".28" stroke-width="28"/>
+  <path d="M0 500c260-139 527-209 800-209s540 70 800 209" fill="none" stroke="#FFD93D" stroke-opacity=".35" stroke-width="10"/>
+  <path d="M139 626c226-85 449-128 669-128 228 0 446 43 653 128" fill="none" stroke="#FAF7F0" stroke-width="5" opacity=".4"/>
+  <path d="M780 1000V454" stroke="#FAF7F0" stroke-width="8" opacity=".42"/>
+  <ellipse cx="800" cy="690" rx="170" ry="64" fill="none" stroke="#FAF7F0" stroke-width="8" opacity=".42"/>
+  <g stroke="#0A0A0A" stroke-width="7">
+    <path d="M116 167h138v58H116z" fill="#FAF7F0"/>
+    <path d="M1380 165h126v54h-126z" fill="#FAF7F0"/>
+    <path d="M328 122l35 23-8 41-41 3-17-37z" fill="#FFD93D"/>
+    <path d="M1236 108l44 22-5 45-46 9-25-39z" fill="#FF4757"/>
+  </g>
+  <g fill="#FFD93D" stroke="#0A0A0A" stroke-width="5">
+    <path d="m96 307 20 39 43 7-31 30 7 43-39-20-39 20 7-43-31-30 43-7z"/>
+    <path d="m1496 296 14 27 30 4-22 21 5 30-27-14-27 14 5-30-22-21 30-4z"/>
+    <path d="m831 145 16 31 35 5-25 24 6 35-32-16-31 16 6-35-25-24 35-5z"/>
+  </g>
+</svg>

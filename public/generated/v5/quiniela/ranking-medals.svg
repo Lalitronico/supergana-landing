@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 260" role="img" aria-label="Cartoon ranking medals">
+  <g stroke="#0A0A0A" stroke-width="10" stroke-linejoin="round">
+    <path d="M204 76h112v148H204z" fill="#FFD93D"/>
+    <path d="M62 120h112v104H62z" fill="#FAF7F0"/>
+    <path d="M346 140h112v84H346z" fill="#FAF7F0"/>
+    <circle cx="260" cy="73" r="56" fill="#FFD93D"/>
+    <circle cx="118" cy="112" r="44" fill="#C9D3DA"/>
+    <circle cx="402" cy="132" r="39" fill="#D58A4A"/>
+  </g>
+  <g fill="#0A0A0A" font-family="Arial Black, sans-serif" font-weight="900" text-anchor="middle">
+    <text x="260" y="92" font-size="58">1</text>
+    <text x="118" y="129" font-size="42">2</text>
+    <text x="402" y="147" font-size="38">3</text>
+  </g>
+  <path d="m55 45 11 22 24 4-18 17 4 24-21-11-22 11 4-24-17-17 24-4zM461 38l12 25 27 4-20 19 5 27-24-13-24 13 5-27-20-19 27-4z" fill="#FFD93D" stroke="#0A0A0A" stroke-width="6"/>
+</svg>

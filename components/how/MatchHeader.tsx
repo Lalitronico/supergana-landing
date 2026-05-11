@@ -153,7 +153,7 @@ export function MatchHeader({ compact = false }: Props) {
               animate={{ opacity: [1, 0.3, 1] }}
               transition={{ duration: 1, repeat: Infinity }}
             />
-            67' VIVO
+            67&apos; VIVO
           </span>
         </div>
 

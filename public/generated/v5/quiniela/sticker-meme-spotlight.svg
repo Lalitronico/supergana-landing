@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 320" role="img" aria-label="Meme spotlight sticker">
+  <path d="M110 44h204l44 44v154c0 25-20 45-45 45H110c-25 0-45-20-45-45V89c0-25 20-45 45-45z" fill="#FAF7F0" stroke="#0A0A0A" stroke-width="12"/>
+  <path d="M314 44v51h51" fill="#FFD93D" stroke="#0A0A0A" stroke-width="9"/>
+  <circle cx="167" cy="142" r="34" fill="#1E90FF" stroke="#0A0A0A" stroke-width="9"/>
+  <circle cx="255" cy="142" r="34" fill="#EF0107" stroke="#0A0A0A" stroke-width="9"/>
+  <path d="M159 139h17M247 139h17" stroke="#0A0A0A" stroke-width="8" stroke-linecap="round"/>
+  <path d="M163 214c31 24 67 24 98 0" fill="none" stroke="#0A0A0A" stroke-width="10" stroke-linecap="round"/>
+  <path d="M32 78 8 43M45 42 31 5M369 246l35 34M386 202l29 12" stroke="#FFD93D" stroke-width="11" stroke-linecap="round"/>
+</svg>

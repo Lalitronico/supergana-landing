@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 320" role="img" aria-label="Fan noise sticker">
+  <path d="M82 196c-31-33-26-86 11-113 34-25 82-17 108 18 33-31 88-25 116 13 30 41 17 100-28 123-50 26-152 23-207-41z" fill="#FAF7F0" stroke="#0A0A0A" stroke-width="12"/>
+  <path d="M126 188c24-33 67-33 91 0" fill="none" stroke="#0A0A0A" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="139" cy="135" r="17" fill="#0A0A0A"/>
+  <circle cx="239" cy="135" r="17" fill="#0A0A0A"/>
+  <path d="M284 72c32-27 64-39 98-36M303 108c30-11 58-10 85 3M306 145c29 8 50 22 63 43" fill="none" stroke="#1E90FF" stroke-width="12" stroke-linecap="round"/>
+  <path d="M56 82c-16-16-28-34-34-54M48 128c-19-5-34-13-46-25" fill="none" stroke="#EF0107" stroke-width="12" stroke-linecap="round"/>
+  <path d="m75 248 12 25 27 4-20 19 5 27-24-13-24 13 5-27-20-19 27-4z" fill="#FFD93D" stroke="#0A0A0A" stroke-width="6"/>
+</svg>

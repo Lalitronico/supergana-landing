@@ -11,11 +11,16 @@
   "dependencies": {
     "@calcom/embed-react": "^1.5.3",
     "@google/genai": "^1.52.0",
+    "@hookform/resolvers": "^5.2.2",
     "@imgly/background-removal-node": "^1.4.5",
+    "@supabase/supabase-js": "^2.105.4",
     "framer-motion": "^12.38.0",
+    "html-to-image": "^1.11.13",
     "next": "16.2.5",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.75.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
