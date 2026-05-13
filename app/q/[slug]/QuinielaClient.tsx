@@ -1,7 +1,6 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { toPng } from "html-to-image";
 import Link from "next/link";
 import Image from "next/image";
 import { CSSProperties, FormEvent, forwardRef, useReducer, useRef, useState } from "react";
@@ -906,6 +905,7 @@ function SuccessScreen({
     if (!shareRef.current) return;
     setExporting(true);
     try {
+      const { toPng } = await import("html-to-image");
       const dataUrl = await toPng(shareRef.current, {
         cacheBust: true,
         pixelRatio: 1,

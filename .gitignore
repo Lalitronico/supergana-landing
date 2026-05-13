@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local working artifacts (briefs, handoffs, screenshots, scratch)
+/tmp/
+/CODEX_BRIEF_*.md
+/CODEX_HANDOFF_*.md
