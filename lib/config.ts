@@ -15,6 +15,7 @@ export const SITE = {
 const ASSET_DIR = "v3";
 const QUINIELA_ASSET_DIR = "v4";
 const QUINIELA_CHARACTER_DIR = "v3";
+const PREMIO_ASSET_DIR = "v5";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
@@ -30,3 +31,8 @@ export const quinielaAsset = (name: string) =>
   asset(`/generated/${QUINIELA_ASSET_DIR}/${name}.png`);
 export const quinielaCharacter = (name: string) =>
   asset(`/characters/${QUINIELA_CHARACTER_DIR}/${name}.png`);
+
+// Premio illustrations live in their own versioned folder so we can bump them
+// independently of the landing's v3 generated set.
+export const premioAsset = (name: string) =>
+  asset(`/generated/${PREMIO_ASSET_DIR}/${name}.png`);

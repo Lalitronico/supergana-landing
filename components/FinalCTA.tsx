@@ -27,13 +27,14 @@ export function FinalCTA() {
       <div className="relative py-20 md:py-28">
         <div className="relative mx-auto max-w-5xl px-5 text-center md:px-8">
           <h2 className="font-display mx-auto max-w-3xl text-5xl leading-[1.05] md:text-7xl">
-            ¿Tu próximo Mundial empieza{" "}
-            <span className="marker-yellow text-ink">contigo arriba</span> o
-            mirando?
+            ¿Tu próximo Mundial te encuentra{" "}
+            <span className="marker-yellow text-ink">jugando arriba</span> — o
+            mirando desde el grupo de WhatsApp?
           </h2>
           <p className="mx-auto mt-6 max-w-xl text-lg opacity-90">
-            Agenda una demo de 25 minutos. Te mostramos un caso real, te
-            cotizamos en la llamada y, si encaja, arrancamos esta semana.
+            Para marcas y empresas. Agenda una demo de 25 minutos: te mostramos
+            un caso real, te cotizamos en la llamada y, si encaja, arrancamos
+            esta semana.
           </p>
 
           <div className="mt-12 md:mt-14">

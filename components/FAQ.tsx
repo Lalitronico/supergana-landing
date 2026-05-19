@@ -31,6 +31,14 @@ const FAQS = [
     q: "¿Qué necesitan de nosotros para empezar?",
     a: "Brief breve (objetivo, audiencia, fechas), guía de marca o ejemplos visuales, y una persona del equipo que pueda aprobar copy y visuales. Eso es todo.",
   },
+  {
+    q: "¿Funciona para empresas con planta operativa sin smartphone corporativo?",
+    a: "Sí. La quiniela vive en un link o QR; cualquier celular personal, intranet o pantalla compartida en el comedor sirve. No hay app que descargar, ni cuentas que crear, ni VPN que configurar.",
+  },
+  {
+    q: "¿Pueden integrar premios físicos de mi empresa?",
+    a: "Sí. Tú defines y produces los premios (viajes, jerseys, kits parrilleros, días libres, bonos). Nosotros los integramos al kit visual, los anunciamos con las mascotas de Supergana y producimos la comunicación de ganadores para tus canales internos.",
+  },
 ];
 
 export function FAQ() {
@@ -46,7 +54,7 @@ export function FAQ() {
           Preguntas frecuentes
         </span>
         <h2 className="font-display mt-3 text-4xl leading-tight md:text-6xl">
-          Lo que se pregunta el equipo de marketing.
+          Lo que se preguntan marketing y recursos humanos.
         </h2>
 
         <div className="mt-12 space-y-4">

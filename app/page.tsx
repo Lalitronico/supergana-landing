@@ -4,6 +4,8 @@ import { Pitch } from "@/components/Pitch";
 import { HowItWorks } from "@/components/HowItWorks";
 import { WhatsIncluded } from "@/components/WhatsIncluded";
 import { UseCases } from "@/components/UseCases";
+import { Corporate } from "@/components/Corporate";
+import { Premios } from "@/components/Premios";
 import { Benefits } from "@/components/Benefits";
 import { FAQ } from "@/components/FAQ";
 import { FinalCTA } from "@/components/FinalCTA";
@@ -24,6 +26,8 @@ export default function Home() {
         <HowItWorks />
         <WhatsIncluded />
         <UseCases />
+        <Corporate />
+        <Premios />
         <Benefits />
         <FAQ />
         <FinalCTA />

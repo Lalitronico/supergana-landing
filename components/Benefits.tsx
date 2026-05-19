@@ -19,8 +19,8 @@ const STATS = [
   },
   {
     metric: "100%",
-    label: "Tu marca",
-    body: "Tu paleta, tu copy, tu URL. La quiniela se siente tuya — no de otra plataforma genérica.",
+    label: "Tu identidad",
+    body: "Tu paleta, tu copy, tu URL — o el logo y los colores corporativos de tu empresa. La quiniela se siente tuya, no de otra plataforma genérica.",
   },
 ];
 

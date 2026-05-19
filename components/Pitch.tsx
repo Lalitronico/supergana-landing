@@ -2,8 +2,8 @@ export function Pitch() {
   const phrases = [
     "Tú eliges el momento.",
     "Nosotros entregamos la campaña.",
-    "Tú eliges el momento.",
-    "Nosotros entregamos la campaña.",
+    "Tu marca o tu empresa.",
+    "Lista en días.",
   ];
 
   return (

@@ -52,13 +52,14 @@ export function Hero() {
               Quinielas as a service
             </span>
             <h1 className="font-display mt-6 text-5xl leading-[0.95] sm:text-6xl md:text-7xl lg:text-8xl">
-              La quiniela que tu marca necesita.{" "}
+              La quiniela que tu empresa necesita.{" "}
               <span className="marker-yellow">Lista en días.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed md:text-xl">
-              Activa una quiniela de fútbol completa para tu próximo Mundial,
-              final o clásico. Sin plataformas, sin formularios, sin diseñar
-              nada. Te entregamos el kit listo para publicar.
+              Activa una quiniela de fútbol para tu próximo Mundial o final —
+              o para que tus colaboradores convivan en torno al partido. Sin
+              plataformas, sin formularios, sin diseñar nada. Te entregamos el
+              kit listo para publicar.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-4">
               <BookDemoButton className="btn-cartoon inline-flex h-14 items-center rounded-full bg-red px-7 text-base font-bold text-cream">

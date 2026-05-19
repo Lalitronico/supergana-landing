@@ -7,8 +7,9 @@ import { SITE } from "@/lib/config";
 
 const NAV = [
   { id: "como-funciona", label: "Cómo funciona" },
-  { id: "kit", label: "Qué incluye" },
   { id: "casos", label: "Casos" },
+  { id: "empresas", label: "Empresas" },
+  { id: "premios", label: "Premios" },
   { id: "faq", label: "FAQ" },
 ];
 
