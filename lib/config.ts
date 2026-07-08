@@ -36,3 +36,9 @@ export const quinielaCharacter = (name: string) =>
 // independently of the landing's v3 generated set.
 export const premioAsset = (name: string) =>
   asset(`/generated/${PREMIO_ASSET_DIR}/${name}.png`);
+
+// Mundial x Rotary campaign art (Codex) lives in its own versioned folder.
+const MUNDIAL_ASSET_DIR = "mundial-v1";
+
+export const mundialAsset = (name: string) =>
+  asset(`/generated/${MUNDIAL_ASSET_DIR}/${name}.png`);

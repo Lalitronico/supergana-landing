@@ -10,11 +10,7 @@ import { Benefits } from "@/components/Benefits";
 import { FAQ } from "@/components/FAQ";
 import { FinalCTA } from "@/components/FinalCTA";
 import { Footer } from "@/components/Footer";
-import { QuinielaPromoModal } from "@/components/QuinielaPromoModal";
-import { quinielaCharacter } from "@/lib/config";
-import { getQuiniela } from "@/lib/quinielas/registry";
-
-const promoQuiniela = getQuiniela("psg-arsenal");
+import { MundialPromoModal } from "@/components/MundialPromoModal";
 
 export default function Home() {
   return (
@@ -33,20 +29,7 @@ export default function Home() {
         <FinalCTA />
       </main>
       <Footer />
-      {promoQuiniela?.status === "open" ? (
-        <QuinielaPromoModal
-          slug={promoQuiniela.slug}
-          status={promoQuiniela.status}
-          assets={{
-            homeCrest: promoQuiniela.theme.teams.home.crestAsset,
-            awayCrest: promoQuiniela.theme.teams.away.crestAsset,
-            homeMascot: promoQuiniela.theme.teams.home.mascotAsset,
-            awayMascot: quinielaCharacter("gato-arsenal"),
-            trophy: promoQuiniela.theme.assets.trophy,
-            confetti: promoQuiniela.theme.assets.confetti,
-          }}
-        />
-      ) : null}
+      <MundialPromoModal />
     </>
   );
 }

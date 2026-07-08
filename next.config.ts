@@ -1,23 +1,17 @@
 import type { NextConfig } from "next";
 
-// GitHub Pages serves under /<repo-name>/ — set GITHUB_PAGES=true at build time
-// to apply basePath/assetPrefix. Local dev (npm run dev) keeps clean URLs.
-const isGithubPages = process.env.GITHUB_PAGES === "true";
-const repo = "supergana-landing";
-const basePath = isGithubPages ? `/${repo}` : "";
-
+// The site deploys to Vercel (supergana.fun). Static export was removed on
+// 2026-07-07 to enable the API routes of the Mundial x Rotary campaign
+// (Stripe webhook, ticket validation, admin panel). Pages without dynamic
+// data are still statically generated at build time.
 const nextConfig: NextConfig = {
-  output: "export",
   images: {
     unoptimized: true,
   },
-  basePath,
-  assetPrefix: isGithubPages ? `/${repo}/` : "",
   trailingSlash: true,
-  // Expose basePath to the client so we can manually prefix asset URLs
-  // (Next 16 + output:export + unoptimized images doesn't auto-prefix <Image src>).
+  // Kept for the asset() helpers that used to prefix GitHub Pages paths.
   env: {
-    NEXT_PUBLIC_BASE_PATH: basePath,
+    NEXT_PUBLIC_BASE_PATH: "",
   },
 };
 
