@@ -122,6 +122,43 @@ export function QuinielaIntro() {
         </div>
       </section>
 
+      {/* CAUSA — a dónde va el donativo (terremoto de Venezuela, jun 2026) */}
+      <section className="border-b-[3px] border-ink bg-red">
+        <div className="mx-auto max-w-5xl px-5 py-14 text-cream md:px-8 md:py-16">
+          <div className="flex flex-col items-start gap-6 md:flex-row md:items-center">
+            <span
+              className="cartoon-border grid h-16 w-16 shrink-0 place-items-center rounded-full bg-cream text-red"
+              aria-hidden
+            >
+              <svg
+                viewBox="0 0 24 24"
+                className="h-8 w-8"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path d="M12 21s-6.7-4.35-9.33-8.02C1.1 10.6 1.6 7.4 4 6c1.9-1.1 4.06-.5 5.4 1 .3.34.6.7.6.7s.3-.36.6-.7C11.94 5.5 14.1 4.9 16 6c2.4 1.4 2.9 4.6 1.33 6.98C18.7 16.65 12 21 12 21Z" />
+              </svg>
+            </span>
+            <div>
+              <span className="text-xs font-black uppercase tracking-[0.16em] text-cream/80">
+                Juegas por el Mundial · ayudas a Venezuela
+              </span>
+              <h2 className="font-display mt-2 text-3xl md:text-4xl">
+                Tu donativo apoya a las familias del terremoto en Venezuela
+              </h2>
+              <p className="mt-3 max-w-3xl font-medium leading-relaxed text-cream/90">
+                El 24 de junio de 2026, dos sismos de magnitud 7.2 y 7.5 —los
+                más fuertes en Venezuela en más de un siglo— dejaron a miles de
+                familias sin hogar. El Rotary Club Ciudad Juárez, junto con
+                Supergana, organiza esta quiniela para convertir tu donativo en
+                ayuda: el 75% de cada boleto de $100 USD se destina a apoyar a
+                las familias afectadas.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* 3 OPORTUNIDADES DE GANAR */}
       <section id="como-funciona" className="border-b-[3px] border-ink bg-cream">
         <div className="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-20">

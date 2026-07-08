@@ -443,7 +443,8 @@ function PasoDatos({
         />
         <span className="text-sm leading-relaxed">
           Acepto las reglas de la campaña y entiendo que es una campaña de
-          donativo a beneficio del Rotary Club Ciudad Juárez: 75% a la causa y
+          donativo organizada por el Rotary Club Ciudad Juárez a favor de las
+          familias afectadas por el terremoto en Venezuela: 75% a la causa y
           25% a premios.
         </span>
       </label>
@@ -850,9 +851,14 @@ function Confirmacion({
       />
       <h1 className="font-display mt-2 text-4xl">¡Tu quiniela quedó registrada!</h1>
       <p className="mx-auto mt-4 max-w-md leading-relaxed">
-        Gracias por apoyar esta causa, {draft.fullName.split(" ")[0]}. Te
+        Gracias por sumarte a esta causa, {draft.fullName.split(" ")[0]}. Te
         enviamos una copia de tus respuestas a <strong>{draft.email}</strong> y
         publicaremos los resultados por etapa conforme avance el Mundial.
+      </p>
+      <p className="mx-auto mt-4 max-w-md text-sm font-semibold leading-relaxed text-red">
+        Tu donativo se suma a la ayuda del Rotary Club Ciudad Juárez para las
+        familias afectadas por el terremoto en Venezuela. Gracias por jugar con
+        causa.
       </p>
       <p className="cartoon-border mx-auto mt-6 inline-block rounded-full bg-green px-5 py-2 font-bold">
         Compites en: {eligible.map((s) => STAGE_LABELS[s]).join(", ")}

@@ -25,7 +25,7 @@ const FEATURES = [
   {
     icon: "heart",
     title: "75% ES DONATIVO",
-    body: "Tu boleto de $100 USD apoya directo la causa social de Rotary.",
+    body: "Tu boleto de $100 USD, a través del Rotary Club, apoya a las familias del terremoto en Venezuela.",
   },
   {
     icon: "trophy",
@@ -313,7 +313,8 @@ export function MundialPromoModal() {
                 >
                   Dona $100 USD, llena tu quiniela de la fase final del Mundial
                   y participa por premios en cuartos, semifinales y final. El
-                  verdadero premio es apoyar una buena causa.
+                  verdadero premio es ayudar: lo recaudado apoya a las familias
+                  afectadas por el terremoto en Venezuela.
                 </p>
 
                 <div
