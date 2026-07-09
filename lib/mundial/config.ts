@@ -48,7 +48,7 @@ export const STRIPE_PAYMENT_LINK =
 // sessions created from THIS Payment Link should ever mint a quiniela ticket.
 // Override via env if the link is ever recreated.
 export const STRIPE_PAYMENT_LINK_ID =
-  process.env.STRIPE_PAYMENT_LINK_ID ?? "plink_1Tqh5OK6mZgJgsly7G3ClKG2";
+  process.env.STRIPE_PAYMENT_LINK_ID ?? "plink_1Tqh5OK6mZgJgsIy7G3ClKG2";
 
 export const isOurPaymentLink = (paymentLinkId: string | null | undefined) =>
   paymentLinkId === STRIPE_PAYMENT_LINK_ID;
