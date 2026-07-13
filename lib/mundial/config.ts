@@ -63,6 +63,17 @@ export const isStageLocked = (stage: Stage, at: Date = new Date()) =>
 export const eligibleStages = (submittedAt: Date): Stage[] =>
   STAGES.filter((stage) => submittedAt.getTime() < stageLockDate(stage).getTime());
 
+/** Stages a ticket bought right now still competes in (rolling campaign). */
+export const remainingStages = (at: Date = new Date()): Stage[] =>
+  STAGES.filter((stage) => !isStageLocked(stage, at));
+
+// Human deadline per stage for marketing copy ("llena tu quiniela antes …").
+export const STAGE_DEADLINE_LABELS: Record<Stage, string> = {
+  cuartos: "del arranque de cuartos (9 jul)",
+  semis: "del arranque de semifinales (14 jul)",
+  final: "de la final (19 jul)",
+};
+
 export interface PrizePool {
   ticketsSold: number;
   totalUsd: number;

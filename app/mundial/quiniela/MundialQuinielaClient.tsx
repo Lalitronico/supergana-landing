@@ -5,19 +5,24 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { quinielaAsset } from "@/lib/config";
-import { STAGE_LABELS, STRIPE_PAYMENT_LINK, type Stage } from "@/lib/mundial/config";
+import {
+  eligibleStages,
+  STAGE_LABELS,
+  STRIPE_PAYMENT_LINK,
+  type Stage,
+} from "@/lib/mundial/config";
 import {
   MUNDIAL_TEAMS,
   QUARTERFINALS,
   SEMIFINALS,
-  ALIVE_TEAMS,
+  SEMIFINALISTS,
   teamById,
   type MundialTeamId,
 } from "@/lib/mundial/teams";
 import { mundialAnswersSchema, type MundialAnswers } from "@/lib/mundial/schema";
 import {
   FINAL_ENDINGS,
-  FINAL_STARS,
+  FINAL_STARS_ACTIVE,
   TOP_SCORER_CANDIDATES,
   finalEndingLabel,
   finalStarLabel,
@@ -71,7 +76,23 @@ const EMPTY_DRAFT: Draft = {
   finalEnding: null,
 };
 
-const STEPS = ["Tus datos", "Cuartos", "Semifinales", "Campeón"] as const;
+// Rolling campaign: the form only walks through the stages the ticket still
+// competes in, so a buyer after the cuartos lock never sees the cuartos step.
+type StepKey = "datos" | "cuartos" | "semis" | "campeon";
+
+const STEP_LABELS: Record<StepKey, string> = {
+  datos: "Tus datos",
+  cuartos: "Cuartos",
+  semis: "Semifinales",
+  campeon: "Campeón",
+};
+
+const stepsFor = (eligible: Stage[]): StepKey[] => [
+  "datos",
+  ...(eligible.includes("cuartos") ? (["cuartos"] as const) : []),
+  ...(eligible.includes("semis") ? (["semis"] as const) : []),
+  "campeon",
+];
 
 export function MundialQuinielaClient() {
   const params = useSearchParams();
@@ -97,7 +118,8 @@ export function MundialQuinielaClient() {
         state: "ready",
         ticket: "preview",
         email: null,
-        eligible: ["cuartos", "semis", "final"],
+        // Mirror production: preview exactly what a buyer today would see.
+        eligible: eligibleStages(new Date()),
       });
       return;
     }
@@ -148,18 +170,23 @@ export function MundialQuinielaClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const eligible: Stage[] = gate.state === "ready" ? gate.eligible : [];
+  const steps = useMemo(() => stepsFor(eligible), [eligible]);
+
   const answers: MundialAnswers | null = useMemo(() => {
+    // Only send the stages this ticket competes in; locked stages stay absent
+    // so nobody stores a fake "prediction" of a match already played.
+    const askCuartos = eligible.includes("cuartos");
+    const askSemis = eligible.includes("semis");
     const parsed = mundialAnswersSchema.safeParse({
-      qf1: draft.qf.qf1,
-      qf2: draft.qf.qf2,
-      qf3: draft.qf.qf3,
-      qf4: draft.qf.qf4,
-      sf1: draft.sf1,
-      sf2: draft.sf2,
+      ...(askCuartos
+        ? { qf1: draft.qf.qf1, qf2: draft.qf.qf2, qf3: draft.qf.qf3, qf4: draft.qf.qf4 }
+        : {}),
+      ...(askSemis ? { sf1: draft.sf1, sf2: draft.sf2 } : {}),
       champion: draft.champion,
       tiebreakers: {
-        cuartos: draft.tbCuartos,
-        semis: draft.tbSemis,
+        ...(askCuartos ? { cuartos: draft.tbCuartos } : {}),
+        ...(askSemis ? { semis: draft.tbSemis } : {}),
         final: draft.tbFinal,
       },
       topScorer: draft.topScorer,
@@ -167,10 +194,10 @@ export function MundialQuinielaClient() {
       finalEnding: draft.finalEnding,
     });
     return parsed.success ? parsed.data : null;
-  }, [draft]);
+  }, [draft, eligible]);
 
-  const stepValid = (i: number): boolean => {
-    if (i === 0) {
+  const stepValid = (key: StepKey): boolean => {
+    if (key === "datos") {
       return (
         draft.fullName.trim().length >= 2 &&
         /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(draft.email.trim()) &&
@@ -178,8 +205,8 @@ export function MundialQuinielaClient() {
         draft.acceptedRules
       );
     }
-    if (i === 1) return QUARTERFINALS.every((m) => draft.qf[m.id]);
-    if (i === 2) return Boolean(draft.sf1 && draft.sf2);
+    if (key === "cuartos") return QUARTERFINALS.every((m) => draft.qf[m.id]);
+    if (key === "semis") return Boolean(draft.sf1 && draft.sf2);
     return Boolean(draft.champion && answers);
   };
 
@@ -275,8 +302,8 @@ export function MundialQuinielaClient() {
             <EligibilityBanner eligible={gate.eligible} />
 
             <ol className="mt-8 flex gap-2">
-              {STEPS.map((label, i) => (
-                <li key={label} className="flex-1">
+              {steps.map((key, i) => (
+                <li key={key} className="flex-1">
                   <button
                     type="button"
                     onClick={() => i < step && setStep(i)}
@@ -284,17 +311,17 @@ export function MundialQuinielaClient() {
                       i === step ? "bg-yellow" : i < step ? "bg-green" : "bg-cream opacity-50"
                     }`}
                   >
-                    {i + 1}. {label}
+                    {i + 1}. {STEP_LABELS[key]}
                   </button>
                 </li>
               ))}
             </ol>
 
             <div className="mt-8">
-              {step === 0 ? <PasoDatos draft={draft} setDraft={setDraft} /> : null}
-              {step === 1 ? <PasoCuartos draft={draft} setDraft={setDraft} /> : null}
-              {step === 2 ? <PasoSemis draft={draft} setDraft={setDraft} /> : null}
-              {step === 3 ? (
+              {steps[step] === "datos" ? <PasoDatos draft={draft} setDraft={setDraft} /> : null}
+              {steps[step] === "cuartos" ? <PasoCuartos draft={draft} setDraft={setDraft} /> : null}
+              {steps[step] === "semis" ? <PasoSemis draft={draft} setDraft={setDraft} /> : null}
+              {steps[step] === "campeon" ? (
                 <PasoCampeon draft={draft} setDraft={setDraft} answers={answers} />
               ) : null}
             </div>
@@ -314,11 +341,11 @@ export function MundialQuinielaClient() {
               >
                 ← Atrás
               </button>
-              {step < STEPS.length - 1 ? (
+              {step < steps.length - 1 ? (
                 <button
                   type="button"
                   onClick={() => setStep((s) => s + 1)}
-                  disabled={!stepValid(step)}
+                  disabled={!stepValid(steps[step])}
                   className="btn-cartoon h-12 rounded-full bg-red px-6 font-bold text-cream disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Siguiente →
@@ -327,7 +354,7 @@ export function MundialQuinielaClient() {
                 <button
                   type="button"
                   onClick={submit}
-                  disabled={!stepValid(3) || submitting}
+                  disabled={!stepValid("campeon") || submitting}
                   className="btn-cartoon h-12 rounded-full bg-green px-6 font-bold disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {submitting ? "Enviando…" : "Confirmar y enviar 🏆"}
@@ -374,9 +401,10 @@ function EligibilityBanner({ eligible }: { eligible: Stage[] }) {
         <>Compites por los premios de las 3 etapas: cuartos, semifinales y final. 🔥</>
       ) : (
         <>
-          Las etapas ya iniciadas quedan fuera ({missed.map((s) => STAGE_LABELS[s]).join(", ")}),
-          pero aún compites en: {eligible.map((s) => STAGE_LABELS[s]).join(", ") || "ninguna"}.
-          Llena toda tu quiniela de todos modos.
+          {missed.map((s) => STAGE_LABELS[s]).join(" y ")}: esa etapa ya se jugó y queda
+          fuera. Tu quiniela compite por los premios de:{" "}
+          {eligible.map((s) => STAGE_LABELS[s]).join(" y ") || "ninguna"}. El formulario
+          solo te pregunta lo que sigue en juego. 🔥
         </>
       )}
     </div>
@@ -556,8 +584,7 @@ const TB_MATCH: Record<
   },
   semis: {
     title: "La Semifinal 2",
-    detail:
-      "La semifinal entre el ganador de Noruega-Inglaterra y el ganador de Argentina-Suiza.",
+    detail: "La semifinal entre Inglaterra y Argentina (Atlanta, mié 15 jul).",
     ordered: false,
   },
   final: {
@@ -711,7 +738,7 @@ function PasoCampeon({
       </p>
       <div className="cartoon-border cartoon-shadow rounded-2xl bg-cream p-5">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {ALIVE_TEAMS.map((teamId) => (
+          {SEMIFINALISTS.map((teamId) => (
             <TeamButton
               key={teamId}
               teamId={teamId}
@@ -778,7 +805,7 @@ function PasoCampeon({
           Una figura por selección; elige al jugador que crees que brillará en la final.
         </p>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {FINAL_STARS.map((p) => (
+          {FINAL_STARS_ACTIVE.map((p) => (
             <PlayerButton
               key={p.id}
               teamId={p.team}
@@ -801,12 +828,29 @@ function ResumenAnswers({ answers, title }: { answers: MundialAnswers; title: st
     return team ? `${team.flag} ${team.name}` : id;
   };
   const tb = answers.tiebreakers;
+  // Stages the entry didn't compete in have no answers — skip their rows.
   const rows: [string, string][] = [
-    ["Cuartos", [answers.qf1, answers.qf2, answers.qf3, answers.qf4].map(t).join(" · ")],
-    ["Finalistas", `${t(answers.sf1)} y ${t(answers.sf2)}`],
+    ...(answers.qf1 && answers.qf2 && answers.qf3 && answers.qf4
+      ? ([
+          ["Cuartos", [answers.qf1, answers.qf2, answers.qf3, answers.qf4].map(t).join(" · ")],
+        ] as [string, string][])
+      : []),
+    ...(answers.sf1 && answers.sf2
+      ? ([["Finalistas", `${t(answers.sf1)} y ${t(answers.sf2)}`]] as [string, string][])
+      : []),
     ["Campeón", t(answers.champion)],
-    ["Marcador Argentina-Suiza", `${tb.cuartos.home} – ${tb.cuartos.away}`],
-    ["Marcador Semifinal 2", `${tb.semis.home} – ${tb.semis.away}`],
+    ...(tb.cuartos
+      ? ([["Marcador Argentina-Suiza", `${tb.cuartos.home} – ${tb.cuartos.away}`]] as [
+          string,
+          string,
+        ][])
+      : []),
+    ...(tb.semis
+      ? ([["Marcador Semifinal 2", `${tb.semis.home} – ${tb.semis.away}`]] as [
+          string,
+          string,
+        ][])
+      : []),
     ["Marcador de la final", `${tb.final.home} – ${tb.final.away}`],
     ["¿Cómo termina la final?", finalEndingLabel(answers.finalEnding)],
     ["Goleador del torneo", topScorerLabel(answers.topScorer)],

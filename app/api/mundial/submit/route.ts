@@ -31,6 +31,22 @@ export async function POST(req: Request) {
     );
   }
 
+  // Rolling stages: the schema marks per-stage answers optional (the form
+  // skips stages already played), so enforce here that every stage still
+  // OPEN at submit time was answered.
+  const missingCuartos =
+    !isStageLocked("cuartos") &&
+    !(answers.qf1 && answers.qf2 && answers.qf3 && answers.qf4 && answers.tiebreakers.cuartos);
+  const missingSemis =
+    !isStageLocked("semis") &&
+    !(answers.sf1 && answers.sf2 && answers.tiebreakers.semis);
+  if (missingCuartos || missingSemis) {
+    return NextResponse.json(
+      { error: "Faltan respuestas de una etapa aún en juego. Revisa el formulario." },
+      { status: 400 },
+    );
+  }
+
   const db = supabaseAdmin();
   const { data: ticketRow, error: ticketError } = await db
     .from("mundial_tickets")

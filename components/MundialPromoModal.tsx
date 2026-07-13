@@ -11,7 +11,12 @@ import {
   type MouseEvent,
 } from "react";
 import { character, gen, quinielaAsset } from "@/lib/config";
-import { stageLockDate } from "@/lib/mundial/config";
+import {
+  remainingStages,
+  STAGE_DEADLINE_LABELS,
+  stageLockDate,
+  type Stage,
+} from "@/lib/mundial/config";
 
 // Promo popup for the Mundial x Rotary donation campaign. Same behavior as
 // the PSG-Arsenal promo: opens once per visitor (localStorage), collapses to
@@ -21,23 +26,45 @@ import { stageLockDate } from "@/lib/mundial/config";
 const STORAGE_KEY = "supergana:promo-modal:mundial-rotary:v1";
 const OPEN_DELAY_MS = 1200;
 
-const FEATURES = [
-  {
-    icon: "heart",
-    title: "75% ES DONATIVO",
-    body: "Tu boleto de $100 USD, a través del Rotary Club, apoya a las familias del terremoto en Venezuela.",
-  },
-  {
-    icon: "trophy",
-    title: "PREMIOS EN 3 ETAPAS",
-    body: "Cuartos, semifinales y final: tres oportunidades de ganar.",
-  },
-  {
-    icon: "phone",
-    title: "LLENA Y LISTO",
-    body: "Quiniela digital de 3 minutos, desde tu celular.",
-  },
-] as const;
+const STAGE_NAMES: Record<Stage, string> = {
+  cuartos: "cuartos",
+  semis: "semifinales",
+  final: "final",
+};
+
+const joinEs = (xs: string[]) =>
+  xs.length <= 1 ? (xs[0] ?? "") : `${xs.slice(0, -1).join(", ")} y ${xs[xs.length - 1]}`;
+
+// The prize pitch shrinks with the tournament: stages already played are
+// dropped so the popup never promises a prize a new buyer can't win.
+const featuresFor = (remaining: Stage[]) =>
+  [
+    {
+      icon: "heart",
+      title: "75% ES DONATIVO",
+      body: "Tu boleto de $100 USD, a través del Rotary Club, apoya a las familias del terremoto en Venezuela.",
+    },
+    {
+      icon: "trophy",
+      title:
+        remaining.length === 1
+          ? "PREMIO EN LA FINAL"
+          : `PREMIOS EN ${remaining.length} ETAPAS`,
+      body:
+        remaining.length === 1
+          ? "Acierta al campeón del Mundial y gana el premio de la final."
+          : (() => {
+              const lista = joinEs(remaining.map((s) => STAGE_NAMES[s]));
+              const cuenta = remaining.length === 2 ? "dos" : "tres";
+              return `${lista[0].toUpperCase()}${lista.slice(1)}: ${cuenta} oportunidades de ganar.`;
+            })(),
+    },
+    {
+      icon: "phone",
+      title: "LLENA Y LISTO",
+      body: "Quiniela digital de 3 minutos, desde tu celular.",
+    },
+  ] as const;
 
 const focusableSelector = [
   "a[href]",
@@ -55,6 +82,10 @@ export function MundialPromoModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [hasDismissed, setHasDismissed] = useState(false);
   const [campaignActive, setCampaignActive] = useState(false);
+  // Only read once the modal is client-rendered (campaignActive gates SSR),
+  // so the copy always reflects the stages still in play.
+  const remaining = remainingStages();
+  const features = featuresFor(remaining);
   const dialogRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -312,9 +343,10 @@ export function MundialPromoModal() {
                   className="mt-4 max-w-[32rem] text-balance text-base font-bold leading-snug text-ink sm:text-lg"
                 >
                   Dona $100 USD, llena tu quiniela de la fase final del Mundial
-                  y participa por premios en cuartos, semifinales y final. El
-                  verdadero premio es ayudar: lo recaudado apoya a las familias
-                  afectadas por el terremoto en Venezuela.
+                  y participa por premios en{" "}
+                  {joinEs(remaining.map((s) => STAGE_NAMES[s]))}. El verdadero
+                  premio es ayudar: lo recaudado apoya a las familias afectadas
+                  por el terremoto en Venezuela.
                 </p>
 
                 <div
@@ -361,7 +393,7 @@ export function MundialPromoModal() {
 
               <div className="relative grid gap-5">
                 <div className="grid gap-4 md:grid-cols-3">
-                  {FEATURES.map((feature) => (
+                  {features.map((feature) => (
                     <div
                       key={feature.title}
                       className="grid grid-cols-[3rem_1fr] gap-3 text-left md:grid-cols-1 md:justify-items-start"
@@ -394,8 +426,12 @@ export function MundialPromoModal() {
                     PARTICIPAR AHORA →
                   </a>
                   <p className="text-center text-sm font-bold text-cream/90 sm:text-base">
-                    Entra antes del primer partido de cuartos (9 jul) para
-                    competir por los premios de las 3 etapas.
+                    Entra antes {STAGE_DEADLINE_LABELS[remaining[0] ?? "final"]}{" "}
+                    para competir por{" "}
+                    {remaining.length === 1
+                      ? "el premio de la final"
+                      : `los premios de las ${remaining.length} etapas que quedan`}
+                    .
                   </p>
                 </div>
               </div>
@@ -407,7 +443,7 @@ export function MundialPromoModal() {
   );
 }
 
-function FeatureIcon({ name }: { name: (typeof FEATURES)[number]["icon"] }) {
+function FeatureIcon({ name }: { name: "heart" | "trophy" | "phone" }) {
   if (name === "heart") {
     return (
       <svg

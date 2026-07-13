@@ -268,11 +268,19 @@ function Participantes({ data }: { data: AdminData }) {
                   </td>
                   <td className="p-3 text-xs">
                     {a
-                      ? `QF: ${[a.qf1, a.qf2, a.qf3, a.qf4]
-                          .map((id) => teamById(id)?.flag ?? id)
-                          .join(" ")} · Finalistas: ${teamById(a.sf1)?.flag}${
-                          teamById(a.sf2)?.flag
-                        } · 🏆 ${teamById(a.champion)?.name}`
+                      ? [
+                          a.qf1 && a.qf2 && a.qf3 && a.qf4
+                            ? `QF: ${[a.qf1, a.qf2, a.qf3, a.qf4]
+                                .map((id) => teamById(id)?.flag ?? id)
+                                .join(" ")}`
+                            : null,
+                          a.sf1 && a.sf2
+                            ? `Finalistas: ${teamById(a.sf1)?.flag}${teamById(a.sf2)?.flag}`
+                            : null,
+                          `🏆 ${teamById(a.champion)?.name}`,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")
                       : ""}
                   </td>
                 </tr>

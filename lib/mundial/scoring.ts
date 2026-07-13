@@ -67,8 +67,16 @@ const stageHitters = (
   if (stage === "semis") {
     const resultReady = results.finalists.length === 2;
     const finalists = new Set(results.finalists);
+    // sf answers are optional (entries after the semis lock omit them); those
+    // entries are never semis-eligible anyway.
     const hitters = resultReady
-      ? eligible.filter((e) => finalists.has(e.answers.sf1) && finalists.has(e.answers.sf2))
+      ? eligible.filter(
+          (e) =>
+            e.answers.sf1 !== undefined &&
+            e.answers.sf2 !== undefined &&
+            finalists.has(e.answers.sf1) &&
+            finalists.has(e.answers.sf2),
+        )
       : [];
     return { hitters, resultReady };
   }
@@ -98,7 +106,12 @@ export function stageOutcome(
     const ordered = stage === "cuartos";
     const extras = results.final_extras ?? {};
     const ranked = hitters.map((e) => {
-      const distance = scoreDistance(e.answers.tiebreakers[stage], realScore, ordered);
+      // A hitter always answered this stage (eligibility implies the lock had
+      // not passed, so the form required it); the fallback is pure defense.
+      const predicted = e.answers.tiebreakers[stage];
+      const distance = predicted
+        ? scoreDistance(predicted, realScore, ordered)
+        : Number.MAX_SAFE_INTEGER;
       // The final has three deeper tiebreakers after the score: how it ended,
       // top scorer, final star. Each only counts if its real value is captured.
       // A single lexicographic key keeps score >> ending >> scorer >> star.

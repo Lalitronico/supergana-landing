@@ -7,7 +7,10 @@ import {
   CAMPAIGN,
   computePrizePool,
   formatUsd,
+  remainingStages,
+  STAGE_DEADLINE_LABELS,
   STRIPE_PAYMENT_LINK,
+  type Stage,
 } from "@/lib/mundial/config";
 
 // Pre-payment intro for the Mundial x Rotary quiniela. This is the page the
@@ -19,9 +22,18 @@ import {
 
 const example = computePrizePool(CAMPAIGN.goalMinTickets);
 
-const PREMIOS = [
+// One card per stage; the page only shows the stages still in play, so the
+// pitch stays honest as the tournament advances (cuartos → semis → final).
+const PREMIOS: {
+  stage: Stage;
+  tag: string;
+  body: string;
+  foot: string;
+  prize: number;
+  icon: string;
+}[] = [
   {
-    n: "1",
+    stage: "cuartos",
     tag: "Premio Cuartos",
     body: "Acierta los 4 equipos que avanzan a semifinales.",
     foot: "Desempate: el marcador del 4º partido de cuartos. Si nadie acierta los 4, el premio se junta para la final.",
@@ -29,7 +41,7 @@ const PREMIOS = [
     icon: "icon-trophy",
   },
   {
-    n: "2",
+    stage: "semis",
     tag: "Premio Semifinales",
     body: "Acierta los 2 equipos finalistas.",
     foot: "Desempate: el marcador de la semifinal. Si nadie acierta los 2, el premio se suma a la final.",
@@ -37,14 +49,43 @@ const PREMIOS = [
     icon: "icon-ball",
   },
   {
-    n: "3",
+    stage: "final",
     tag: "Premio Final",
     body: "Acierta al campeón del Mundial.",
     foot: "Desempate: el marcador de la final. Gana quien quede más cerca; si empatan también ahí, se divide.",
     prize: example.prizeByStage.final,
     icon: "icon-trophy",
   },
-] as const;
+];
+
+const STAGE_SHORT: Record<Stage, string> = {
+  cuartos: "Cuartos",
+  semis: "Semifinales",
+  final: "Final",
+};
+
+// With article, for prose ("los cuartos ya se jugaron").
+const STAGE_WITH_ARTICLE: Record<Stage, string> = {
+  cuartos: "los cuartos",
+  semis: "las semifinales",
+  final: "la final",
+};
+
+// How-it-works step per stage (rendered after the "dona y llena" step).
+const PASOS_ETAPA: Record<Stage, { t: string; b: string }> = {
+  cuartos: {
+    t: "Compite en cuartos",
+    b: "Acierta los 4 equipos que avanzan. Si empatas con alguien, gana quien quede más cerca en el marcador del 4º partido. Si nadie acierta los 4, el premio se junta para la final.",
+  },
+  semis: {
+    t: "Compite en semifinales",
+    b: "Acierta los 2 finalistas. El desempate es el marcador de la semifinal. Si nadie acierta los 2, el premio se suma a la final.",
+  },
+  final: {
+    t: "Compite por el título",
+    b: "Acierta al campeón del Mundial. Si varios lo aciertan, gana quien quede más cerca en el marcador de la final.",
+  },
+};
 
 function ParticiparButton({ className = "" }: { className?: string }) {
   return (
@@ -58,6 +99,12 @@ function ParticiparButton({ className = "" }: { className?: string }) {
 }
 
 export function QuinielaIntro() {
+  // Only rendered client-side (after the ticket gate resolves), so reading
+  // the clock here is hydration-safe.
+  const remaining = remainingStages();
+  const premios = PREMIOS.filter((p) => remaining.includes(p.stage));
+  const yaJugadas = PREMIOS.filter((p) => !remaining.includes(p.stage));
+
   return (
     <div className="bg-cream">
       {/* HERO — flyer-styled navy stadium */}
@@ -91,7 +138,7 @@ export function QuinielaIntro() {
               <span className="block text-yellow">Mundialista</span>
             </h1>
             <p className="mt-4 text-lg font-black uppercase tracking-[0.12em] text-cream/90">
-              Cuartos · Semifinales · Final
+              {remaining.map((s) => STAGE_SHORT[s]).join(" · ")}
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-4">
               <div className="cartoon-border rounded-2xl bg-yellow px-5 py-3 text-ink">
@@ -115,8 +162,8 @@ export function QuinielaIntro() {
               </a>
             </div>
             <p className="mt-5 text-sm font-medium text-cream/70">
-              75% donativo · 25% premios · Llena tu quiniela antes del arranque
-              de cuartos (9 jul)
+              75% donativo · 25% premios · Llena tu quiniela antes{" "}
+              {STAGE_DEADLINE_LABELS[remaining[0] ?? "final"]}
             </p>
           </div>
         </div>
@@ -163,17 +210,38 @@ export function QuinielaIntro() {
       <section id="como-funciona" className="border-b-[3px] border-ink bg-cream">
         <div className="mx-auto max-w-6xl px-5 py-16 md:px-8 md:py-20">
           <h2 className="font-display text-4xl md:text-5xl">
-            3 oportunidades de <span className="marker-yellow">ganar</span>
+            {premios.length === 1 ? (
+              <>
+                Última oportunidad de <span className="marker-yellow">ganar</span>
+              </>
+            ) : (
+              <>
+                {premios.length} oportunidades de{" "}
+                <span className="marker-yellow">ganar</span>
+              </>
+            )}
           </h2>
           <p className="mt-3 max-w-2xl text-lg">
-            Hay tres bolsas de premio y una misma persona puede ganar en más de
-            una etapa. En cada fase gana quien atina y queda más cerca en el
-            marcador del partido clave.
+            Cada etapa tiene su propia bolsa de premio y una misma persona puede
+            ganar en más de una. En cada fase gana quien atina y queda más cerca
+            en el marcador del partido clave.
           </p>
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            {PREMIOS.map((p) => (
+          {yaJugadas.length > 0 ? (
+            <p className="cartoon-border mt-4 inline-block rounded-2xl bg-yellow/40 px-4 py-2 text-sm font-bold">
+              {(() => {
+                const frase = yaJugadas
+                  .map((p) => STAGE_WITH_ARTICLE[p.stage])
+                  .join(" y ");
+                return `${frase[0].toUpperCase()}${frase.slice(1)} ya se jugaron: los boletos comprados ahora compiten por las etapas que faltan.`;
+              })()}
+            </p>
+          ) : null}
+          <div
+            className={`mt-10 grid gap-6 ${premios.length >= 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}
+          >
+            {premios.map((p, i) => (
               <div
-                key={p.n}
+                key={p.stage}
                 className="cartoon-border cartoon-shadow flex flex-col rounded-2xl bg-cream p-6"
               >
                 <div className="flex items-center gap-3">
@@ -182,7 +250,7 @@ export function QuinielaIntro() {
                   </span>
                   <div>
                     <p className="text-xs font-black uppercase opacity-60">
-                      Etapa {p.n}
+                      Etapa {i + 1}
                     </p>
                     <p className="font-display text-2xl leading-none">{p.tag}</p>
                   </div>
@@ -209,23 +277,14 @@ export function QuinielaIntro() {
               {
                 n: "1",
                 t: "Dona y llena tu quiniela",
-                b: "Tu boleto de $100 USD se paga con tarjeta de forma segura. Al confirmarse el pago llenas tu quiniela: cuartos, semifinales, campeón y un marcador de desempate por fase.",
+                b: `Tu boleto de $100 USD se paga con tarjeta de forma segura. Al confirmarse el pago llenas tu quiniela con las etapas en juego (${remaining
+                  .map((s) => STAGE_SHORT[s].toLowerCase())
+                  .join(", ")}) y un marcador de desempate por fase.`,
               },
-              {
-                n: "2",
-                t: "Compite en cuartos",
-                b: "Acierta los 4 equipos que avanzan. Si empatas con alguien, gana quien quede más cerca en el marcador del 4º partido. Si nadie acierta los 4, el premio se junta para la final.",
-              },
-              {
-                n: "3",
-                t: "Compite en semifinales",
-                b: "Acierta los 2 finalistas. El desempate es el marcador de la semifinal. Si nadie acierta los 2, el premio se suma a la final.",
-              },
-              {
-                n: "4",
-                t: "Compite por el título",
-                b: "Acierta al campeón del Mundial. Si varios lo aciertan, gana quien quede más cerca en el marcador de la final.",
-              },
+              ...remaining.map((stage, i) => ({
+                n: String(i + 2),
+                ...PASOS_ETAPA[stage],
+              })),
             ].map((s) => (
               <li
                 key={s.n}

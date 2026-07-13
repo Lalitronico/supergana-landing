@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { isAdminRequest } from "@/lib/mundial/adminAuth";
 import { computePrizePool } from "@/lib/mundial/config";
+import { isSoldTicket } from "@/lib/mundial/schema";
 
 export const runtime = "nodejs";
 
@@ -26,14 +27,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Error de base de datos" }, { status: 500 });
   }
 
-  const paid = (tickets.data ?? []).filter((t) => t.status === "paid");
-  const totalUsd = paid.reduce((sum, t) => sum + Number(t.amount_usd ?? 0), 0);
+  // The pool only counts tickets actually sold (filled quiniela, or paid via
+  // Stripe) — the 100 pre-minted physical tickets are all status='paid'.
+  const sold = (tickets.data ?? []).filter(isSoldTicket);
+  const totalUsd = sold.reduce((sum, t) => sum + Number(t.amount_usd ?? 0), 0);
 
   return NextResponse.json({
     tickets: tickets.data ?? [],
     entries: entries.data ?? [],
     results: results.data ?? null,
     winners: winners.data ?? [],
-    pool: computePrizePool(paid.length, totalUsd),
+    pool: computePrizePool(sold.length, totalUsd),
   });
 }

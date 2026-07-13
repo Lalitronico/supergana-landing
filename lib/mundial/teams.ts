@@ -98,18 +98,22 @@ export interface SemifinalSlot {
   candidates: MundialTeamId[];
 }
 
+// CONFIRMADO 2026-07-13 (resultados de cuartos capturados en el admin):
+// avanzan Francia, España, Inglaterra y Argentina.
+export const SEMIFINALISTS: MundialTeamId[] = ["fra", "esp", "eng", "arg"];
+
 export const SEMIFINALS: SemifinalSlot[] = [
   {
     id: "sf1",
     label: "Finalista del lado A",
-    detail: "Semifinal 1 · Dallas · Mar 14 jul — la juegan los ganadores de Francia-Marruecos y España-Bélgica",
-    candidates: ["fra", "mar", "esp", "bel"],
+    detail: "Semifinal 1 · Dallas · Mar 14 jul — Francia vs España",
+    candidates: ["fra", "esp"],
   },
   {
     id: "sf2",
     label: "Finalista del lado B",
-    detail: "Semifinal 2 · Atlanta · Mié 15 jul — la juegan los ganadores de Noruega-Inglaterra y del cuarto partido",
-    candidates: ["nor", "eng", QF4_HOME, QF4_AWAY],
+    detail: "Semifinal 2 · Atlanta · Mié 15 jul — Inglaterra vs Argentina",
+    candidates: ["eng", "arg"],
   },
 ];
 

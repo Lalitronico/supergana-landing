@@ -78,21 +78,32 @@ export async function sendEntryConfirmationEmail(
     const team = teamById(id);
     return team ? `${team.flag} ${team.name}` : id;
   };
-  const rows = [
-    ["Cuartos 1", t(answers.qf1)],
-    ["Cuartos 2", t(answers.qf2)],
-    ["Cuartos 3", t(answers.qf3)],
-    ["Cuartos 4", t(answers.qf4)],
-    ["Finalista lado A", t(answers.sf1)],
-    ["Finalista lado B", t(answers.sf2)],
+  const tb = answers.tiebreakers;
+  // Stages the entry didn't compete in were never asked — skip their rows.
+  const rows: [string, string][] = [
+    ...(answers.qf1 && answers.qf2 && answers.qf3 && answers.qf4 && tb.cuartos
+      ? ([
+          ["Cuartos 1", t(answers.qf1)],
+          ["Cuartos 2", t(answers.qf2)],
+          ["Cuartos 3", t(answers.qf3)],
+          ["Cuartos 4", t(answers.qf4)],
+          ["Marcador Argentina-Suiza", `${tb.cuartos.home} - ${tb.cuartos.away}`],
+        ] as [string, string][])
+      : []),
+    ...(answers.sf1 && answers.sf2 && tb.semis
+      ? ([
+          ["Finalista lado A", t(answers.sf1)],
+          ["Finalista lado B", t(answers.sf2)],
+          ["Marcador Semifinal 2", `${tb.semis.home} - ${tb.semis.away}`],
+        ] as [string, string][])
+      : []),
     ["Campeón", t(answers.champion)],
-    ["Marcador Argentina-Suiza", `${answers.tiebreakers.cuartos.home} - ${answers.tiebreakers.cuartos.away}`],
-    ["Marcador Semifinal 2", `${answers.tiebreakers.semis.home} - ${answers.tiebreakers.semis.away}`],
-    ["Marcador de la final", `${answers.tiebreakers.final.home} - ${answers.tiebreakers.final.away}`],
+    ["Marcador de la final", `${tb.final.home} - ${tb.final.away}`],
     ["¿Cómo termina la final?", finalEndingLabel(answers.finalEnding)],
     ["Goleador del torneo", topScorerLabel(answers.topScorer)],
     ["Estrella de la final", finalStarLabel(answers.finalStar)],
-  ]
+  ];
+  const rowsHtml = rows
     .map(
       ([label, value]) =>
         `<tr><td style="padding:6px 12px 6px 0; opacity:0.7;">${label}</td>
@@ -109,7 +120,7 @@ export async function sendEntryConfirmationEmail(
       <h1 style="font-size:24px; margin:0 0 12px;">¡Tu quiniela quedó registrada, ${fullName}!</h1>
       <p>Gracias por apoyar esta causa. Publicaremos los resultados por etapa
       conforme avance el Mundial. Este es el resumen de tus respuestas:</p>
-      <table style="margin:16px 0; font-size:15px;">${rows}</table>
+      <table style="margin:16px 0; font-size:15px;">${rowsHtml}</table>
       <p><strong>Etapas en las que compites:</strong> ${stages}.</p>
       <p style="font-size:14px;">Recuerda: después del envío ya no se pueden editar respuestas.
       El premio de cada etapa se divide entre todos los que atinen; las reglas

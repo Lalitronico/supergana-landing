@@ -4,7 +4,11 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { isAdminRequest } from "@/lib/mundial/adminAuth";
 import { computePrizePool, STAGES, type Stage } from "@/lib/mundial/config";
 import { stageOutcome } from "@/lib/mundial/scoring";
-import type { MundialEntryRow, MundialResultsRow } from "@/lib/mundial/schema";
+import {
+  isSoldTicket,
+  type MundialEntryRow,
+  type MundialResultsRow,
+} from "@/lib/mundial/schema";
 
 export const runtime = "nodejs";
 
@@ -59,7 +63,7 @@ export async function POST(req: NextRequest) {
   const [entriesRes, resultsRes, ticketsRes, savedWinnersRes] = await Promise.all([
     db.from("mundial_entries").select("*"),
     db.from("mundial_results").select("*").maybeSingle(),
-    db.from("mundial_tickets").select("amount_usd").eq("status", "paid"),
+    db.from("mundial_tickets").select("amount_usd, status, source, used_at"),
     db.from("mundial_winners").select("stage, payload, prize_usd"),
   ]);
 
@@ -88,11 +92,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const totalUsd = (ticketsRes.data ?? []).reduce(
-    (sum, t) => sum + Number(t.amount_usd ?? 0),
-    0,
-  );
-  const pool = computePrizePool(ticketsRes.data?.length ?? 0, totalUsd);
+  // Only tickets actually sold fund the pool (pre-minted physical tickets
+  // without a filled quiniela don't represent money received).
+  const sold = (ticketsRes.data ?? []).filter(isSoldTicket);
+  const totalUsd = sold.reduce((sum, t) => sum + Number(t.amount_usd ?? 0), 0);
+  const pool = computePrizePool(sold.length, totalUsd);
 
   // Rollover into the final: earlier stages already computed with zero hitters.
   let rolloverUsd = 0;

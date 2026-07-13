@@ -1,4 +1,4 @@
-import type { MundialTeamId } from "./teams";
+import { SEMIFINALISTS, type MundialTeamId } from "./teams";
 
 // Player data for the final's extra questions. Verified 2026-07-07 against
 // tournament coverage (Olympics/CNN goleadores + ESPN/El Tiempo team profiles):
@@ -40,6 +40,16 @@ export const TOP_SCORER_CANDIDATES: MundialPlayer[] = [
 
 export const TOP_SCORER_IDS = [...TOP_SCORER_CANDIDATES.map((p) => p.id), "otro"] as const;
 export const FINAL_STAR_IDS = FINAL_STARS.map((p) => p.id) as [string, ...string[]];
+
+// New entries only pick a final star whose team can still reach the final.
+// The full FINAL_STARS list stays for resolving labels of older entries.
+export const FINAL_STARS_ACTIVE = FINAL_STARS.filter((p) =>
+  SEMIFINALISTS.includes(p.team),
+);
+export const FINAL_STAR_ACTIVE_IDS = FINAL_STARS_ACTIVE.map((p) => p.id) as [
+  string,
+  ...string[],
+];
 
 export const FINAL_ENDINGS = [
   { id: "90", label: "En los 90 minutos" },

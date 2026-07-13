@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin, supabaseAdminConfigured } from "@/lib/supabase/server";
 import { computePrizePool } from "@/lib/mundial/config";
+import { isSoldTicket } from "@/lib/mundial/schema";
 
 export const runtime = "nodejs";
 // Public transparency numbers; refreshed at most once per minute.
@@ -14,10 +15,7 @@ export async function GET() {
 
   const db = supabaseAdmin();
   const [tickets, entries, winners] = await Promise.all([
-    db
-      .from("mundial_tickets")
-      .select("amount_usd", { count: "exact" })
-      .eq("status", "paid"),
+    db.from("mundial_tickets").select("amount_usd, status, source, used_at"),
     db.from("mundial_entries").select("id", { count: "exact", head: true }),
     db
       .from("mundial_winners")
@@ -30,13 +28,12 @@ export async function GET() {
     return NextResponse.json({ error: "Error de base de datos" }, { status: 500 });
   }
 
-  const totalUsd = (tickets.data ?? []).reduce(
-    (sum, t) => sum + Number(t.amount_usd ?? 0),
-    0,
-  );
+  // Pre-minted physical tickets don't count until their quiniela is filled.
+  const sold = (tickets.data ?? []).filter(isSoldTicket);
+  const totalUsd = sold.reduce((sum, t) => sum + Number(t.amount_usd ?? 0), 0);
 
   return NextResponse.json({
-    ...computePrizePool(tickets.count ?? 0, totalUsd),
+    ...computePrizePool(sold.length, totalUsd),
     entries: entries.count ?? 0,
     winners: winners.data ?? [],
   });

@@ -80,8 +80,10 @@ export async function GET(req: NextRequest) {
       a?.sf1 ?? "",
       a?.sf2 ?? "",
       a?.champion ?? "",
-      a ? `${a.tiebreakers.cuartos.home}-${a.tiebreakers.cuartos.away}` : "",
-      a ? `${a.tiebreakers.semis.home}-${a.tiebreakers.semis.away}` : "",
+      a?.tiebreakers.cuartos
+        ? `${a.tiebreakers.cuartos.home}-${a.tiebreakers.cuartos.away}`
+        : "",
+      a?.tiebreakers.semis ? `${a.tiebreakers.semis.home}-${a.tiebreakers.semis.away}` : "",
       a ? `${a.tiebreakers.final.home}-${a.tiebreakers.final.away}` : "",
       a ? finalEndingLabel(a.finalEnding) : "",
       a ? topScorerLabel(a.topScorer) : "",
