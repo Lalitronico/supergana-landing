@@ -47,16 +47,19 @@ const featuresFor = (remaining: Stage[]) =>
     {
       icon: "trophy",
       title:
-        remaining.length === 1
+        remaining.length <= 1
           ? "PREMIO EN LA FINAL"
           : `PREMIOS EN ${remaining.length} ETAPAS`,
       body:
-        remaining.length === 1
+        // `<= 1` (not `=== 1`) so an empty `remaining` — every stage already
+        // locked, e.g. after the campaign ends — takes this safe branch
+        // instead of the IIFE, whose `lista[0]` would be undefined and crash.
+        remaining.length <= 1
           ? "Acierta al campeón del Mundial y gana el premio de la final."
           : (() => {
               const lista = joinEs(remaining.map((s) => STAGE_NAMES[s]));
               const cuenta = remaining.length === 2 ? "dos" : "tres";
-              return `${lista[0].toUpperCase()}${lista.slice(1)}: ${cuenta} oportunidades de ganar.`;
+              return `${lista.charAt(0).toUpperCase()}${lista.slice(1)}: ${cuenta} oportunidades de ganar.`;
             })(),
     },
     {
