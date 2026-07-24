@@ -1,7 +1,15 @@
 # Módulo Quinielas — plan de implementación
 
-*Escrito 2026-07-24, al cerrar la landing v2. Punto de partida para la sesión
-que construya el módulo.*
+> **DIFERIDO (2026-07-24).** La prioridad pasó a **Carrera de Tickets** — ver
+> `MODULO_CARRERA_TICKETS_PLAN.md`. Razón: Novamex es el cliente cercano y ese
+> módulo necesita infraestructura real, no un demo.
+>
+> Ojo con una diferencia importante: aquí se recomienda demo primero y backend
+> después, porque el módulo de quinielas no tiene demo. Carrera de Tickets sí
+> lo tiene (participante y consola), así que ahí el orden se invierte. No
+> extrapolar la recomendación de un documento al otro.
+
+*Escrito 2026-07-24, al cerrar la landing v2.*
 
 ## Qué es
 
