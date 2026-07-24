@@ -5,6 +5,7 @@
   --color-ink: #0A0A0A;
   --color-yellow: #FFD93D;
   --color-yellow-deep: #F5C211;
+  --color-yellow-hover: #FFE98A;
   --color-red: #FF4757;
   --color-red-deep: #E63946;
   --color-blue: #1E90FF;
@@ -16,13 +17,18 @@
   --font-display: var(--font-bricolage);
   --font-body: var(--font-inter);
 
+  --shadow-cartoon-sm: 3px 3px 0 0 #0A0A0A;
   --shadow-cartoon: 4px 4px 0 0 #0A0A0A;
+  --shadow-cartoon-md: 6px 6px 0 0 #0A0A0A;
   --shadow-cartoon-lg: 8px 8px 0 0 #0A0A0A;
   --shadow-cartoon-xl: 12px 12px 0 0 #0A0A0A;
 
   --animate-bob: bob 4s ease-in-out infinite;
   --animate-bob-slow: bob 6s ease-in-out infinite;
+  --animate-bob2: bob2 5s ease-in-out infinite;
+  --animate-bob3: bob3 6s ease-in-out infinite;
   --animate-marquee: marquee 30s linear infinite;
+  --animate-cascade: cascade 13s linear infinite;
   --animate-spin-slow: spin 12s linear infinite;
 }
 
@@ -31,14 +37,59 @@
   50% { transform: translateY(-12px); }
 }
 
+/* bob2/bob3 bake a rotation into the keyframes so a floating element can be
+   both tilted and bobbing — a plain `rotate` utility would be overwritten by
+   the animation's transform. */
+@keyframes bob2 {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-10px) rotate(-3deg); }
+}
+
+@keyframes bob3 {
+  0%, 100% { transform: translateY(0) rotate(2deg); }
+  50% { transform: translateY(-14px) rotate(2deg); }
+}
+
 @keyframes marquee {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
 
+@keyframes cascade {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+
 @keyframes twinkle {
   0%, 100% { opacity: 0.45; }
   50% { opacity: 1; }
+}
+
+/* Global animation kill switch. `data-anim="off"` on any ancestor stops
+   everything below it; the media query honours the OS-level setting. */
+[data-anim="off"] * {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* The navbar is fixed and ~72px tall, so an anchored section would otherwise
+   land with its heading hidden underneath it. */
+:target {
+  scroll-margin-top: 110px;
 }
 
 html, body {
@@ -51,9 +102,35 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* The marquee band is rotated and scaled past the viewport edge, and several
+   characters are positioned with negative offsets — intentional bleeds that
+   would otherwise open a horizontal scrollbar.
+   `clip` rather than `hidden`: hidden turns the element into a scroll
+   container, which hijacks wheel events and breaks position:sticky inside. */
+html, body {
+  overflow-x: clip;
+}
+
 ::selection {
   background: var(--color-yellow);
   color: var(--color-ink);
+}
+
+p {
+  text-wrap: pretty;
+}
+
+/* Opt-in link colour. Deliberately NOT a global `a` rule: the existing
+   /mundial and /q/[slug] campaign pages style their own links and inherit
+   colour from ink/coloured backgrounds, so a global override would repaint
+   them blue. */
+.link-blue {
+  color: var(--color-blue-deep);
+  text-decoration: none;
+}
+
+.link-blue:hover {
+  color: var(--color-blue);
 }
 
 .font-display {
@@ -94,6 +171,71 @@ body {
   box-shadow: 1px 1px 0 0 var(--color-ink);
 }
 
+/* Size/colour modifiers live here rather than as Tailwind shadow utilities:
+   these rules are unlayered, and unlayered CSS beats anything Tailwind emits
+   inside @layer utilities — so a `shadow-*` class could never override them. */
+.btn-cartoon-lg {
+  box-shadow: var(--shadow-cartoon-md);
+}
+
+.btn-cartoon-lg:hover {
+  box-shadow: var(--shadow-cartoon-lg);
+}
+
+.btn-cartoon-lg:active {
+  box-shadow: 1px 1px 0 0 var(--color-ink);
+}
+
+/* Ink buttons sit on the yellow band, where an ink shadow is invisible. */
+.btn-cartoon-oncream {
+  box-shadow: 6px 6px 0 0 var(--color-cream);
+}
+
+.btn-cartoon-oncream:hover {
+  box-shadow: 8px 8px 0 0 var(--color-cream);
+}
+
+.btn-cartoon-oncream:active {
+  box-shadow: 1px 1px 0 0 var(--color-cream);
+}
+
+/* The hero's product mock has a fixed intrinsic height (~410px) that no amount
+   of clamping the surrounding spacing can absorb on a short laptop screen.
+   `zoom` shrinks its layout box — unlike `transform: scale`, which would leave
+   the original height reserved and defeat the point. */
+@media (max-height: 700px) {
+  .hero-mock { zoom: 0.88; }
+}
+
+/* Same lever for the module carousel card: clamping the surrounding spacing
+   can only do so much when the card's own contents have a fixed height. */
+@media (max-height: 760px) {
+  .modulo-frame { zoom: 0.92; }
+}
+
+@media (max-height: 700px) {
+  .modulo-frame { zoom: 0.86; }
+}
+
+@media (max-height: 620px) {
+  .modulo-frame { zoom: 0.78; }
+}
+
+@media (max-height: 620px) {
+  .hero-mock { zoom: 0.76; }
+
+  /* Below this the text column, not the mock, is what overflows. Tighten the
+     supporting copy so the headline and CTA still land above the fold. */
+  .hero-copy {
+    font-size: 15px;
+    line-height: 1.45;
+  }
+
+  .hero-micro {
+    font-size: 12px;
+  }
+}
+
 .marker-yellow {
   background-image: linear-gradient(
     transparent 58%,
@@ -104,4 +246,35 @@ body {
   padding: 0 0.12em;
   -webkit-box-decoration-break: clone;
   box-decoration-break: clone;
+}
+
+/* On the ink band the highlighter gradient has nothing to contrast against,
+   so the keyword becomes a solid yellow block instead. */
+.marker-block {
+  display: inline-block;
+  background: var(--color-yellow);
+  color: var(--color-ink);
+  padding: 0 0.14em;
+  border-radius: 6px;
+  transform: rotate(-1deg);
+}
+
+/* Faint 45deg pinstripe section background, faded to cream top and bottom so
+   the section melts into its neighbours instead of ending on a hard edge. */
+.section-stripes {
+  background:
+    linear-gradient(
+      to bottom,
+      var(--color-cream) 0,
+      rgba(250, 247, 240, 0) 130px,
+      rgba(250, 247, 240, 0) calc(100% - 150px),
+      var(--color-cream) 100%
+    ),
+    repeating-linear-gradient(
+      45deg,
+      var(--color-cream) 0,
+      var(--color-cream) 18px,
+      rgba(10, 10, 10, 0.028) 18px,
+      rgba(10, 10, 10, 0.028) 20px
+    );
 }

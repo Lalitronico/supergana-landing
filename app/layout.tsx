@@ -16,34 +16,38 @@ const inter = Inter({
   display: "swap",
 });
 
+const TITLE = "Supergana — Tu marca, hecha juego";
+const DESCRIPTION =
+  "Experiencias gamificadas white-label para marketing, RH y lealtad: quinielas, carrera de tickets y tienda de puntos con tu identidad y premios reales en +200 países. Nosotros la montamos y la operamos.";
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://supergana.mx"),
-  title: "Supergana — Quinielas listas para tu marca",
-  description:
-    "Activa una quiniela de fútbol para tu marca en días, no semanas. Kit completo: link público, dinámica, copys, visuales y métricas. Sin configurar nada.",
+  // supergana.fun is the live domain — the .mx that used to sit here was never
+  // provisioned, which silently broke every absolute OG/Twitter image URL.
+  metadataBase: new URL("https://supergana.fun"),
+  title: TITLE,
+  description: DESCRIPTION,
   keywords: [
-    "quinielas para marcas",
-    "quiniela mundial",
-    "campañas deportivas",
-    "marketing fútbol",
-    "engagement redes sociales",
+    "experiencias gamificadas",
+    "gamificación para marcas",
+    "plataforma white label",
     "activación de marca",
-    "quinielas as a service",
+    "programa de lealtad",
+    "quinielas para empresas",
+    "engagement recursos humanos",
+    "premios multi país",
   ],
   authors: [{ name: "Supergana" }],
   openGraph: {
-    title: "Supergana — Quinielas listas para tu marca",
-    description:
-      "Tu marca aprovecha el momento deportivo sin pelearse con plataformas. Te entregamos la campaña lista.",
+    title: TITLE,
+    description: DESCRIPTION,
     type: "website",
     locale: "es_MX",
     siteName: "Supergana",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Supergana — Quinielas listas para tu marca",
-    description:
-      "Tu marca aprovecha el momento deportivo sin pelearse con plataformas. Te entregamos la campaña lista.",
+    title: TITLE,
+    description: DESCRIPTION,
   },
   robots: { index: true, follow: true },
 };

@@ -54,7 +54,10 @@ async function processOne(name) {
   }
 
   // Backup once, then always operate on original input to keep deterministic.
+  // `name` may include a subdirectory (e.g. "landing-v2/con-ticket"), so the
+  // mirrored path under _originals needs its parent created first.
   if (!(await exists(backupPath))) {
+    await ensureDir(path.dirname(backupPath));
     await fs.copyFile(filePath, backupPath);
   }
 

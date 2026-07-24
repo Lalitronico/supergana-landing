@@ -1,10 +1,14 @@
 export const SITE = {
   name: "Supergana",
-  tagline: "Quinielas listas para tu marca",
-  bookingCalLink: "supergana",
+  tagline: "Experiencias gamificadas para marcas",
+  // Point at the event type, not the profile. `supergana` alone renders Cal's
+  // account page — an avatar and a list of meeting lengths — instead of a
+  // calendar, which is what the embed is for.
+  bookingCalLink: "supergana/30min",
   bookingNamespace: "demo",
-  bookingUrl: "https://cal.com/supergana",
-  contactEmail: "hola@supergana.mx",
+  bookingUrl: "https://cal.com/supergana/30min",
+  // supergana.fun is the live domain; the .mx address was never provisioned.
+  contactEmail: "juega@supergana.fun",
   whatsapp: "https://wa.me/521000000000",
   social: {
     instagram: "https://instagram.com/supergana",
@@ -36,6 +40,13 @@ export const quinielaCharacter = (name: string) =>
 // independently of the landing's v3 generated set.
 export const premioAsset = (name: string) =>
   asset(`/generated/${PREMIO_ASSET_DIR}/${name}.png`);
+
+// Character poses illustrated for the v2 landing (Codex / GPT Image 2). Kept
+// apart from /characters so the seven base characters are never touched.
+const LANDING_ASSET_DIR = "landing-v2";
+
+export const landingAsset = (name: string) =>
+  asset(`/generated/${LANDING_ASSET_DIR}/${name}.png`);
 
 // Mundial x Rotary campaign art (Codex) lives in its own versioned folder.
 const MUNDIAL_ASSET_DIR = "mundial-v1";

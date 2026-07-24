@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const dynamic = "force-static";
-export const alt = "Supergana — Quinielas listas para tu marca";
+export const alt = "Supergana — Tu marca, hecha juego";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -42,7 +42,7 @@ export default function OpengraphImage() {
             maxWidth: 980,
           }}
         >
-          La quiniela que tu marca necesita. Lista en días.
+          Tu marca, hecha juego.
         </div>
 
         <div
@@ -54,8 +54,8 @@ export default function OpengraphImage() {
             maxWidth: 900,
           }}
         >
-          Activación llave en mano para Mundial, finales y clásicos. Sin
-          plataforma, sin formularios.
+          Experiencias gamificadas con tu identidad y premios reales en +200
+          países. Nosotros la montamos y la operamos.
         </div>
       </div>
     ),
