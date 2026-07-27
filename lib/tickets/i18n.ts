@@ -153,6 +153,8 @@ const es = {
   errEmail: "Escribe un email válido.",
   errCode: "El código no es correcto o ya venció. Pide uno nuevo.",
   errTooManyCodes: "Pediste códigos muy seguido. Espera un minuto y vuelve a intentar.",
+  errMailBudget:
+    "Ahora mismo no podemos enviarte el código. No es tu culpa: ya avisamos al equipo. Intenta de nuevo más tarde.",
   errRequired: "Completa los campos obligatorios.",
   errZip: "El ZIP debe tener 5 dígitos.",
   errConsents: "Debes confirmar tu edad y aceptar las reglas para continuar.",
@@ -301,6 +303,8 @@ const en: Dict = {
   errEmail: "Enter a valid email address.",
   errCode: "That code is wrong or expired. Request a new one.",
   errTooManyCodes: "You've requested codes too quickly. Wait a minute and try again.",
+  errMailBudget:
+    "We can't send your code right now. This isn't your fault — the team has been notified. Please try again later.",
   errRequired: "Please fill in the required fields.",
   errZip: "ZIP must be 5 digits.",
   errConsents: "You must confirm your age and accept the rules to continue.",

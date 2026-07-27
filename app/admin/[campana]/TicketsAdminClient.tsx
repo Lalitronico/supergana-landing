@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { isRateLimited, supabaseBrowser } from "@/lib/supabase/browser";
+import { authThrottleKind, supabaseBrowser } from "@/lib/supabase/browser";
 import { formatUsdCents } from "@/lib/tickets/config";
 import { canPayout, canReview } from "@/lib/tickets/roles";
 import { PAYOUT_TRANSITIONS } from "@/lib/tickets/payouts";
@@ -248,13 +248,20 @@ function SignInGate({ onSignedIn }: { onSignedIn: () => void }) {
     });
     setBusy(false);
     if (authError) {
-      // Never surface gotrue's raw English string. Throttling gets its own copy
-      // because it is what a reviewer hits when several people sign in at once;
-      // everything else collapses into the note already under the form.
+      // Never surface gotrue's raw English string. The project-wide cap gets
+      // its own copy because a reviewer locked out of the console during a
+      // launch needs to know it is the budget, not their email — that is the
+      // difference between calling the operator and retyping their address.
+      const throttle = authThrottleKind(authError);
+      if (throttle === "project") {
+        console.error("[tickets admin] project email budget exhausted", authError.message);
+      }
       return setError(
-        isRateLimited(authError)
+        throttle === "cooldown"
           ? "Pediste códigos muy seguido. Espera un minuto y vuelve a intentar."
-          : "No pudimos enviar el código. Revisa el email e intenta de nuevo.",
+          : throttle === "project"
+            ? "El proyecto agotó su cuota de correos de esta hora. Es configuración, no tu cuenta: hay que revisar el SMTP."
+            : "No pudimos enviar el código. Revisa el email e intenta de nuevo.",
       );
     }
     setStep("code");

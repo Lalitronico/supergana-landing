@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { isRateLimited, supabaseBrowser } from "@/lib/supabase/browser";
+import { authThrottleKind, supabaseBrowser } from "@/lib/supabase/browser";
 import { useTickets } from "../TicketsShell";
 
 /**
@@ -52,9 +52,23 @@ export default function SignInPage() {
     if (authError) {
       // Supabase's messages are English-only and unlocalisable, and this is a
       // bilingual campaign — passing one through would show English to someone
-      // who chose Spanish. Rate limiting is the one worth naming: it is both
-      // the most common failure and the only one the person can act on.
-      setError(t(isRateLimited(authError) ? "errTooManyCodes" : "errGeneric"));
+      // who chose Spanish.
+      const throttle = authThrottleKind(authError);
+      if (throttle === "project") {
+        // The project's hourly email budget is gone: every other participant
+        // arriving right now is locked out too. That is an operational
+        // incident, not a user mistake, so it goes to the log as one.
+        console.error("[tickets auth] project email budget exhausted", authError.message);
+      }
+      setError(
+        t(
+          throttle === "cooldown"
+            ? "errTooManyCodes"
+            : throttle === "project"
+              ? "errMailBudget"
+              : "errGeneric",
+        ),
+      );
       return;
     }
     setStep("code");
