@@ -13,6 +13,7 @@
     "@google/genai": "^1.52.0",
     "@hookform/resolvers": "^5.2.2",
     "@imgly/background-removal-node": "^1.4.5",
+    "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.105.4",
     "framer-motion": "^12.38.0",
     "html-to-image": "^1.11.13",
