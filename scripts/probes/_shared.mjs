@@ -64,11 +64,18 @@ export const signedInAs = async (email) => {
  * Deletes every auth account whose address matches, plus everything hanging
  * off it. Probes create accounts freely; without this the project accumulates
  * users that look real in a console screenshot.
+ *
+ * Storage goes first and deliberately: the objects are keyed by auth uid, so
+ * deleting the account first strands them under a folder no longer traceable
+ * to anyone. An earlier version skipped this and left `probe-victim.jpg` and
+ * friends in the bucket — the orphan sweep found them, which is a fine way to
+ * learn it works and a poor way to keep a bucket tidy.
  */
 export const purgeAccounts = async (matcher) => {
   const db = admin();
   const { data: list } = await db.auth.admin.listUsers({ perPage: 1000 });
   const doomed = (list?.users ?? []).filter((u) => matcher(u.email ?? ""));
+  if (doomed.length) await purgeObjects(doomed.map((u) => u.id));
   for (const user of doomed) {
     const { data: parts } = await db.from("participants")
       .select("id, campaign_id").eq("auth_user_id", user.id);
