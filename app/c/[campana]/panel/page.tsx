@@ -48,6 +48,14 @@ export default function PanelPage() {
   });
   const day = (iso: string) => dateFmt.format(new Date(iso));
 
+  // Store and eligible spend only exist after a reviewer has typed them, so a
+  // receipt that was rejected or bounced back has neither. Returns an empty
+  // string in that case and the caller drops the line entirely.
+  const detailOf = (receipt: MeReceipt) =>
+    [receipt.store_name, receipt.eligible_cents != null ? money(receipt.eligible_cents) : null]
+      .filter(Boolean)
+      .join(" · ");
+
   const reward = me.rewards.find((r) => r.status !== "canceled") ?? null;
   const open = me.receipts.find(
     (r: MeReceipt) => r.status === "received" || r.status === "in_review",
@@ -115,15 +123,12 @@ export default function PanelPage() {
               <div className="tk-hist-item" key={receipt.id}>
                 <div className="meta">
                   <b>{t("pnReceiptOn", { date: day(receipt.submitted_at) })}</b>
-                  <span>
-                    {receipt.store_name ??
-                      (receipt.eligible_cents != null
-                        ? money(receipt.eligible_cents)
-                        : t("stReceived"))}
-                    {receipt.eligible_cents != null && receipt.store_name
-                      ? ` · ${money(receipt.eligible_cents)}`
-                      : ""}
-                  </span>
+                  {/* What was on the receipt, once a reviewer has read it —
+                      never the status. The pill beside this already carries the
+                      status, and falling back to a status word here printed
+                      "Recibido" next to a RECHAZADO pill. Nothing is better
+                      than a contradiction. */}
+                  {detailOf(receipt) && <span>{detailOf(receipt)}</span>}
                   {receipt.reject_reason && (
                     <span>{t("pnRejected", { reason: receipt.reject_reason })}</span>
                   )}
