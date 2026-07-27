@@ -149,10 +149,17 @@ from public.campaigns c, auth.users u
 where c.slug = 'ticket-al-tanque' and u.email = 'tu-correo@…';
 ```
 
-Para crear la cuenta y sacar el código de acceso en un solo paso está el script
-del scratchpad de la sesión (`grant-admin.js`): usa
-`auth.admin.createUser` + `generateLink`, que devuelve el mismo OTP que habría
-ido por correo. Vale la pena moverlo a `scripts/` si va a usarse seguido.
+Para crear la cuenta y sacar el código en un solo paso está `scripts/tickets-otp.mjs`:
+
+```
+node scripts/tickets-otp.mjs alguien@correo.com --admin ticket-al-tanque
+```
+
+Usa `auth.admin.createUser` + `generateLink`, que devuelve el mismo OTP que
+habría ido por correo, sin enviar nada. Sin `--admin` sirve igual para dar de
+alta a un participante de prueba. **Vive en el repo a propósito**: la primera
+versión murió en el scratchpad de la sesión que lo escribió, y sin él no hay
+forma de entrar mientras el SMTP siga pendiente.
 
 ### d) La campaña está en `draft`
 
@@ -246,16 +253,52 @@ Cinco bugs reales salieron de estas pasadas y quedaron corregidos:
    `app/auth/HashSession.tsx` es la otra mitad: lee el fragmento, entrega los
    tokens al cliente de navegador y recarga sobre una URL limpia.
 
+**Verificado el circuito del participante (navegador, 2026-07-27):**
+
+Esto era el hueco de la entrega y ya está cerrado. Una cuenta nueva recorrió
+todo el camino sin atajos: entrar → perfil → consentimientos → foto → cola.
+
+- **Entrada real.** `signInWithOtp` desde `/entrar/` fue aceptado por Supabase y
+  la pantalla avanzó sola al paso del código. El código de 8 dígitos verificó y
+  creó sesión en cookies, que es lo que después leen las rutas de servidor.
+- **Los gates encadenan solos.** Al entrar, `/subir/` vio que la cuenta no tenía
+  perfil y mandó a `/registro/`; al guardar, regresó a `/subir/`.
+- **Consentimientos.** Marketing quedó **sin marcar** a propósito: se escribieron
+  las tres filas con `accepted` true/true/false y la versión de reglas. El log
+  guarda el "no" explícito, que es más defendible que no guardar nada.
+  `household_key` salió `vega|79915` — normalizado, como lo espera la aprobación.
+- **La subida no pasa por la API.** El navegador escribió directo al bucket en
+  `ticket-al-tanque/<auth-uid>/<uuid>.jpg`, que es la única forma que la política
+  de storage deja escribir a esa cuenta. El servidor bajó el objeto y lo hasheó:
+  el sha256 que quedó en `receipts.image_hash` es idéntico al del archivo local.
+- **El bucket sigue cerrado.** La URL pública del mismo objeto da **400**; el
+  enlace firmado da **200** con los 49,391 bytes exactos.
+- **Cierra el circuito.** El ticket apareció en la cola de revisión como
+  *Marisol Vega · 79915 · RECIBIDO*, con la imagen servida por enlace firmado y
+  el hogar visible para el revisor.
+
+De paso quedaron verificados dos fixes de la sesión anterior: los montos se
+imprimen `$10`/`$20` en español, y la consola distingue bien el `403` — con la
+sesión de la participante viva contestó *"tu sesión es válida, pero tu cuenta no
+está en la lista de operación"*, no una pantalla de login.
+
+**Un bug nuevo, corregido y verificado:** las dos pantallas de entrada hacían
+`setError(authError.message)`, o sea imprimían el string de gotrue tal cual.
+El rate limit del emisor integrado salió **en inglés** en una campaña bilingüe
+para El Paso. Ahora `isRateLimited()` (en `lib/supabase/browser.ts`) lo traduce
+y cualquier otro error cae en el mensaje genérico ya traducido; el string crudo
+del proveedor no vuelve a llegar a pantalla.
+
 **No verificado todavía:**
 
-- Ningún correo se envió: no hay `RESEND_API_KEY` en local, así que los cinco
-  avisos de estado siguen sin probarse contra Resend.
-- El OTP por correo de punta a punta: depende del SMTP y de la plantilla de la
-  sección 2b. La sesión de esta prueba se creó con `generateLink` y la service
-  role, que es el camino de operación, no el del participante.
-- El lado del participante con sesión: registro, consentimientos y subida real
-  al bucket desde el navegador. **Es lo que falta probar**, y con eso se cierra
-  el circuito completo.
+- Ningún correo se envió: no hay `RESEND_API_KEY` en local. El gate sí quedó
+  probado — el log dice `RESEND_API_KEY missing — skipped "Recibimos tu ticket"`
+  y el ticket se guardó igual, que es exactamente lo que debe pasar.
+- El OTP **llegando por correo**. Que Supabase acepte la petición ya está
+  probado; lo que falta es SMTP propio y `{{ .Token }}` en la plantilla. Y esto
+  dejó de ser teórico: la prueba se topó con
+  *"you can only request this after 20 seconds"* con **una sola persona**
+  entrando. Es la sección 2b y es lo que se cae el primer día del piloto.
 
 ---
 
@@ -293,3 +336,9 @@ Sembrado como placeholder y marcado como tal en la migración:
 - **El correo de "recompensa enviada" se dispara al marcar `sent`.** Con entrega
   manual eso depende de que el operador marque el estado después de enviar de
   verdad, no antes.
+- **Hay datos de prueba en la campaña real.** Cuatro participantes (los tres
+  sembrados el 24-jul y `prueba.participante@supergana.fun` del 27), cuatro
+  tickets, una recompensa en `reserved` y una imagen en el bucket. Sirven para
+  enseñar la consola con algo dentro, pero **hay que purgarlos antes de abrir a
+  gente real**, junto con las cuentas en `auth.users` — si no, el primer reporte
+  de conciliación que vea Novamex trae cuatro personas que no existen.

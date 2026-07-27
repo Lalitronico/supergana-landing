@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabaseBrowser } from "@/lib/supabase/browser";
+import { isRateLimited, supabaseBrowser } from "@/lib/supabase/browser";
 import { useTickets } from "../TicketsShell";
 
 /**
@@ -50,7 +50,11 @@ export default function SignInPage() {
     });
     setBusy(false);
     if (authError) {
-      setError(authError.message);
+      // Supabase's messages are English-only and unlocalisable, and this is a
+      // bilingual campaign — passing one through would show English to someone
+      // who chose Spanish. Rate limiting is the one worth naming: it is both
+      // the most common failure and the only one the person can act on.
+      setError(t(isRateLimited(authError) ? "errTooManyCodes" : "errGeneric"));
       return;
     }
     setStep("code");
