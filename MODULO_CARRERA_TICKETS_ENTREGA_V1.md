@@ -302,6 +302,53 @@ del proveedor no vuelve a llegar a pantalla.
 
 ---
 
+## 4 bis. Pasada de endurecimiento (2026-07-27)
+
+Se atacó la infraestructura en vez de leerla. Los scripts están en `tmp/` y
+sirven como pruebas de regresión: `probe-security.mjs`, `probe-tenant.mjs`,
+`probe-concurrency.mjs`, `probe-storage-abuse.mjs`.
+
+**Aislamiento entre participantes — 41 pruebas, todas pasaron.** Con una sesión
+real de participante, atacando PostgREST y Storage directo, sin pasar por la
+app: `anon` no lee ninguna tabla; un participante ve **solo su propia fila** y
+no encuentra a otro ni buscándolo por id; no puede escribir en ninguna tabla —
+ni su propio perfil, ni aprobarse un ticket, ni regalarse una recompensa, ni
+darse un asiento de admin; no baja la imagen de otro; no borra la suya.
+
+**La ruta del dinero.** `tickets_approve_receipt` y `tickets_review_receipt`
+dan `permission denied` a `anon` y a `authenticated`. Verificado con la firma
+real de 8 argumentos y con un control de `service_role` que sí ejecuta: el
+rechazo es de permisos, no de aridad. *(El primer intento pasó los argumentos
+mal y "function not found" se leyó como denegación — un pase vacío.)*
+
+**Aislamiento entre marcas.** Se levantó un segundo tenant real. Un revisor con
+asiento en una campaña recibe `403` en la consola de la otra y `404` al apuntar
+las rutas de dinero al ticket ajeno desde su propio slug. Control: el mismo
+cuerpo contra un ticket propio devuelve `200`.
+
+**Concurrencia del dinero — 7 carreras, todas correctas.** Aprobaciones
+simultáneas de verdad, contra una campaña desechable con topes diminutos:
+
+| Carrera | Resultado |
+|---|---|
+| 6 aprobaciones del mismo ticket | 1 recompensa · 5 `bad_status` |
+| 8 con cupo semanal 3 | exactamente 3 · 5 `weekly_quota` |
+| 7 con fondo para 2 | gastó 4000 de 4500, **sin sobregiro** |
+| 6 con 2 slots | exactamente 2 |
+| 3 cuentas del mismo hogar | 1 sola · 2 `household_limit` |
+| 2 tickets del mismo participante | 1 sola |
+| El mismo ticket físico por 2 personas | 1 sola · `duplicate_receipt` |
+
+**Storage.** Traversal bloqueado, tope de 10 MB aplicado y el allowlist de MIME
+rechaza `text/html` — no hay XSS almacenado por subida. Se encontró y se cerró
+un hueco: la política fijaba solo el segmento del uid, así que cualquiera podía
+escribir bajo el prefijo de otra marca (migraciones 0008 y 0009).
+
+**Flujos que la v1 nunca había recorrido**, ahora sí: imagen nueva con el motivo
+del revisor a la vista, re-subida con archivo distinto aceptada, misma imagen
+rechazada como duplicado **y sin dejar objeto huérfano** (4 objetos, 4 filas),
+y rechazo con su motivo en el panel. De ahí salió un bug de copy, corregido.
+
 ## 5. Lo que sigue pendiente con Novamex
 
 Sembrado como placeholder y marcado como tal en la migración:
