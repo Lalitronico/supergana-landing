@@ -12,7 +12,11 @@ export function MundoPropio() {
     // Striped rather than plain cream: this sits between the ink prizes band
     // and "Operamos todo", and three flat cream sections in a row read as one
     // undifferentiated block.
-    <section className="section-stripes relative px-6 pb-[90px] pt-[110px] text-center">
+    // Tight bottom padding: the promo's colour band now opens directly below,
+    // so this padding is no longer breathing room — it is the distance between
+    // the lineup's feet and the zigzag teeth. At the old 90px the characters
+    // read as floating above an unexplained gap.
+    <section className="section-stripes relative px-6 pb-[44px] pt-[110px] text-center">
       <Pill tone="pink" shadow rotate={-1} className="mb-[22px]">
         Único en la categoría
       </Pill>

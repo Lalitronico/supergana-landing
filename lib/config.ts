@@ -48,6 +48,15 @@ const LANDING_ASSET_DIR = "landing-v2";
 export const landingAsset = (name: string) =>
   asset(`/generated/${LANDING_ASSET_DIR}/${name}.png`);
 
+// Promo video + its poster frame. Versioned like the image folders: replacing
+// an .mp4 in place leaves the old file in Vercel's CDN cache and in browsers
+// that already streamed it, so a new cut ships as v2 rather than an overwrite.
+const PROMO_ASSET_DIR = "v1";
+
+/** Takes the full filename — this folder mixes .mp4 and .jpg. */
+export const promoAsset = (file: string) =>
+  asset(`/video/${PROMO_ASSET_DIR}/${file}`);
+
 // Mundial x Rotary campaign art (Codex) lives in its own versioned folder.
 const MUNDIAL_ASSET_DIR = "mundial-v1";
 
