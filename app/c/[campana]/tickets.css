@@ -49,10 +49,22 @@
 }
 
 @media (max-width: 860px) {
+  /* The document itself must never scroll on a phone. iOS rubber-bands the
+     body when a drag lands outside the scrollable middle, and 100dvh
+     re-measures as Safari's toolbars collapse — together they made the bottom
+     nav ride away from the bottom. Fixing the shell to the viewport and
+     locking the body leaves .tk-screen as the only thing that moves.
+     :has() scopes the lock to pages that actually render the module. */
+  body:has(.tk-app) {
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
   .tk-app { padding: 0; }
   .tk-phone {
-    width: 100%;
-    height: 100dvh;
+    position: fixed;
+    inset: 0;
+    width: auto;
+    height: auto;
     max-height: none;
     border: none;
     border-radius: 0;
