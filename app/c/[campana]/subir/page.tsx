@@ -82,6 +82,19 @@ export default function UploadPage() {
     choose(chosen);
   };
 
+  // crypto.randomUUID only exists in secure contexts. The real-phone pass
+  // runs over plain http on the LAN, where it is undefined and the throw
+  // surfaced as a fake "check your connection". getRandomValues exists
+  // everywhere; RFC 4122 v4 by hand is four lines.
+  const uuid = (): string => {
+    if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
+    const b = crypto.getRandomValues(new Uint8Array(16));
+    b[6] = (b[6] & 0x0f) | 0x40;
+    b[8] = (b[8] & 0x3f) | 0x80;
+    const h = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+    return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+  };
+
   const submit = async () => {
     if (!file) return;
     setBusy(true);
@@ -100,7 +113,7 @@ export default function UploadPage() {
       // second segment against auth.uid(), so this is the only shape that can
       // be written by this account.
       const ext = EXTENSION[file.type] ?? "jpg";
-      const path = `${campaign.slug}/${auth.user.id}/${crypto.randomUUID()}.${ext}`;
+      const path = `${campaign.slug}/${auth.user.id}/${uuid()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from(RECEIPTS_BUCKET)
