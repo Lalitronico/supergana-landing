@@ -49,6 +49,22 @@ export interface CampaignConfig {
   showGrandPrize: boolean;
   /** Illustrative brand chips for the home screen. NOT the validation catalogue. */
   brands: Brand[];
+  /** Points earned per eligible dollar. Must mirror the RPC's default. */
+  pointsPerDollar: number;
+  /**
+   * Accumulation prizes: reached by points threshold, no chance anywhere.
+   * This is the legal line that keeps the campaign out of lottery territory —
+   * a prize in this list may never be raffled among top scorers.
+   */
+  prizes: Prize[];
+}
+
+export interface Prize {
+  /** Stable key: future redemption ledger entries will reference it. */
+  id: string;
+  points: number;
+  nameEs: string;
+  nameEn: string;
 }
 
 export interface Campaign {
@@ -78,6 +94,8 @@ const DEFAULTS: CampaignConfig = {
   rulesUrl: null,
   showGrandPrize: false,
   brands: [],
+  pointsPerDollar: 10,
+  prizes: [],
 };
 
 const asInt = (value: unknown, fallback: number): number => {
@@ -87,6 +105,25 @@ const asInt = (value: unknown, fallback: number): number => {
 
 const asStringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : [];
+
+const asPrizes = (value: unknown): Prize[] =>
+  Array.isArray(value)
+    ? value
+        .flatMap((entry) => {
+          if (!entry || typeof entry !== "object") return [];
+          const e = entry as Record<string, unknown>;
+          const points = asInt(e.points, 0);
+          if (typeof e.id !== "string" || points <= 0) return [];
+          const nameEs = typeof e.name_es === "string" ? e.name_es : null;
+          const nameEn = typeof e.name_en === "string" ? e.name_en : null;
+          // A prize missing either language is dropped whole: showing a
+          // Spanish prize name on the English screen is the exact failure the
+          // Dict type prevents for UI copy, so config gets the same bar.
+          if (!nameEs || !nameEn) return [];
+          return [{ id: e.id, points, nameEs, nameEn }];
+        })
+        .sort((a, b) => a.points - b.points)
+    : [];
 
 const asBrands = (value: unknown): Brand[] =>
   Array.isArray(value)
@@ -118,6 +155,8 @@ export const parseCampaignConfig = (raw: unknown): CampaignConfig => {
     rulesUrl: typeof c.rules_url === "string" ? c.rules_url : null,
     showGrandPrize: c.show_grand_prize === true,
     brands: asBrands(c.brands),
+    pointsPerDollar: asInt(c.points_per_dollar, DEFAULTS.pointsPerDollar),
+    prizes: asPrizes(c.prizes),
   };
 };
 
@@ -141,6 +180,8 @@ export interface PublicCampaign {
   showGrandPrize: boolean;
   rulesUrl: string | null;
   rulesVersion: string;
+  pointsPerDollar: number;
+  prizes: Prize[];
 }
 
 export const toPublicCampaign = (campaign: Campaign): PublicCampaign => ({
@@ -158,6 +199,8 @@ export const toPublicCampaign = (campaign: Campaign): PublicCampaign => ({
   showGrandPrize: campaign.config.showGrandPrize,
   rulesUrl: campaign.config.rulesUrl,
   rulesVersion: campaign.config.rulesVersion,
+  pointsPerDollar: campaign.config.pointsPerDollar,
+  prizes: campaign.config.prizes,
 });
 
 // ---------------------------------------------------------------------------

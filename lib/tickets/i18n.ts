@@ -98,6 +98,19 @@ const es = {
   rsDone: "Listo, tu contraseña quedó guardada.",
   pnChangePw: "Cambiar mi contraseña",
 
+  // ---- points & prizes ----------------------------------------------------
+  ptsTitle: "Mis puntos",
+  ptsUnit: "puntos",
+  ptsRate: "Ganas {rate} puntos por cada dólar elegible de tus tickets aprobados.",
+  ptsNext: "Te faltan {points} puntos para: {prize}",
+  ptsAllDone: "Alcanzaste todos los premios del catálogo. 🏆",
+  ptsEmpty: "Sube un ticket y empieza a sumar puntos con cada compra aprobada.",
+  przTitle: "Premios por puntos",
+  przUnlocked: "¡Alcanzado!",
+  przAt: "{points} pts",
+  przNote:
+    "Premios de acumulación: se alcanzan por puntos, sin sorteos. Canje con el equipo de la promoción.",
+
   // ---- email verification -------------------------------------------------
   veTitle: "Confirma tu correo",
   veBody:
@@ -303,6 +316,18 @@ const en: Dict = {
   rsSaving: "Saving…",
   rsDone: "Done — your password is saved.",
   pnChangePw: "Change my password",
+
+  ptsTitle: "My points",
+  ptsUnit: "points",
+  ptsRate: "You earn {rate} points per eligible dollar on approved receipts.",
+  ptsNext: "{points} points to go for: {prize}",
+  ptsAllDone: "You've reached every prize in the catalog. 🏆",
+  ptsEmpty: "Upload a receipt and start earning points with every approved purchase.",
+  przTitle: "Prizes by points",
+  przUnlocked: "Reached!",
+  przAt: "{points} pts",
+  przNote:
+    "Accumulation prizes: reached by points, no drawings involved. Redeem with the promotion team.",
 
   veTitle: "Confirm your email",
   veBody:

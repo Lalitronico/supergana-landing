@@ -28,6 +28,75 @@ const REWARD_PILL: Record<RewardStatus, string> = {
 };
 
 /**
+ * The progress panel: balance, distance to the next prize, and the catalog.
+ * Accumulation only — a prize here is reached, never raffled. That wording is
+ * load-bearing (see the v2 brief's legal frame), not marketing copy.
+ */
+function PointsCard({ points }: { points: number }) {
+  const { campaign, locale, t, base } = useTickets();
+  const prizes = campaign.prizes;
+  const prizeName = (p: (typeof prizes)[number]) => (locale === "es" ? p.nameEs : p.nameEn);
+  const next = prizes.find((p) => p.points > points) ?? null;
+  const pct = next ? Math.min(100, Math.round((points / next.points) * 100)) : 100;
+
+  return (
+    <div className="tk-card">
+      <div className="tk-eyebrow">{t("ptsTitle")}</div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
+        <span className="tk-amount" style={{ fontSize: 40 }}>{points}</span>
+        <b style={{ fontFamily: "var(--tk-display)", fontSize: 14 }}>{t("ptsUnit")}</b>
+      </div>
+
+      {points === 0 && (
+        <p className="tk-foot" style={{ marginTop: 8 }}>{t("ptsEmpty")}</p>
+      )}
+
+      {prizes.length > 0 && (
+        <>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+            <div className="tk-quota-track">
+              <div className="tk-quota-fill" style={{ width: `${pct}%` }} />
+            </div>
+            <b style={{ fontFamily: "var(--tk-display)", fontSize: 13, whiteSpace: "nowrap" }}>
+              {pct}%
+            </b>
+          </div>
+          <p className="tk-foot" style={{ marginTop: 8 }}>
+            {next
+              ? t("ptsNext", { points: next.points - points, prize: prizeName(next) })
+              : t("ptsAllDone")}
+          </p>
+
+          <div className="tk-hist" style={{ marginTop: 12 }}>
+            {prizes.map((prize) => (
+              <div className="tk-hist-item" key={prize.id}>
+                <div className="meta">
+                  <b>{prizeName(prize)}</b>
+                  <span>{t("przAt", { points: prize.points })}</span>
+                </div>
+                {points >= prize.points && (
+                  <span className="tk-pill ok">{t("przUnlocked")}</span>
+                )}
+              </div>
+            ))}
+          </div>
+          <p className="tk-foot" style={{ marginTop: 10 }}>{t("przNote")}</p>
+        </>
+      )}
+
+      <p className="tk-foot" style={{ marginTop: 8 }}>
+        {t("ptsRate", { rate: campaign.pointsPerDollar })}
+      </p>
+      {points === 0 && (
+        <Link href={`${base}subir/`} className="tk-btn sm" style={{ marginTop: 12 }}>
+          {t("pnEmptyCta")} →
+        </Link>
+      )}
+    </div>
+  );
+}
+
+/**
  * Shown while a reward exists but the address it pays out to is unproven.
  * This is the wall the sign-up flow deliberately doesn't have: it stands
  * exactly where the participant has $20 waiting behind it.
@@ -198,6 +267,8 @@ export default function PanelPage() {
           </p>
         </div>
       </div>
+
+      <PointsCard points={me.points} />
 
       {reward && me.participant && !me.participant.emailVerified && (
         <VerifyEmailCard
