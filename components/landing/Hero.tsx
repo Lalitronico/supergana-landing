@@ -1,7 +1,10 @@
 import { CartoonButton } from "@/components/ui/CartoonButton";
 import { Character } from "@/components/ui/Character";
 import { Pill } from "@/components/ui/Pill";
+import type { LandingCopy } from "@/lib/i18n";
 import Link from "next/link";
+
+type HeroCopy = LandingCopy["hero"];
 
 /** Decorative speed bars bleeding off the left and right edges. */
 function SpeedBars({ side }: { side: "left" | "right" }) {
@@ -31,35 +34,35 @@ function SpeedBars({ side }: { side: "left" | "right" }) {
 }
 
 /** The tilted in-product screenshot that anchors the right half of the hero. */
-function CampaignMock() {
+function CampaignMock({ copy }: { copy: HeroCopy["mock"] }) {
   return (
     <div className="hero-mock relative ml-[60px] mr-10 mt-[clamp(32px,6vh,76px)] rotate-2 overflow-hidden rounded-[22px] border-[3px] border-ink bg-cream shadow-cartoon-xl">
       <div className="flex items-center justify-between bg-ink px-[18px] py-3 text-cream">
         <span className="font-display text-sm tracking-[0.04em]">
-          CAMPAÑA · TU MARCA
+          {copy.header}
         </span>
         <span className="rounded-full border-2 border-cream bg-red px-2.5 py-[3px] text-[11px] font-extrabold">
-          ● EN VIVO
+          {copy.live}
         </span>
       </div>
 
       <div className="p-[22px]">
         <div className="mb-3 inline-block rounded-full border-[3px] border-ink px-3 py-1 text-[11px] font-extrabold tracking-[0.08em]">
-          RETO 3 · SEMANA 2
+          {copy.badge}
         </div>
         <p className="font-display mb-4 text-[22px] tracking-[-0.01em]">
-          ¿Quién gana el clásico del viernes?
+          {copy.question}
         </p>
 
         <div className="mb-[18px] grid gap-2.5">
           <div className="flex items-center justify-between rounded-[14px] border-[3px] border-ink bg-yellow px-3.5 py-2.5 text-[15px] font-bold">
-            <span>Locales</span>
+            <span>{copy.optionHome}</span>
             <span className="rounded-full bg-ink px-2.5 py-0.5 text-xs font-extrabold text-yellow">
               +10
             </span>
           </div>
           <div className="flex items-center justify-between rounded-[14px] border-[3px] border-ink bg-cream px-3.5 py-2.5 text-[15px] font-bold">
-            <span>Visitantes</span>
+            <span>{copy.optionAway}</span>
             <span className="rounded-full bg-ink px-2.5 py-0.5 text-xs font-extrabold text-cream">
               +8
             </span>
@@ -76,14 +79,14 @@ function CampaignMock() {
         </div>
 
         <div className="rounded-[14px] border-[3px] border-ink bg-yellow p-3 text-center text-base font-extrabold shadow-cartoon">
-          Enviar predicción
+          {copy.cta}
         </div>
       </div>
     </div>
   );
 }
 
-export function Hero() {
+export function Hero({ copy }: { copy: HeroCopy }) {
   return (
     // min-h-svh + centring makes the hero own exactly one screen, so the whole
     // proposition is legible on arrival instead of asking for a small scroll.
@@ -97,36 +100,35 @@ export function Hero() {
       <div className="relative mx-auto flex w-full max-w-[1100px] flex-wrap items-center gap-x-14 gap-y-8 px-6 pb-[clamp(40px,7vh,90px)] pt-[clamp(104px,15vh,150px)]">
         <div className="min-w-[300px] flex-[1_1_480px]">
           <Pill shadow rotate={-1} className="mb-[clamp(14px,2.5vh,28px)]">
-            Experiencias gamificadas para marcas
+            {copy.pill}
           </Pill>
 
           {/* Sized against viewport HEIGHT as well as width: on a short laptop
               screen a width-only clamp keeps the 96px maximum and spills the
               headline onto three lines, which alone is 294px of hero. */}
           <h1 className="font-display m-0 mb-[clamp(14px,2.5vh,26px)] text-[clamp(44px,min(8.5vw,10.5vh),96px)] leading-[1.02]">
-            Tu marca, <span className="marker-yellow">hecha juego.</span>
+            {copy.titleLead}{" "}
+            <span className="marker-yellow">{copy.titleMark}</span>
           </h1>
 
           <p className="hero-copy mb-[clamp(20px,3.5vh,34px)] max-w-[560px] text-[clamp(16px,2vw,20px)] leading-[1.55]">
-            Supergana convierte tus campañas de marketing, RH y lealtad en
-            experiencias gamificadas con tu identidad — y con premios reales en
-            más de 200 países. Lista en días, no meses.
+            {copy.body}
           </p>
 
           <div className="mb-[clamp(10px,1.6vh,16px)] flex flex-wrap items-center gap-[18px]">
             <CartoonButton href="#demo" size="lg">
-              Agenda tu demo
+              {copy.cta}
             </CartoonButton>
             <Link
               href="#modulos"
               className="border-b-[3px] border-ink pb-0.5 text-[17px] font-bold text-ink transition-colors hover:border-red-deep hover:text-red-deep"
             >
-              Ver los módulos ↓
+              {copy.secondary}
             </Link>
           </div>
 
           <p className="hero-micro m-0 text-sm font-semibold opacity-65">
-            Sin licencias, sin curva de aprendizaje: nosotros la operamos por ti.
+            {copy.micro}
           </p>
         </div>
 
@@ -136,7 +138,7 @@ export function Hero() {
             <div className="relative">
               <Character pose="celebrando" size={150} bob="bob2" duration={5} />
               <div className="font-display absolute -top-1.5 right-[-108px] whitespace-nowrap rounded-[14px] border-[3px] border-ink bg-cream px-3.5 py-[7px] text-sm shadow-[3px_3px_0_0_var(--color-ink)] rotate-[4deg]">
-                ¡Juguemos!
+                {copy.bubble}
               </div>
             </div>
           </div>
@@ -148,7 +150,7 @@ export function Hero() {
             <Character pose="conTrofeo" size={124} bob="bob3" duration={6} delay={0.8} />
           </div>
 
-          <CampaignMock />
+          <CampaignMock copy={copy.mock} />
         </div>
       </div>
     </header>

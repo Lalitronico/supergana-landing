@@ -1,40 +1,23 @@
 import { Character } from "@/components/ui/Character";
 import { Pill } from "@/components/ui/Pill";
+import type { LandingCopy } from "@/lib/i18n";
 
-const STEPS = [
-  {
-    n: 1,
-    title: "Elige tu dinámica",
-    body: "Quiniela, carrera de tickets, tienda de puntos — o cuéntanos tu idea.",
-    badge: "DÍA 1",
-    tone: "bg-yellow text-ink",
-    badgeTone: "bg-yellow text-ink",
-    rotate: -1.5,
-    badgeRotate: 2,
-  },
-  {
-    n: 2,
-    title: "La vestimos con tu marca",
-    body: "Tus colores, tu logo, tu tono. La experiencia se siente 100% tuya.",
-    badge: "DÍAS 2–4",
-    tone: "bg-blue text-cream",
-    badgeTone: "bg-blue text-cream",
-    rotate: 1,
-    badgeRotate: -2,
-  },
-  {
-    n: 3,
-    title: "Tu gente juega y gana",
-    body: "Participan desde cualquier dispositivo y los premios llegan solos. Tú ves los resultados en tu dashboard.",
-    badge: "¡EN VIVO!",
-    tone: "bg-pink text-ink",
-    badgeTone: "bg-pink text-ink",
-    rotate: -0.8,
-    badgeRotate: 2,
-  },
+// Only the presentation of each step lives here — the copy comes from the
+// dictionary and is zipped in by index. Splitting them this way keeps the
+// hand-made rotations and the colour rhythm out of the translator's way.
+const STEP_STYLES = [
+  { tone: "bg-yellow text-ink", rotate: -1.5, badgeRotate: 2 },
+  { tone: "bg-blue text-cream", rotate: 1, badgeRotate: -2 },
+  { tone: "bg-pink text-ink", rotate: -0.8, badgeRotate: 2 },
 ];
 
-export function ComoFunciona() {
+export function ComoFunciona({ copy }: { copy: LandingCopy["comoFunciona"] }) {
+  const steps = copy.steps.map((step, i) => ({
+    ...step,
+    ...STEP_STYLES[i],
+    n: i + 1,
+  }));
+
   return (
     <section
       id="como-funciona"
@@ -46,12 +29,13 @@ export function ComoFunciona() {
         <div className="mb-16 flex flex-wrap items-end justify-between gap-6">
           <div className="-mb-[30px] w-full">
             <Pill tone="ink" bordered={false} rotate={-1}>
-              El proceso
+              {copy.pill}
             </Pill>
           </div>
 
           <h2 className="font-display m-0 max-w-[640px] text-[clamp(34px,5.5vw,58px)] leading-[1.06]">
-            De brief a campaña viva <span className="marker-yellow">en días</span>
+            {copy.titleLead}{" "}
+            <span className="marker-yellow">{copy.titleMark}</span>
           </h2>
 
           <Character
@@ -64,14 +48,14 @@ export function ComoFunciona() {
         </div>
 
         <div className="grid grid-cols-[repeat(auto-fit,minmax(270px,1fr))] gap-[34px]">
-          {STEPS.map((step) => (
+          {steps.map((step) => (
             <div
               key={step.n}
               className="relative rounded-[20px] border-[3px] border-ink bg-cream p-[30px] shadow-cartoon-lg"
               style={{ transform: `rotate(${step.rotate}deg)` }}
             >
               <div
-                className={`absolute -top-5 right-[22px] rounded-[10px] border-[3px] border-ink px-3 py-1 text-xs font-extrabold tracking-[0.08em] shadow-[3px_3px_0_0_var(--color-ink)] ${step.badgeTone}`}
+                className={`absolute -top-5 right-[22px] rounded-[10px] border-[3px] border-ink px-3 py-1 text-xs font-extrabold tracking-[0.08em] shadow-[3px_3px_0_0_var(--color-ink)] ${step.tone}`}
                 style={{ transform: `rotate(${step.badgeRotate}deg)` }}
               >
                 {step.badge}

@@ -1,24 +1,33 @@
 import { ZigzagEdge } from "@/components/ui/ZigzagEdge";
+import type { LandingCopy } from "@/lib/i18n";
 
-const CARDS = [
-  { kind: "GIFT CARD", label: "[ LOGO MARCA ]", tone: "bg-yellow text-ink", rotate: -2 },
-  { kind: "CASH", label: "TRANSFERENCIA", tone: "bg-green text-ink", rotate: 1.5 },
-  { kind: "GIFT CARD", label: "[ LOGO MARCA ]", tone: "bg-pink text-ink", rotate: -1 },
-  { kind: "EXPERIENCIA", label: "[ LOGO MARCA ]", tone: "bg-blue text-cream", rotate: 2 },
-  { kind: "PREPAGADA", label: "[ LOGO MARCA ]", tone: "bg-cream text-ink", rotate: -1.5 },
-  { kind: "DONACIÓN", label: "[ CAUSA ]", tone: "bg-red text-cream", rotate: 1 },
-  { kind: "GIFT CARD", label: "[ LOGO MARCA ]", tone: "bg-yellow text-ink", rotate: -2 },
+type PremiosCopy = LandingCopy["premios"];
+
+// The cascade's seven cards, as (kind, label) keys into the dictionary. Keys
+// rather than strings so the falling deck translates with everything else —
+// `[ LOGO MARCA ]` and `[ CAUSA ]` are DashedSlot-style white-label holes and
+// read as gibberish to an English visitor.
+const CARDS: {
+  kind: keyof PremiosCopy["cascade"];
+  label: keyof PremiosCopy["cascade"];
+  tone: string;
+  rotate: number;
+}[] = [
+  { kind: "giftCard", label: "brandLogoSlot", tone: "bg-yellow text-ink", rotate: -2 },
+  { kind: "cash", label: "transferLabel", tone: "bg-green text-ink", rotate: 1.5 },
+  { kind: "giftCard", label: "brandLogoSlot", tone: "bg-pink text-ink", rotate: -1 },
+  { kind: "experience", label: "brandLogoSlot", tone: "bg-blue text-cream", rotate: 2 },
+  { kind: "prepaid", label: "brandLogoSlot", tone: "bg-cream text-ink", rotate: -1.5 },
+  { kind: "donation", label: "causeSlot", tone: "bg-red text-cream", rotate: 1 },
+  { kind: "giftCard", label: "brandLogoSlot", tone: "bg-yellow text-ink", rotate: -2 },
 ];
 
-const PAYOUT_OPTIONS = [
-  { icon: "🎁", name: "Gift card", meta: "+2,000 MARCAS", chosen: false },
-  { icon: "💵", name: "Cash directo", meta: "✓ ELEGIDO", chosen: true },
-  { icon: "💳", name: "Prepagada", meta: "VIRTUAL O FÍSICA", chosen: false },
-  { icon: "❤️", name: "Donación", meta: "ELIGE CAUSA", chosen: false },
-];
+const PAYOUT_ICONS = ["🎁", "💵", "💳", "❤️"];
+/** Index of the option rendered as already selected. */
+const PAYOUT_CHOSEN = 1;
 
 /** One column of the endlessly falling reward cards behind the phone. */
-function CascadeColumn() {
+function CascadeColumn({ copy }: { copy: PremiosCopy["cascade"] }) {
   return (
     <div className="flex flex-col gap-4">
       {CARDS.map((card, i) => (
@@ -28,9 +37,11 @@ function CascadeColumn() {
           style={{ transform: `rotate(${card.rotate}deg)` }}
         >
           <p className="m-0 text-[8px] font-extrabold tracking-[0.12em] opacity-60">
-            {card.kind}
+            {copy[card.kind]}
           </p>
-          <p className="m-0 mt-[5px] font-mono text-[10px] font-bold">{card.label}</p>
+          <p className="m-0 mt-[5px] font-mono text-[10px] font-bold">
+            {copy[card.label]}
+          </p>
         </div>
       ))}
     </div>
@@ -38,7 +49,7 @@ function CascadeColumn() {
 }
 
 /** The phone mock that sits on top of the cascade. */
-function PayoutPhone() {
+function PayoutPhone({ copy }: { copy: PremiosCopy["phone"] }) {
   return (
     <div className="w-[290px] rotate-2 rounded-[44px] border-[3px] border-cream bg-ink p-2.5 shadow-[12px_12px_0_0_var(--color-yellow-deep)]">
       <div className="overflow-hidden rounded-[34px] bg-cream">
@@ -47,42 +58,45 @@ function PayoutPhone() {
             <div className="h-[7px] w-[84px] rounded-full bg-cream opacity-25" />
           </div>
           <div className="flex items-center justify-between text-[11px] font-extrabold tracking-[0.06em] text-cream">
-            <span>TU MARCA · PREMIOS</span>
+            <span>{copy.header}</span>
             <span className="rounded-full bg-yellow px-2.5 py-[3px] text-ink">
-              1,250 pts
+              {copy.points}
             </span>
           </div>
         </div>
 
         <div className="border-b-[3px] border-ink bg-yellow px-4 py-3">
-          <p className="font-display m-0 text-base">🎉 ¡Tienes un payout!</p>
+          <p className="font-display m-0 text-base">{copy.payoutTitle}</p>
           <p className="m-0 mt-0.5 text-[11px] font-semibold opacity-70">
-            Por participar. Elige cómo cobrarlo:
+            {copy.payoutSub}
           </p>
         </div>
 
         <div className="grid gap-2 p-3.5">
-          {PAYOUT_OPTIONS.map((opt) => (
-            <div
-              key={opt.name}
-              className={`flex items-center justify-between rounded-xl border-[3px] border-ink px-3 py-[9px] text-[13px] ${
-                opt.chosen
-                  ? "bg-yellow font-extrabold shadow-[3px_3px_0_0_var(--color-ink)]"
-                  : "bg-cream font-bold"
-              }`}
-            >
-              <span>
-                {opt.icon} {opt.name}
-              </span>
-              <span
-                className={`text-[10px] font-extrabold ${
-                  opt.chosen ? "" : "opacity-55"
+          {copy.options.map((opt, i) => {
+            const chosen = i === PAYOUT_CHOSEN;
+            return (
+              <div
+                key={opt.name}
+                className={`flex items-center justify-between rounded-xl border-[3px] border-ink px-3 py-[9px] text-[13px] ${
+                  chosen
+                    ? "bg-yellow font-extrabold shadow-[3px_3px_0_0_var(--color-ink)]"
+                    : "bg-cream font-bold"
                 }`}
               >
-                {opt.meta}
-              </span>
-            </div>
-          ))}
+                <span>
+                  {PAYOUT_ICONS[i]} {opt.name}
+                </span>
+                <span
+                  className={`text-[10px] font-extrabold ${
+                    chosen ? "" : "opacity-55"
+                  }`}
+                >
+                  {opt.meta}
+                </span>
+              </div>
+            );
+          })}
 
           <div className="mt-1 grid grid-cols-3 gap-1.5">
             {[0, 1, 2].map((i) => (
@@ -96,19 +110,19 @@ function PayoutPhone() {
           </div>
 
           <p className="m-0 mt-0.5 text-center text-[10px] font-bold opacity-55">
-            …y muchas opciones más en su país
+            {copy.more}
           </p>
         </div>
 
         <div className="mx-3.5 mb-4 rounded-xl border-[3px] border-ink bg-green p-[11px] text-center text-sm font-extrabold shadow-[3px_3px_0_0_var(--color-ink)]">
-          Cobrar ahora
+          {copy.cta}
         </div>
       </div>
     </div>
   );
 }
 
-export function Premios() {
+export function Premios({ copy }: { copy: PremiosCopy }) {
   return (
     <>
       <ZigzagEdge color="#0A0A0A" direction="down" />
@@ -117,22 +131,16 @@ export function Premios() {
         <div className="mx-auto flex max-w-[1100px] flex-wrap items-center gap-12 px-6">
           <div className="min-w-[300px] flex-[1_1_460px]">
             <h2 className="font-display m-0 mb-6 text-[clamp(34px,5.5vw,58px)] leading-[1.08] text-cream">
-              Aquí se gana <span className="marker-block">en serio</span>
+              {copy.titleLead}{" "}
+              <span className="marker-block">{copy.titleMark}</span>
             </h2>
 
             <p className="mb-7 max-w-[540px] text-[clamp(16px,1.8vw,19px)] leading-[1.6] text-cream opacity-90">
-              Gift cards de miles de marcas, tarjetas prepagadas, transferencias
-              en efectivo y donaciones — entregables en más de 200 países,
-              directo al ganador. Cada participante canjea en su país, en su
-              moneda, sin que tú muevas un dedo.
+              {copy.body}
             </p>
 
             <div className="mb-7 flex flex-wrap gap-2.5">
-              {[
-                "🎯 Payout por participar",
-                "🌎 En su país y su moneda",
-                "⚡ Entrega automática",
-              ].map((chip) => (
+              {copy.chips.map((chip) => (
                 <span
                   key={chip}
                   className="rounded-full border-2 border-cream px-[15px] py-[7px] text-[13px] font-bold text-cream"
@@ -143,7 +151,7 @@ export function Premios() {
             </div>
 
             <div className="font-display inline-block -rotate-[1.5deg] rounded-[14px] border-[3px] border-cream bg-yellow px-[22px] py-3 text-[22px] text-ink shadow-[6px_6px_0_0_var(--color-yellow-deep)]">
-              +200 países · su moneda
+              {copy.badge}
             </div>
           </div>
 
@@ -157,8 +165,8 @@ export function Premios() {
               className="absolute bottom-0 left-[2%] top-0 hidden w-[150px] flex-col gap-4 md:flex"
               style={{ animation: "cascade 13s linear infinite" }}
             >
-              <CascadeColumn />
-              <CascadeColumn />
+              <CascadeColumn copy={copy.cascade} />
+              <CascadeColumn copy={copy.cascade} />
             </div>
 
             {/* Fades that hide the cascade's entry and exit. */}
@@ -172,7 +180,7 @@ export function Premios() {
             />
 
             <div className="relative z-3 flex justify-center pt-[26px] md:pl-[70px]">
-              <PayoutPhone />
+              <PayoutPhone copy={copy.phone} />
             </div>
           </div>
         </div>

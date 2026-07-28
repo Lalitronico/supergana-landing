@@ -1,24 +1,34 @@
 import { Pill } from "@/components/ui/Pill";
+import type { LandingCopy } from "@/lib/i18n";
 import { ModulosCarousel, type ModuleSlide } from "./ModulosCarousel";
 import { QuinielaMock } from "./modulos/QuinielaMock";
 import { TicketsMock } from "./modulos/TicketsMock";
 import { TiendaMock } from "./modulos/TiendaMock";
 
+type ModulosCopy = LandingCopy["modulos"];
+
+/** Everything about a slide that is the same in every language. */
+type ModuleStyle = Omit<ModuleSlide, "eyebrow" | "title" | "body" | "idealPara">;
+
 // Quinielas has its own page (the previous landing, reused). The other two
 // have no page yet, so they route to the booking CTA — `href` is the one place
 // to change that as each module page ships.
-const MODULES: ModuleSlide[] = [
+//
+// That page is Spanish-only for now, so the English slide links to the same
+// URL and lands a US visitor on Spanish content. Left as is deliberately:
+// pointing English visitors at `#demo` instead would hide the one module that
+// has a real page behind it, which is the worse trade until the module page is
+// translated too.
+const MODULE_STYLES = (
+  copy: ModulosCopy,
+): ModuleStyle[] => [
   {
     number: "01",
-    eyebrow: "Probado en producción",
-    title: "Quinielas",
-    body: "Predicciones deportivas que enganchan a tu equipo o comunidad: Mundial, ligas, torneos internos. Participación recurrente semana tras semana.",
-    idealPara: "RH · comunidades · asociaciones",
     tone: "bg-blue text-cream",
     numberTone: "bg-blue text-cream",
     frame: "bg-blue",
     frameRotate: -1.2,
-    mock: <QuinielaMock />,
+    mock: <QuinielaMock copy={copy.mocks.quiniela} />,
     href: "/modulos/quinielas",
     character: {
       pose: "conBalon",
@@ -29,15 +39,11 @@ const MODULES: ModuleSlide[] = [
   },
   {
     number: "02",
-    eyebrow: "El sweepstakes, evolucionado",
-    title: "Carrera de Tickets",
-    body: "Convierte compras en juego: tus consumidores suben su ticket, acumulan puntos y compiten. Tu promoción de retail como nunca la habías visto.",
-    idealPara: "marcas de consumo · retail",
     tone: "bg-red text-cream",
     numberTone: "bg-red text-cream",
     frame: "bg-red",
     frameRotate: 1.2,
-    mock: <TicketsMock />,
+    mock: <TicketsMock copy={copy.mocks.tickets} />,
     href: "#demo",
     character: {
       pose: "conTicket",
@@ -48,15 +54,11 @@ const MODULES: ModuleSlide[] = [
   },
   {
     number: "03",
-    eyebrow: "Lealtad que sí se usa",
-    title: "Tienda de Puntos",
-    body: "Los puntos se vuelven premios de verdad: gift cards, experiencias, cash. Lealtad que tu gente sí quiere usar.",
-    idealPara: "programas de lealtad · incentivos internos",
     tone: "bg-green text-ink",
     numberTone: "bg-green text-ink",
     frame: "bg-green",
     frameRotate: -1,
-    mock: <TiendaMock />,
+    mock: <TiendaMock copy={copy.mocks.tienda} />,
     href: "#demo",
     character: {
       pose: "deCompras",
@@ -67,7 +69,12 @@ const MODULES: ModuleSlide[] = [
   },
 ];
 
-export function Modulos() {
+export function Modulos({ copy }: { copy: ModulosCopy }) {
+  const slides: ModuleSlide[] = MODULE_STYLES(copy).map((style, i) => ({
+    ...style,
+    ...copy.items[i],
+  }));
+
   return (
     // Spacing scales with viewport height so the carousel card is not pushed
     // below the fold by fixed padding on a short laptop screen.
@@ -76,27 +83,26 @@ export function Modulos() {
       className="mx-auto max-w-[1100px] px-6 pb-[clamp(48px,7vh,80px)] pt-[clamp(56px,9vh,120px)]"
     >
       <Pill tone="yellow" shadow rotate={1} className="mb-[clamp(14px,2.2vh,22px)]">
-        El catálogo
+        {copy.pill}
       </Pill>
 
       <h2 className="font-display m-0 mb-[clamp(12px,2vh,18px)] text-[clamp(34px,5.5vw,58px)] leading-[1.06]">
-        Un módulo para cada <span className="marker-yellow">objetivo</span>
+        {copy.titleLead} <span className="marker-yellow">{copy.titleMark}</span>
       </h2>
 
       <p className="mb-[clamp(28px,4.5vh,70px)] max-w-[560px] text-[17px] leading-[1.55]">
-        Dinámicas empaquetadas como soluciones: elige una, la vestimos con tu
-        marca y queda lista para jugar.
+        {copy.intro}
       </p>
 
-      <ModulosCarousel slides={MODULES} />
+      <ModulosCarousel slides={slides} labels={copy} />
 
       <p className="mb-0 mt-[clamp(32px,5vh,64px)] text-center text-base font-semibold">
-        ¿Tienes una dinámica en mente que no está aquí?{" "}
+        {copy.outroLead}{" "}
         <a
           href="#demo"
           className="border-b-[3px] border-yellow font-extrabold text-ink hover:border-yellow-deep"
         >
-          La diseñamos contigo.
+          {copy.outroLink}
         </a>
       </p>
     </section>

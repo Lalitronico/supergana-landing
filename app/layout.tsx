@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, Inter } from "next/font/google";
 import { CalProvider } from "@/components/CalProvider";
+import { LANDING } from "@/lib/i18n";
 import "./globals.css";
 
 const bricolage = Bricolage_Grotesque({
@@ -16,9 +17,10 @@ const inter = Inter({
   display: "swap",
 });
 
-const TITLE = "Supergana — Tu marca, hecha juego";
-const DESCRIPTION =
-  "Experiencias gamificadas white-label para marketing, RH y lealtad: quinielas, carrera de tickets y tienda de puntos con tu identidad y premios reales en +200 países. Nosotros la montamos y la operamos.";
+// Site-wide defaults, inherited by every route that does not set its own —
+// /mundial, /q, /c and the module pages, all of which are Spanish-only. The
+// two landings override title, description and openGraph per locale.
+const { title: TITLE, description: DESCRIPTION, keywords } = LANDING.es.meta;
 
 export const metadata: Metadata = {
   // supergana.fun is the live domain — the .mx that used to sit here was never
@@ -26,22 +28,13 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://supergana.fun"),
   title: TITLE,
   description: DESCRIPTION,
-  keywords: [
-    "experiencias gamificadas",
-    "gamificación para marcas",
-    "plataforma white label",
-    "activación de marca",
-    "programa de lealtad",
-    "quinielas para empresas",
-    "engagement recursos humanos",
-    "premios multi país",
-  ],
+  keywords,
   authors: [{ name: "Supergana" }],
   openGraph: {
     title: TITLE,
     description: DESCRIPTION,
     type: "website",
-    locale: "es_MX",
+    locale: LANDING.es.meta.ogLocale,
     siteName: "Supergana",
   },
   twitter: {
@@ -58,6 +51,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
+    // Spanish is the site default: every route but /en/ is Spanish-only. The
+    // English landing corrects this attribute on mount via <HtmlLang> — a
+    // server component here has no way to know which path it is rendering.
     <html lang="es-MX" className={`${bricolage.variable} ${inter.variable}`}>
       <body className="min-h-screen bg-cream text-ink antialiased">
         <CalProvider />

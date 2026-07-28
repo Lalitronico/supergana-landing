@@ -5,6 +5,7 @@ import { Character } from "@/components/ui/Character";
 import { Pill } from "@/components/ui/Pill";
 import { ZigzagEdge } from "@/components/ui/ZigzagEdge";
 import { promoAsset } from "@/lib/config";
+import { fill, LOCALES, LOCALE_NAME, type LandingCopy, type Locale } from "@/lib/i18n";
 
 /**
  * blue-deep rather than the brighter `blue`: cream body copy on #1E90FF lands
@@ -13,14 +14,10 @@ import { promoAsset } from "@/lib/config";
  */
 const BAND = "#1769BF";
 
-const TRACKS = {
-  es: { file: "promo-es.mp4", label: "Español", lang: "es-MX" },
-  en: { file: "promo-en.mp4", label: "English", lang: "en-US" },
-} as const;
-
-type Lang = keyof typeof TRACKS;
-
-const LANGS = Object.keys(TRACKS) as Lang[];
+const TRACKS: Record<Locale, { file: string; lang: string }> = {
+  es: { file: "promo-es.mp4", lang: "es-MX" },
+  en: { file: "promo-en.mp4", lang: "en-US" },
+};
 
 /**
  * The promo video section — the "show, don't tell" beat, placed after "mundo
@@ -31,16 +28,32 @@ const LANGS = Object.keys(TRACKS) as Lang[];
  * thing is one <video> whose src swaps rather than two players: switching
  * language mid-watch keeps the timestamp and keeps playing.
  *
+ * This band shipped before the site had locales, with a track switch of its
+ * own that always opened in Spanish — so an English visitor would have read a
+ * translated page and then been handed a Spanish voiceover. The switch now
+ * *initialises* from the page locale instead. It is not removed: the two cuts
+ * are the same 52 seconds of animation, and a bilingual visitor wanting the
+ * other voice track should not have to reload the page in another language to
+ * get it.
+ *
  * `preload="none"` is load-bearing, not a micro-optimisation — the two files
  * are ~8.4 MB each, and an eager preload would start streaming both on page
  * load, competing with the sections above for a video most visitors will never
  * press play on. The poster frame carries the section until they do.
  */
-export function Promo() {
+export function Promo({
+  copy,
+  locale,
+}: {
+  copy: LandingCopy["promo"];
+  locale: Locale;
+}) {
   const videoRef = useRef<HTMLVideoElement>(null);
   /** Set on a language switch, consumed by the next loadedmetadata. */
   const resumeRef = useRef<{ at: number; playing: boolean } | null>(null);
-  const [lang, setLang] = useState<Lang>("es");
+  // Initial state only — `locale` cannot change without a full navigation, so
+  // there is no stale-prop hazard here.
+  const [lang, setLang] = useState<Locale>(locale);
   const [started, setStarted] = useState(false);
 
   const play = () => {
@@ -51,7 +64,7 @@ export function Promo() {
     });
   };
 
-  const switchTo = (next: Lang) => {
+  const switchTo = (next: Locale) => {
     if (next === lang) return;
 
     const video = videoRef.current;
@@ -98,7 +111,7 @@ export function Promo() {
       >
         <div className="mx-auto max-w-[1100px] text-center">
           <Pill tone="yellow" shadow rotate={-1.5} className="mb-[22px]">
-            En video
+            {copy.pill}
           </Pill>
 
           <h2 className="font-display mx-auto mb-5 max-w-[760px] text-[clamp(34px,5.5vw,58px)] leading-[1.06]">
@@ -107,13 +120,14 @@ export function Promo() {
                 colour band — globals.css keeps the solid-block variant for
                 exactly this case. nowrap because the phrase otherwise splits
                 after "52" and the block paints two ragged stubs. */}
-            Supergana en{" "}
-            <span className="marker-block whitespace-nowrap">52 segundos</span>
+            {copy.titleLead}{" "}
+            <span className="marker-block whitespace-nowrap">
+              {copy.titleMark}
+            </span>
           </h2>
 
           <p className="mx-auto mb-12 max-w-[560px] text-[17px] leading-[1.6] opacity-90">
-            Qué hacemos, cómo se ve con tu marca encima y por qué tu gente
-            vuelve a jugar. Sin slides.
+            {copy.body}
           </p>
 
           {/* Not centred by `mx-auto` alone: the character hangs off the frame's
@@ -141,18 +155,25 @@ export function Promo() {
                     width at a 360px viewport is ~306, and both are shrink-0, so
                     the long form has to go rather than be squeezed. */}
                 <span className="font-display shrink-0 text-sm tracking-[0.04em]">
-                  PROMO<span className="hidden sm:inline"> · SUPERGANA</span>
+                  {copy.frameLabel}
+                  <span className="hidden sm:inline">
+                    {copy.frameLabelLong}
+                  </span>
                 </span>
 
                 {/* Cream-on-ink segmented control, matching the navbar pill. A
                     cartoon shadow is deliberately absent: it would be ink on ink
-                    and read as a smudge. */}
+                    and read as a smudge.
+                    Each option is labelled in its own language ("Español",
+                    "English") rather than translated, so it reads the same to
+                    either visitor — the group label above it is what carries
+                    the page's language. */}
                 <div
                   role="group"
-                  aria-label="Idioma del video / Video language"
+                  aria-label={copy.trackLabel}
                   className="flex shrink-0 items-center gap-1 rounded-full border-2 border-cream/25 p-1"
                 >
-                  {LANGS.map((code) => {
+                  {LOCALES.map((code) => {
                     const active = code === lang;
                     return (
                       <button
@@ -167,7 +188,7 @@ export function Promo() {
                             : "text-cream/70 hover:bg-cream/15 hover:text-cream"
                         }`}
                       >
-                        {TRACKS[code].label}
+                        {LOCALE_NAME[code]}
                       </button>
                     );
                   })}
@@ -195,7 +216,7 @@ export function Promo() {
                   <button
                     type="button"
                     onClick={play}
-                    aria-label={`Reproducir el video promocional en ${TRACKS[lang].label}`}
+                    aria-label={fill(copy.play, { lang: LOCALE_NAME[lang] })}
                     className="group absolute inset-0 flex cursor-pointer items-center justify-center bg-ink/15 transition-colors hover:bg-ink/5"
                   >
                     <span className="flex h-16 w-16 items-center justify-center rounded-full border-[3px] border-ink bg-yellow shadow-[6px_6px_0_0_var(--color-ink)] transition-all duration-150 group-hover:-translate-x-0.5 group-hover:-translate-y-0.5 group-hover:bg-yellow-hover group-hover:shadow-[8px_8px_0_0_var(--color-ink)] group-active:translate-x-0.5 group-active:translate-y-0.5 group-active:shadow-[2px_2px_0_0_var(--color-ink)] sm:h-[92px] sm:w-[92px]">

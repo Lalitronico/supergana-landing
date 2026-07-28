@@ -4,6 +4,18 @@ import { useRef, useState, type ReactNode } from "react";
 import { CartoonButton } from "@/components/ui/CartoonButton";
 import { Character } from "@/components/ui/Character";
 import type { PoseName } from "@/lib/characters";
+import { fill, type LandingCopy } from "@/lib/i18n";
+
+/**
+ * The strings this carousel renders itself, as opposed to those baked into a
+ * slide. Passed as a plain object: this is a client component, so a `t()`
+ * function prop would not survive the server boundary — hence `goToSlide`
+ * being a `{title}` template rather than a formatter.
+ */
+type Labels = Pick<
+  LandingCopy["modulos"],
+  "idealLabel" | "seeModule" | "carousel"
+>;
 
 export type ModuleSlide = {
   number: string;
@@ -49,7 +61,13 @@ function Arrow({
   );
 }
 
-export function ModulosCarousel({ slides }: { slides: ModuleSlide[] }) {
+export function ModulosCarousel({
+  slides,
+  labels,
+}: {
+  slides: ModuleSlide[];
+  labels: Labels;
+}) {
   const [active, setActive] = useState(0);
   const touchStartX = useRef<number | null>(null);
 
@@ -59,8 +77,8 @@ export function ModulosCarousel({ slides }: { slides: ModuleSlide[] }) {
   return (
     <div
       role="region"
-      aria-roledescription="carrusel"
-      aria-label="Catálogo de módulos"
+      aria-roledescription={labels.carousel.roleDescription}
+      aria-label={labels.carousel.region}
       className="relative"
       onKeyDown={(e) => {
         if (e.key === "ArrowLeft") { e.preventDefault(); go(-1); }
@@ -136,13 +154,13 @@ export function ModulosCarousel({ slides }: { slides: ModuleSlide[] }) {
                   <span
                     className={`mr-2 rounded-full border-2 border-ink px-2.5 py-[3px] text-[11px] uppercase tracking-[0.06em] ${mod.tone}`}
                   >
-                    Ideal para
+                    {labels.idealLabel}
                   </span>
                   {mod.idealPara}
                 </p>
 
                 <CartoonButton href={mod.href} variant="cream" size="sm">
-                  Ver módulo →
+                  {labels.seeModule}
                 </CartoonButton>
               </div>
             </div>
@@ -153,7 +171,11 @@ export function ModulosCarousel({ slides }: { slides: ModuleSlide[] }) {
       {/* Controls. Arrows flank the card from xl up; below that they drop into
           the same row as the dots so they never overlap the artwork. */}
       <div className="mt-[clamp(20px,3vh,40px)] flex items-center justify-center gap-5">
-        <Arrow direction="prev" onClick={() => go(-1)} label="Módulo anterior" />
+        <Arrow
+          direction="prev"
+          onClick={() => go(-1)}
+          label={labels.carousel.prev}
+        />
 
         <div className="flex items-center gap-2.5">
           {slides.map((mod, i) => (
@@ -161,7 +183,7 @@ export function ModulosCarousel({ slides }: { slides: ModuleSlide[] }) {
               key={mod.number}
               type="button"
               onClick={() => setActive(i)}
-              aria-label={`Ver ${mod.title}`}
+              aria-label={fill(labels.carousel.goToSlide, { title: mod.title })}
               aria-current={i === active}
               className={`h-4 rounded-full border-[3px] border-ink transition-all ${
                 i === active ? "w-10 bg-yellow" : "w-4 bg-cream hover:bg-yellow-hover"
@@ -170,7 +192,11 @@ export function ModulosCarousel({ slides }: { slides: ModuleSlide[] }) {
           ))}
         </div>
 
-        <Arrow direction="next" onClick={() => go(1)} label="Módulo siguiente" />
+        <Arrow
+          direction="next"
+          onClick={() => go(1)}
+          label={labels.carousel.next}
+        />
       </div>
     </div>
   );

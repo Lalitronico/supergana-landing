@@ -1,13 +1,16 @@
 import Link from "next/link";
 import { SITE } from "@/lib/config";
+import type { LandingCopy } from "@/lib/i18n";
 
-const LINKS = [
-  { href: "#modulos", label: "Módulos" },
-  { href: "#casos", label: "Casos" },
-  { href: `mailto:${SITE.contactEmail}`, label: "Contacto" },
-];
+export function Footer({ copy }: { copy: LandingCopy["footer"] }) {
+  // The mailto link is appended rather than living in the dictionary: the
+  // address is a config value, not copy, and duplicating it per locale is how
+  // one of them ends up stale.
+  const links = [
+    ...copy.links,
+    { href: `mailto:${SITE.contactEmail}`, label: copy.contact },
+  ];
 
-export function Footer() {
   return (
     <footer className="bg-ink px-6 py-14 text-cream">
       <div className="mx-auto flex max-w-[1100px] flex-wrap items-center justify-between gap-7">
@@ -16,7 +19,7 @@ export function Footer() {
         </span>
 
         <div className="flex flex-wrap gap-[26px]">
-          {LINKS.map((link) => (
+          {links.map((link) => (
             <Link
               key={link.label}
               href={link.href}
@@ -34,7 +37,7 @@ export function Footer() {
           >
             {SITE.contactEmail}
           </a>
-          <span className="text-[13px] opacity-60">© 2026 Supergana</span>
+          <span className="text-[13px] opacity-60">{copy.rights}</span>
         </div>
       </div>
     </footer>
