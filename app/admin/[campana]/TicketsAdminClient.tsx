@@ -62,7 +62,7 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
     data: AdminData | null;
   }> => {
     try {
-      const res = await fetch(`/api/tickets/${slug}/admin`, { cache: "no-store" });
+      const res = await fetch(`/api/tickets/${slug}/admin/`, { cache: "no-store" });
       // 401 = no session, show the sign-in form. 403 = signed in but not on
       // this campaign's allowlist, which deserves a different message than a
       // login loop. The route distinguishes them so the browser doesn't have
@@ -638,7 +638,7 @@ function PayoutsView({
   const move = async (rewardId: string, status: RewardStatus) => {
     setBusy(rewardId);
     try {
-      const res = await fetch(`/api/tickets/${slug}/admin/payout`, {
+      const res = await fetch(`/api/tickets/${slug}/admin/payout/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -647,9 +647,25 @@ function PayoutsView({
           providerRef: refs[rewardId]?.trim() || undefined,
         }),
       });
-      const payload = (await res.json().catch(() => ({}))) as { error?: string };
+      const payload = (await res.json().catch(() => ({}))) as {
+        error?: string; now?: string; from?: string;
+      };
       if (!res.ok) {
-        await onDone(`No se pudo actualizar: ${payload.error ?? "error"}`, true);
+        // `already_moved` is the one an operator will actually meet: two people
+        // working the same queue, one clicks first. Telling them the raw code
+        // leaves them wondering whether to click again — which with manual
+        // delivery is how the same gift card gets sent twice.
+        const message =
+          payload.error === "already_moved"
+            ? `Otra persona ya movió esta recompensa${
+                payload.now ? ` a "${REWARD_LABEL[payload.now as RewardStatus] ?? payload.now}"` : ""
+              }. Refresca antes de volver a intentar.`
+            : payload.error === "bad_transition"
+              ? `Esa transición no es válida desde "${
+                  REWARD_LABEL[payload.from as RewardStatus] ?? payload.from
+                }".`
+              : `No se pudo actualizar: ${payload.error ?? "error"}`;
+        await onDone(message, true);
         return;
       }
       await onDone(`Recompensa marcada como ${REWARD_LABEL[status].toLowerCase()}`);

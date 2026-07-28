@@ -62,7 +62,7 @@ export function useMe(slug: string) {
   // navigated away is dropped instead of writing to an unmounted component.
   const fetchMe = useCallback(async (): Promise<MeState> => {
     try {
-      const res = await fetch(`/api/tickets/${slug}/me`, { cache: "no-store" });
+      const res = await fetch(`/api/tickets/${slug}/me/`, { cache: "no-store" });
       if (res.status === 401) return { status: "anon", me: null };
       if (!res.ok) return { status: "error", me: null };
       const data = (await res.json()) as Me;

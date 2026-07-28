@@ -110,7 +110,7 @@ export default function UploadPage() {
         return;
       }
 
-      const res = await fetch(`/api/tickets/${campaign.slug}/receipts`, {
+      const res = await fetch(`/api/tickets/${campaign.slug}/receipts/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imagePath: path, contentType: file.type }),

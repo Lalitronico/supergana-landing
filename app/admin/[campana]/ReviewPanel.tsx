@@ -98,7 +98,7 @@ export function ReviewPanel({
   // receipt id, so picking another claim remounts it with fresh state.
   useEffect(() => {
     let alive = true;
-    fetch(`/api/tickets/${slug}/admin/image?receiptId=${receipt.id}`)
+    fetch(`/api/tickets/${slug}/admin/image/?receiptId=${receipt.id}`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error("sign failed"))))
       .then((payload: { url: string }) => {
         if (alive) setImageUrl(payload.url);
@@ -142,7 +142,7 @@ export function ReviewPanel({
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/tickets/${slug}/admin/review`, {
+      const res = await fetch(`/api/tickets/${slug}/admin/review/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

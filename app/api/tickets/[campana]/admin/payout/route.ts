@@ -76,7 +76,7 @@ export async function POST(
     );
   }
 
-  const { error: updateError } = await db
+  const { data: moved, error: updateError } = await db
     .from("rewards")
     .update({
       status: input.status,
@@ -91,11 +91,32 @@ export async function POST(
     .eq("id", reward.id)
     // Optimistic guard: if another operator moved this reward between our read
     // and this write, the update matches nothing rather than overwriting them.
-    .eq("status", reward.status);
+    .eq("status", reward.status)
+    // …and `.select()` is what makes that guard observable. Without it the
+    // no-op is indistinguishable from success: Postgres reports no error for
+    // an UPDATE that matched zero rows, so the loser of the race was told
+    // `ok: true` and went on to send a second "your reward is on its way".
+    // With manual fulfilment that means two operators each believing they own
+    // the same gift card.
+    .select("id");
 
   if (updateError) {
     console.error("[tickets payout] update failed", updateError);
     return NextResponse.json({ error: "db_error" }, { status: 500 });
+  }
+
+  if ((moved ?? []).length === 0) {
+    // Re-read so the console can show what it actually became, rather than
+    // making the operator guess who beat them to it.
+    const { data: current } = await db
+      .from("rewards")
+      .select("status")
+      .eq("id", reward.id)
+      .maybeSingle<{ status: string }>();
+    return NextResponse.json(
+      { error: "already_moved", from: reward.status, to: input.status, now: current?.status },
+      { status: 409 },
+    );
   }
 
   if (input.status === "sent" && reward.participants) {
