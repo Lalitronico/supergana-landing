@@ -67,6 +67,7 @@ export async function GET(
       id: ctx.participant.id,
       firstName: ctx.participant.first_name,
       lastName: ctx.participant.last_name,
+      alias: ctx.participant.alias,
       zip: ctx.participant.zip,
       state: ctx.participant.state,
       locale: ctx.participant.locale,
@@ -137,13 +138,14 @@ export async function POST(
         email: ctx.email.toLowerCase(),
         first_name: input.firstName,
         last_name: input.lastName,
+        alias: input.alias,
         zip: input.zip,
         state: input.state,
         locale: input.locale,
       },
       { onConflict: "campaign_id,auth_user_id" },
     )
-    .select("id, first_name, last_name, zip, state, locale")
+    .select("id, first_name, last_name, alias, zip, state, locale")
     .single();
 
   if (error || !participant) {
@@ -196,6 +198,7 @@ export async function POST(
       id: participant.id,
       firstName: participant.first_name,
       lastName: participant.last_name,
+      alias: participant.alias,
       zip: participant.zip,
       state: participant.state,
       locale: participant.locale,

@@ -96,6 +96,68 @@ function PointsCard({ points }: { points: number }) {
   );
 }
 
+interface LeaderboardData {
+  top: { rank: number; alias: string; points: number; isMe: boolean }[];
+  me: { rank: number; points: number } | null;
+  totalRanked: number;
+}
+
+/**
+ * Top 10 by accumulated points. The server sends aliases and points, nothing
+ * else — see the endpoint's note on why this is an aggregate, not a policy.
+ */
+function LeaderboardCard({ slug }: { slug: string }) {
+  const { t } = useTickets();
+  const [data, setData] = useState<LeaderboardData | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/tickets/${slug}/leaderboard/`, { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((body: LeaderboardData | null) => {
+        if (alive && body) setData(body);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [slug]);
+
+  if (!data) return null;
+
+  return (
+    <div className="tk-card">
+      <h2 className="tk-h" style={{ fontSize: 18, marginBottom: 4 }}>{t("lbTitle")}</h2>
+      {data.top.length === 0 ? (
+        <p className="tk-body" style={{ fontSize: 13.5 }}>{t("lbEmpty")}</p>
+      ) : (
+        <>
+          <div className="tk-hist">
+            {data.top.map((row) => (
+              <div className="tk-hist-item" key={row.rank}>
+                <div className="meta" style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
+                  <b style={{ fontFamily: "var(--tk-display)", minWidth: 26 }}>#{row.rank}</b>
+                  <b>{row.alias}</b>
+                  {row.isMe && <span className="tk-pill ok">{t("lbYou")}</span>}
+                </div>
+                <b style={{ fontFamily: "var(--tk-display)", whiteSpace: "nowrap" }}>
+                  {row.points} {t("ptsUnit")}
+                </b>
+              </div>
+            ))}
+          </div>
+          {data.me && (
+            <p className="tk-foot" style={{ marginTop: 10 }}>
+              {t("lbYourPlace", { rank: data.me.rank, total: data.totalRanked })}
+            </p>
+          )}
+        </>
+      )}
+      <p className="tk-foot" style={{ marginTop: 8 }}>{t("lbNote")}</p>
+    </div>
+  );
+}
+
 /**
  * Shown while a reward exists but the address it pays out to is unproven.
  * This is the wall the sign-up flow deliberately doesn't have: it stands
@@ -269,6 +331,7 @@ export default function PanelPage() {
       </div>
 
       <PointsCard points={me.points} />
+      <LeaderboardCard slug={campaign.slug} />
 
       {reward && me.participant && !me.participant.emailVerified && (
         <VerifyEmailCard

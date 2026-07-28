@@ -110,6 +110,14 @@ const es = {
   przAt: "{points} pts",
   przNote:
     "Premios de acumulación: se alcanzan por puntos, sin sorteos. Canje con el equipo de la promoción.",
+  lbTitle: "Tabla de líderes",
+  lbEmpty: "Todavía no hay puntos en la tabla. Sé quien la estrene.",
+  lbYou: "Tú",
+  lbYourPlace: "Vas en el lugar #{rank} de {total}.",
+  lbNote: "Solo se muestra el apodo que elegiste al registrarte.",
+  fAlias: "Apodo",
+  fAliasHint: "Así te verán en la tabla de líderes.",
+  errAlias: "Elige un apodo de 2 a 20 caracteres.",
 
   // ---- email verification -------------------------------------------------
   veTitle: "Confirma tu correo",
@@ -328,6 +336,14 @@ const en: Dict = {
   przAt: "{points} pts",
   przNote:
     "Accumulation prizes: reached by points, no drawings involved. Redeem with the promotion team.",
+  lbTitle: "Leaderboard",
+  lbEmpty: "No points on the board yet. Be the first.",
+  lbYou: "You",
+  lbYourPlace: "You're #{rank} of {total}.",
+  lbNote: "Only the nickname you chose at sign-up is shown.",
+  fAlias: "Nickname",
+  fAliasHint: "This is how you'll appear on the leaderboard.",
+  errAlias: "Pick a nickname between 2 and 20 characters.",
 
   veTitle: "Confirm your email",
   veBody:

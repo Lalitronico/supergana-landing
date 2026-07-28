@@ -57,6 +57,7 @@ function ProfileForm({
 
   const [firstName, setFirstName] = useState(initial?.firstName ?? "");
   const [lastName, setLastName] = useState(initial?.lastName ?? "");
+  const [alias, setAlias] = useState(initial?.alias ?? "");
   const [zip, setZip] = useState(initial?.zip ?? "");
   const [state, setState] = useState(initial?.state ?? "");
   const [ageState, setAgeState] = useState(false);
@@ -73,6 +74,10 @@ function ProfileForm({
 
     if (!firstName.trim() || !lastName.trim() || !state) {
       setError(t("errRequired"));
+      return;
+    }
+    if (alias.trim().length < 2 || alias.trim().length > 20) {
+      setError(t("errAlias"));
       return;
     }
     if (!/^\d{5}(-\d{4})?$/.test(zip.trim())) {
@@ -92,6 +97,7 @@ function ProfileForm({
         body: JSON.stringify({
           firstName: firstName.trim(),
           lastName: lastName.trim(),
+          alias: alias.trim(),
           zip: zip.trim(),
           state,
           locale,
@@ -154,6 +160,19 @@ function ProfileForm({
             />
           </label>
         </div>
+
+        <label className="tk-field">
+          {t("fAlias")}
+          <input
+            type="text"
+            autoComplete="nickname"
+            maxLength={20}
+            value={alias}
+            onChange={(e) => setAlias(e.target.value)}
+            required
+          />
+          <span className="tk-foot" style={{ marginTop: 4 }}>{t("fAliasHint")}</span>
+        </label>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <label className="tk-field">

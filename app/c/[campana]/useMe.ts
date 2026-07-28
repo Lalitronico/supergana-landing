@@ -28,6 +28,8 @@ export interface MeProfile {
   id: string;
   firstName: string;
   lastName: string;
+  /** Leaderboard display name; null on profiles that predate the field. */
+  alias: string | null;
   zip: string;
   state: string | null;
   locale: "es" | "en";

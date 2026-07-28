@@ -14,6 +14,9 @@ import { ACCEPTED_IMAGE_TYPES, RECEIPT_STATUSES, REWARD_STATUSES } from "./confi
 export const profileSchema = z.object({
   firstName: z.string().trim().min(1).max(60),
   lastName: z.string().trim().min(1).max(60),
+  // The leaderboard shows this and nothing else about the person. Asked for
+  // at registration precisely so real names never reach a public ranking.
+  alias: z.string().trim().min(2).max(20),
   zip: z
     .string()
     .trim()
@@ -108,6 +111,8 @@ export interface ParticipantRow {
   email: string;
   first_name: string;
   last_name: string;
+  /** Leaderboard display name. Null only on profiles that predate the field. */
+  alias: string | null;
   zip: string;
   state: string | null;
   locale: "es" | "en";
