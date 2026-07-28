@@ -43,6 +43,9 @@ export default function UploadPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Staff rehearsing a draft campaign can submit even though the public can't.
+  const canSubmit = campaign.acceptsReceipts || (me?.canRehearse ?? false);
+
   useEffect(() => {
     if (status === "anon") router.replace(`${base}entrar/`);
     if (status === "no-profile") router.replace(`${base}registro/`);
@@ -209,7 +212,7 @@ export default function UploadPage() {
         </div>
       )}
 
-      {!campaign.acceptsReceipts && <p className="tk-error">{t("errClosed")}</p>}
+      {!canSubmit && <p className="tk-error">{t("errClosed")}</p>}
       {error && <p className="tk-error">{error}</p>}
 
       <div className="tk-camera">
@@ -250,7 +253,7 @@ export default function UploadPage() {
             className="tk-btn"
             type="button"
             onClick={submit}
-            disabled={busy || !campaign.acceptsReceipts}
+            disabled={busy || !canSubmit}
           >
             {busy ? t("capSending") : t("capSend")} →
           </button>
@@ -268,7 +271,7 @@ export default function UploadPage() {
           className="tk-btn"
           type="button"
           onClick={() => fileInput.current?.click()}
-          disabled={!campaign.acceptsReceipts}
+          disabled={!canSubmit}
         >
           📸 {t("capPick")}
         </button>

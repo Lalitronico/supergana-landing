@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { resolveParticipant } from "@/lib/tickets/access";
+import { resolveParticipant, resolveStaff } from "@/lib/tickets/access";
 import { acceptsReceipts, getCampaign, isVisible } from "@/lib/tickets/campaigns";
 import { MAX_RECEIPT_BYTES, RECEIPTS_BUCKET } from "@/lib/tickets/config";
 import { sendReceiptReceived } from "@/lib/tickets/email";
@@ -28,7 +28,15 @@ export async function POST(
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
   if (!acceptsReceipts(campaign)) {
-    return NextResponse.json({ error: "campaign_closed" }, { status: 409 });
+    // Rehearsal mode: staff may submit against a draft campaign so the whole
+    // flow can be walked before launch. Draft only — a paused campaign is
+    // closed for everyone, staff included: pausing is an operational brake.
+    const rehearsal =
+      campaign.status === "draft" &&
+      (await resolveStaff(campaign.id)).kind === "ok";
+    if (!rehearsal) {
+      return NextResponse.json({ error: "campaign_closed" }, { status: 409 });
+    }
   }
 
   const ctx = await resolveParticipant(campaign.id);

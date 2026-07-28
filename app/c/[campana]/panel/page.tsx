@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/browser";
@@ -27,10 +27,131 @@ const REWARD_PILL: Record<RewardStatus, string> = {
   canceled: "bad",
 };
 
+/**
+ * Shown while a reward exists but the address it pays out to is unproven.
+ * This is the wall the sign-up flow deliberately doesn't have: it stands
+ * exactly where the participant has $20 waiting behind it.
+ */
+function VerifyEmailCard({
+  slug,
+  email,
+  onVerified,
+}: {
+  slug: string;
+  email: string;
+  onVerified: () => void;
+}) {
+  const { t } = useTickets();
+  const [sent, setSent] = useState(false);
+  const [code, setCode] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const call = async (body: { code?: string }) => {
+    const res = await fetch(`/api/tickets/${slug}/verify-email/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const payload = (await res.json().catch(() => ({}))) as {
+      error?: string; verified?: boolean;
+    };
+    return { ok: res.ok, payload };
+  };
+
+  const send = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const { ok, payload } = await call({});
+      if (!ok) {
+        setError(t(payload.error === "cooldown" ? "errTooManyCodes" : "errGeneric"));
+        return;
+      }
+      setSent(true);
+    } catch {
+      setError(t("errNetwork"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const confirm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!/^\d{6}$/.test(code)) {
+      setError(t("errVeCode"));
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      const { ok, payload } = await call({ code });
+      if (!ok) {
+        setError(
+          t(
+            payload.error === "bad_code"
+              ? "errVeCode"
+              : payload.error === "code_expired"
+                ? "errVeExpired"
+                : payload.error === "too_many_attempts"
+                  ? "errVeAttempts"
+                  : "errGeneric",
+          ),
+        );
+        return;
+      }
+      onVerified();
+    } catch {
+      setError(t("errNetwork"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="tk-card yellow">
+      <h2 className="tk-h" style={{ fontSize: 18, marginBottom: 8 }}>{t("veTitle")}</h2>
+      <p style={{ fontSize: 13.5, lineHeight: 1.45, fontWeight: 600 }}>
+        {t("veBody", { email })}
+      </p>
+      {error && <p className="tk-error">{error}</p>}
+      {!sent ? (
+        <button className="tk-btn sm" type="button" onClick={send} disabled={busy} style={{ marginTop: 6 }}>
+          {busy ? t("authSending") : t("veSend")} →
+        </button>
+      ) : (
+        <form onSubmit={confirm} style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 6 }}>
+          <p className="tk-body" style={{ fontSize: 13.5 }}>{t("veSent")}</p>
+          <input
+            className="tk-otp"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            autoFocus
+            maxLength={6}
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+            placeholder="——————"
+            required
+          />
+          <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between" }}>
+            <button className="tk-btn sm" type="submit" disabled={busy}>
+              {busy ? t("authVerifying") : t("veConfirm")} →
+            </button>
+            <button type="button" className="tk-linkbtn" onClick={send} disabled={busy}>
+              {t("authResend")}
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
 export default function PanelPage() {
   const { campaign, locale, t, base, money } = useTickets();
   const router = useRouter();
-  const { status, me } = useMe(campaign.slug);
+  const { status, me, reload } = useMe(campaign.slug);
 
   useEffect(() => {
     if (status === "anon") router.replace(`${base}entrar/?next=panel`);
@@ -77,6 +198,14 @@ export default function PanelPage() {
           </p>
         </div>
       </div>
+
+      {reward && me.participant && !me.participant.emailVerified && (
+        <VerifyEmailCard
+          slug={campaign.slug}
+          email={me.email}
+          onVerified={reload}
+        />
+      )}
 
       {reward && (
         <div className="tk-ticket">
@@ -148,9 +277,16 @@ export default function PanelPage() {
       )}
 
       <p className="tk-foot">{t("privacyNote")}</p>
-      <button type="button" className="tk-linkbtn" onClick={signOut}>
-        {t("authSignOut")}
-      </button>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+        {/* Also the migration path for OTP-era accounts that have no password
+            yet: updateUser works from any signed-in session. */}
+        <Link href={`${base}restablecer/`} className="tk-linkbtn">
+          {t("pnChangePw")}
+        </Link>
+        <button type="button" className="tk-linkbtn" onClick={signOut}>
+          {t("authSignOut")}
+        </button>
+      </div>
     </div>
   );
 }

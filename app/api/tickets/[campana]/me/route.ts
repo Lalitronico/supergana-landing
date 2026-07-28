@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { resolveParticipant } from "@/lib/tickets/access";
+import { resolveParticipant, resolveStaff } from "@/lib/tickets/access";
 import { getCampaign, isVisible } from "@/lib/tickets/campaigns";
 import { profileSchema } from "@/lib/tickets/schema";
 import type { ReceiptRow, RewardRow } from "@/lib/tickets/schema";
@@ -21,12 +21,20 @@ export async function GET(
   const ctx = await resolveParticipant(campaign.id);
   if (!ctx) return NextResponse.json({ error: "not_signed_in" }, { status: 401 });
 
+  // Rehearsal mode: a draft campaign accepts receipts from campaign staff, so
+  // the client can walk the whole flow before anything is published. Only
+  // looked up while drafting — live campaigns never need the extra query.
+  const canRehearse =
+    campaign.status === "draft" &&
+    (await resolveStaff(campaign.id)).kind === "ok";
+
   if (!ctx.participant) {
     return NextResponse.json({
       email: ctx.email,
       participant: null,
       receipts: [],
       rewards: [],
+      canRehearse,
     });
   }
 
@@ -53,9 +61,11 @@ export async function GET(
       zip: ctx.participant.zip,
       state: ctx.participant.state,
       locale: ctx.participant.locale,
+      emailVerified: ctx.participant.email_verified_at !== null,
     },
     receipts: (receipts.data ?? []) as Partial<ReceiptRow>[],
     rewards: (rewards.data ?? []) as Partial<RewardRow>[],
+    canRehearse,
   });
 }
 

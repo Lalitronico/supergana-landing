@@ -664,7 +664,9 @@ function PayoutsView({
               ? `Esa transición no es válida desde "${
                   REWARD_LABEL[payload.from as RewardStatus] ?? payload.from
                 }".`
-              : `No se pudo actualizar: ${payload.error ?? "error"}`;
+              : payload.error === "email_unverified"
+                ? "El participante aún no verifica su correo. La recompensa se libera cuando lo confirme desde su panel — su pantalla ya se lo está pidiendo."
+                : `No se pudo actualizar: ${payload.error ?? "error"}`;
         await onDone(message, true);
         return;
       }

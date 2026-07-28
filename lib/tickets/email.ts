@@ -166,6 +166,30 @@ export async function sendReceiptRejected(r: Recipient, reason: string | null) {
   );
 }
 
+/**
+ * The verification code that unlocks the payout. The subject says why it's
+ * worth opening: this is the one email standing between the person and $20.
+ */
+export async function sendEmailVerification(r: Recipient, code: string) {
+  const es = r.locale === "es";
+  return sendEmail(
+    r.to,
+    es ? `Tu código para recibir tu recompensa: ${code}` : `Your code to receive your reward: ${code}`,
+    wrap({
+      ...r,
+      title: es ? "Confirma tu correo" : "Confirm your email",
+      body: es
+        ? `<p style="line-height:1.55;">Tu recompensa se envía a este correo. Escribe este código en tu panel para confirmar que es tuyo:</p>
+           <p style="font-size:34px; font-weight:800; letter-spacing:0.18em; margin:18px 0;">${escapeHtml(code)}</p>
+           <p style="line-height:1.55; font-size:14px;">El código vence en 30 minutos. Si no pediste esto, ignora este correo.</p>`
+        : `<p style="line-height:1.55;">Your reward is delivered to this address. Enter this code in your panel to confirm it's yours:</p>
+           <p style="font-size:34px; font-weight:800; letter-spacing:0.18em; margin:18px 0;">${escapeHtml(code)}</p>
+           <p style="line-height:1.55; font-size:14px;">The code expires in 30 minutes. If you didn't request this, ignore this email.</p>`,
+      cta: { label: es ? "Ir a mi panel" : "Go to my panel", path: "panel/" },
+    }),
+  );
+}
+
 /** Sent when an operator marks the reward as actually delivered. */
 export async function sendRewardSent(r: Recipient, rewardCents: number, ref: string | null) {
   const es = r.locale === "es";

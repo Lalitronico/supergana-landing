@@ -432,6 +432,7 @@
 .tk-app input[type="text"],
 .tk-app input[type="email"],
 .tk-app input[type="tel"],
+.tk-app input[type="password"],
 .tk-app select {
   font-family: var(--tk-body);
   font-size: 16px; /* 16px keeps iOS Safari from zooming on focus */

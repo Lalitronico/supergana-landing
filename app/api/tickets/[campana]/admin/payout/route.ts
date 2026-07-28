@@ -14,7 +14,12 @@ interface RewardWithOwner {
   status: RewardStatusValue;
   amount_cents: number;
   external_id: string;
-  participants: { email: string; first_name: string; locale: Locale } | null;
+  participants: {
+    email: string;
+    first_name: string;
+    locale: Locale;
+    email_verified_at: string | null;
+  } | null;
 }
 
 /**
@@ -58,7 +63,7 @@ export async function POST(
   const db = supabaseAdmin();
   const { data: reward, error: lookupError } = await db
     .from("rewards")
-    .select("id, status, amount_cents, external_id, participants(email, first_name, locale)")
+    .select("id, status, amount_cents, external_id, participants(email, first_name, locale, email_verified_at)")
     .eq("id", input.rewardId)
     .eq("campaign_id", campaign.id)
     .maybeSingle<RewardWithOwner>();
@@ -74,6 +79,17 @@ export async function POST(
       { error: "bad_transition", from: reward.status, to: input.status },
       { status: 409 },
     );
+  }
+
+  // The email is the delivery channel and sign-up never proved it (the
+  // verification wall sits here, where there's a reward to gain — decision of
+  // 2026-07-28). Marking "sent" to an unproven address means a gift card
+  // walking into a typo, so the operator gets a refusal, not a warning.
+  if (
+    (input.status === "sent" || input.status === "delivered") &&
+    !reward.participants?.email_verified_at
+  ) {
+    return NextResponse.json({ error: "email_unverified" }, { status: 409 });
   }
 
   const { data: moved, error: updateError } = await db

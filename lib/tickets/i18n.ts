@@ -57,7 +57,7 @@ const es = {
   authTitle: "Entra con tu email",
   // Sin número de dígitos en el copy: la longitud del OTP es configuración de
   // Supabase (6 a 10) y prometer "6" en pantalla se vuelve mentira sola.
-  authSub: "Te mandamos un código a tu correo. Sin contraseñas: tu email es tu cuenta.",
+  authSub: "Te mandamos un código de un solo uso a tu correo.",
   authEmail: "Email",
   authSend: "Enviar código",
   authSending: "Enviando…",
@@ -69,6 +69,50 @@ const es = {
   authResend: "Reenviar código",
   authWrongEmail: "Usar otro email",
   authSignOut: "Cerrar sesión",
+
+  // ---- password auth ------------------------------------------------------
+  authPwTitle: "Entra a tu cuenta",
+  authPwSub: "Con tu correo y tu contraseña.",
+  fPassword: "Contraseña",
+  fPassword2: "Confirma tu contraseña",
+  authSignIn: "Entrar",
+  authSigningIn: "Entrando…",
+  authForgot: "¿Olvidaste tu contraseña?",
+  authOtpAlt: "Entrar con un código por correo",
+  authPwAlt: "Entrar con contraseña",
+  authHaveAccount: "¿Ya tienes cuenta? Entra",
+  authNoAccount: "Crear una cuenta nueva",
+  acTitle: "Crea tu cuenta",
+  acSub: "Tu recompensa llega a este correo: escríbelo con cuidado.",
+  acBtn: "Crear cuenta y continuar",
+  acCreating: "Creando…",
+  recTitle: "Recupera tu contraseña",
+  recSub: "Te enviamos un enlace a tu correo para elegir una nueva.",
+  recBtn: "Enviar enlace",
+  recSent:
+    "Si existe una cuenta con ese correo, el enlace ya va en camino. Revisa también tu carpeta de spam.",
+  rsTitle: "Elige tu contraseña nueva",
+  rsSub: "Mínimo 8 caracteres.",
+  rsBtn: "Guardar contraseña",
+  rsSaving: "Guardando…",
+  rsDone: "Listo, tu contraseña quedó guardada.",
+  pnChangePw: "Cambiar mi contraseña",
+
+  // ---- email verification -------------------------------------------------
+  veTitle: "Confirma tu correo",
+  veBody:
+    "Tu recompensa se envía a {email}. Confirma que este correo es tuyo para poder liberarla.",
+  veSend: "Enviarme el código",
+  veSent: "Te enviamos un código de 6 dígitos. Escríbelo aquí:",
+  veConfirm: "Confirmar",
+  veDone: "Correo verificado. Tu recompensa quedó liberada para envío.",
+  errVeCode: "El código no es correcto.",
+  errVeExpired: "El código venció. Pide uno nuevo.",
+  errVeAttempts: "Demasiados intentos. Pide un código nuevo.",
+  homeAccountQ: "¿Ya participas?",
+  homeSignIn: "Entrar a mi cuenta",
+  homeCreate: "Crear mi cuenta",
+  homeGoPanel: "Ir a mi panel",
 
   // ---- register -----------------------------------------------------------
   regStep: "Paso {n} de 3",
@@ -166,6 +210,11 @@ const es = {
   errPendingReceipt:
     "Ya tienes un ticket en revisión. Te avisamos en cuanto tengamos el resultado.",
   errNotSignedIn: "Tu sesión expiró. Entra otra vez con tu email.",
+  errPwShort: "La contraseña debe tener al menos 8 caracteres.",
+  errPwMatch: "Las contraseñas no coinciden.",
+  errBadLogin: "Correo o contraseña incorrectos.",
+  errAccountExists:
+    "Ya existe una cuenta con este correo. Entra con tu contraseña o recupérala.",
 
   // ---- misc ---------------------------------------------------------------
   poweredBy: "Operado por Supergana",
@@ -215,7 +264,7 @@ const en: Dict = {
   rulesLink: "Official rules",
 
   authTitle: "Sign in with your email",
-  authSub: "We'll email you a code. No passwords — your email is your account.",
+  authSub: "We'll email you a single-use code.",
   authEmail: "Email",
   authSend: "Send code",
   authSending: "Sending…",
@@ -227,6 +276,48 @@ const en: Dict = {
   authResend: "Resend code",
   authWrongEmail: "Use a different email",
   authSignOut: "Sign out",
+
+  authPwTitle: "Sign in to your account",
+  authPwSub: "With your email and password.",
+  fPassword: "Password",
+  fPassword2: "Confirm your password",
+  authSignIn: "Sign in",
+  authSigningIn: "Signing in…",
+  authForgot: "Forgot your password?",
+  authOtpAlt: "Sign in with an emailed code",
+  authPwAlt: "Sign in with a password",
+  authHaveAccount: "Already have an account? Sign in",
+  authNoAccount: "Create a new account",
+  acTitle: "Create your account",
+  acSub: "Your reward is delivered to this email — type it carefully.",
+  acBtn: "Create account and continue",
+  acCreating: "Creating…",
+  recTitle: "Recover your password",
+  recSub: "We'll email you a link to choose a new one.",
+  recBtn: "Send link",
+  recSent:
+    "If an account exists for that email, the link is on its way. Check your spam folder too.",
+  rsTitle: "Choose your new password",
+  rsSub: "At least 8 characters.",
+  rsBtn: "Save password",
+  rsSaving: "Saving…",
+  rsDone: "Done — your password is saved.",
+  pnChangePw: "Change my password",
+
+  veTitle: "Confirm your email",
+  veBody:
+    "Your reward is delivered to {email}. Confirm this address is yours so it can be released.",
+  veSend: "Send me the code",
+  veSent: "We sent you a 6-digit code. Enter it here:",
+  veConfirm: "Confirm",
+  veDone: "Email verified. Your reward is cleared for delivery.",
+  errVeCode: "That code isn't right.",
+  errVeExpired: "The code expired. Request a new one.",
+  errVeAttempts: "Too many tries. Request a new code.",
+  homeAccountQ: "Already participating?",
+  homeSignIn: "Sign in to my account",
+  homeCreate: "Create my account",
+  homeGoPanel: "Go to my panel",
 
   regStep: "Step {n} of 3",
   regTitle: "Complete your profile",
@@ -315,6 +406,11 @@ const en: Dict = {
   errClosed: "This campaign isn't accepting receipts right now.",
   errPendingReceipt: "You already have a receipt in review. We'll let you know the result.",
   errNotSignedIn: "Your session expired. Sign in again with your email.",
+  errPwShort: "Password must be at least 8 characters.",
+  errPwMatch: "Passwords don't match.",
+  errBadLogin: "Wrong email or password.",
+  errAccountExists:
+    "An account with this email already exists. Sign in with your password or recover it.",
 
   poweredBy: "Operated by Supergana",
   privacyNote:

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useTickets } from "./TicketsShell";
+import { useMe } from "./useMe";
 
 interface QuotaView {
   weeklyQuota: number;
@@ -36,6 +37,10 @@ export function HomeScreen({
   products: ProductView[];
 }) {
   const { campaign, t, base, money } = useTickets();
+  // The home is the QR landing page, so it must offer a door to people who
+  // already have an account — before this, /entrar/ was only reachable by
+  // being bounced off a gate. Session state decides which door to show.
+  const { status } = useMe(campaign.slug);
   const min = money(campaign.minPurchaseCents);
   const reward = money(campaign.rewardCents);
 
@@ -92,6 +97,29 @@ export function HomeScreen({
           </Link>
         </div>
       </div>
+
+      {/* Nothing while the session resolves: a "sign in" that morphs into
+          "my panel" reads as a glitch on a phone. */}
+      {status === "anon" && (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+          <span className="tk-foot" style={{ fontWeight: 700 }}>{t("homeAccountQ")}</span>
+          <Link href={`${base}entrar/?next=panel`} className="tk-linkbtn">
+            {t("homeSignIn")}
+          </Link>
+          <Link href={`${base}crear-cuenta/`} className="tk-linkbtn">
+            {t("homeCreate")}
+          </Link>
+        </div>
+      )}
+      {(status === "ready" || status === "no-profile") && (
+        <Link
+          href={`${base}panel/`}
+          className="tk-linkbtn"
+          style={{ textAlign: "center" }}
+        >
+          {t("homeGoPanel")} →
+        </Link>
+      )}
 
       <div className="tk-card">
         <h2 className="tk-h" style={{ fontSize: 19, marginBottom: 12 }}>

@@ -31,6 +31,16 @@ export const profileSchema = z.object({
 
 export type ProfileInput = z.infer<typeof profileSchema>;
 
+// Password sign-up. 8 is the floor Supabase's leaked-password protection
+// assumes; the ceiling only guards against absurd payloads. The email is also
+// the reward delivery address, so it gets the strict validator, not a regex.
+export const accountSchema = z.object({
+  email: z.email().trim().toLowerCase().max(254),
+  password: z.string().min(8).max(72),
+});
+
+export type AccountInput = z.infer<typeof accountSchema>;
+
 // The bytes never pass through the API — the browser uploads straight to
 // Supabase Storage and hands us the object key. The server then reads the
 // object back to hash it, so a client cannot lie about what it uploaded.
@@ -102,6 +112,8 @@ export interface ParticipantRow {
   state: string | null;
   locale: "es" | "en";
   household_key: string;
+  /** Set once the address is proven real — the payout gate reads this. */
+  email_verified_at: string | null;
   created_at: string;
 }
 
