@@ -40,6 +40,8 @@ export interface Me {
   participant: MeProfile | null;
   receipts: MeReceipt[];
   rewards: MeReward[];
+  /** Balance: SUM over the points ledger, computed server-side. */
+  points: number;
   /** Staff walking a draft campaign: may submit receipts before launch. */
   canRehearse: boolean;
 }

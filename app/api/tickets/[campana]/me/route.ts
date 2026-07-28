@@ -34,12 +34,13 @@ export async function GET(
       participant: null,
       receipts: [],
       rewards: [],
+      points: 0,
       canRehearse,
     });
   }
 
   const db = supabaseAdmin();
-  const [receipts, rewards] = await Promise.all([
+  const [receipts, rewards, points] = await Promise.all([
     db
       .from("receipts")
       .select("id, status, submitted_at, store_name, purchase_date, total_cents, eligible_cents, reject_reason, reviewed_at")
@@ -50,7 +51,15 @@ export async function GET(
       .select("id, amount_cents, status, created_at, sent_at, receipt_id")
       .eq("participant_id", ctx.participant.id)
       .order("created_at", { ascending: false }),
+    db
+      .from("points_entries")
+      .select("points")
+      .eq("participant_id", ctx.participant.id),
   ]);
+
+  // The balance is a SUM over the ledger, computed here and nowhere else the
+  // client can see — a mutable balance column is how history and total drift.
+  const pointsBalance = (points.data ?? []).reduce((sum, e) => sum + e.points, 0);
 
   return NextResponse.json({
     email: ctx.email,
@@ -65,6 +74,7 @@ export async function GET(
     },
     receipts: (receipts.data ?? []) as Partial<ReceiptRow>[],
     rewards: (rewards.data ?? []) as Partial<RewardRow>[],
+    points: pointsBalance,
     canRehearse,
   });
 }

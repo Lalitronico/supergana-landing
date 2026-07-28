@@ -144,28 +144,15 @@ export default function UploadPage() {
   }
 
   const claim = currentClaim(me);
-  const rewarded = (me?.rewards ?? []).some((r) => r.status !== "canceled");
   const openReceipt =
     claim && (claim.receipt.status === "received" || claim.receipt.status === "in_review")
       ? claim.receipt
       : null;
 
-  // ---- already claimed ----------------------------------------------------
-  if (rewarded) {
-    return (
-      <div className="tk-pad">
-        <h1 className="tk-h" style={{ fontSize: 26 }}>{t("pnRewardTitle")}</h1>
-        <div className="tk-card yellow">
-          <p className="tk-body" style={{ color: "var(--tk-ink)" }}>
-            {t("pnRewardedAlready")}
-          </p>
-        </div>
-        <Link href={`${base}panel/`} className="tk-btn">
-          {t("navPanel")} →
-        </Link>
-      </div>
-    );
-  }
+  // Since points (v2) there is no "already claimed" wall here: the welcome
+  // reward is once-ever, but every further approved receipt earns points, so
+  // an already-rewarded participant uploading again is the retention loop
+  // working — not a mistake to block.
 
   // ---- receipt in flight --------------------------------------------------
   if (openReceipt) {

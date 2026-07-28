@@ -68,26 +68,17 @@ export async function POST(
 
   const db = supabaseAdmin();
 
-  // One live claim at a time. In v1 a second receipt earns nothing — points
-  // and the race are v1.1 — so accepting one would only build a queue of
-  // submissions we cannot pay.
-  const [{ count: rewardCount }, { data: openReceipts }] = await Promise.all([
-    db
-      .from("rewards")
-      .select("id", { count: "exact", head: true })
-      .eq("participant_id", participant.id)
-      .neq("status", "canceled"),
-    db
-      .from("receipts")
-      .select("id")
-      .eq("participant_id", participant.id)
-      .in("status", ["received", "in_review"])
-      .limit(1),
-  ]);
+  // One receipt in review at a time keeps the queue honest, but since points
+  // (v2) an already-rewarded participant is welcome to keep submitting: every
+  // approved receipt earns points, only the welcome reward is once-ever. That
+  // skip is decided inside tickets_approve_receipt, not here.
+  const { data: openReceipts } = await db
+    .from("receipts")
+    .select("id")
+    .eq("participant_id", participant.id)
+    .in("status", ["received", "in_review"])
+    .limit(1);
 
-  if ((rewardCount ?? 0) >= campaign.config.perParticipantLimit) {
-    return NextResponse.json({ error: "already_rewarded" }, { status: 409 });
-  }
   if ((openReceipts ?? []).length > 0) {
     return NextResponse.json({ error: "receipt_pending" }, { status: 409 });
   }

@@ -76,7 +76,19 @@ const tally = (settled) => {
     const c = r.error.message.replace(/\s+/g, " ").slice(0, 40);
     codes[c] = (codes[c] ?? 0) + 1;
   }
-  return { okCount, codes };
+  // Since v2 the reward gates don't raise: they approve without a reward and
+  // name the reason. Those skips are the new shape of the same invariant.
+  const skips = {};
+  for (const r of settled) if (!r.error && r.data?.reward_skipped) {
+    skips[r.data.reward_skipped] = (skips[r.data.reward_skipped] ?? 0) + 1;
+  }
+  return { okCount, codes, skips };
+};
+
+const pointsOf = async (campaignId) => {
+  const { data } = await db.from("points_entries").select("points")
+    .eq("campaign_id", campaignId);
+  return (data ?? []).reduce((s, e) => s + e.points, 0);
 };
 
 const rewardsOf = async (campaignId) => {
@@ -103,11 +115,14 @@ const rewardsOf = async (campaignId) => {
   const claims = [];
   for (let i = 0; i < 8; i++) claims.push(await seedClaim(cid, { last: `Q${i}`, zip: `799${10 + i}` }));
   const settled = await Promise.all(claims.map((c, i) => approve(c.receipt, i)));
-  const { okCount, codes } = tally(settled);
+  const { okCount, skips } = tally(settled);
   const rw = await rewardsOf(cid);
-  check("8 aprobaciones simultáneas con cupo semanal 3 → exactamente 3",
-    okCount === 3 && rw.length === 3,
-    `${okCount} ok · ${rw.length} recompensas · rechazos: ${JSON.stringify(codes)}`);
+  // v2: all 8 approve (each earns points: 1500¢ elegibles × 10 pts/$ = 150),
+  // but the quota still caps rewards at exactly 3.
+  const pts = await pointsOf(cid);
+  check("8 aprobaciones con cupo semanal 3 → 8 aprobadas, exactamente 3 recompensas",
+    okCount === 8 && rw.length === 3 && skips.weekly_quota === 5 && pts === 8 * 150,
+    `${okCount} ok · ${rw.length} recompensas · ${pts} puntos · skips: ${JSON.stringify(skips)}`);
 }
 
 // ================================================================= 3. fondo ==
@@ -117,12 +132,12 @@ const rewardsOf = async (campaignId) => {
   const claims = [];
   for (let i = 0; i < 7; i++) claims.push(await seedClaim(cid, { last: `F${i}`, zip: `798${10 + i}` }));
   const settled = await Promise.all(claims.map((c, i) => approve(c.receipt, i)));
-  const { okCount, codes } = tally(settled);
+  const { okCount, skips } = tally(settled);
   const rw = await rewardsOf(cid);
   const spent = rw.reduce((s, r) => s + r.amount_cents, 0);
   check("7 simultáneas con fondo para 2 → el fondo no se sobregira",
-    okCount === 2 && spent <= REWARD * 2 + 500,
-    `${okCount} ok · gastó ${spent} de ${REWARD * 2 + 500} · rechazos: ${JSON.stringify(codes)}`);
+    okCount === 7 && rw.length === 2 && spent <= REWARD * 2 + 500 && skips.fund_exhausted === 5,
+    `${okCount} ok · ${rw.length} recompensas · gastó ${spent} de ${REWARD * 2 + 500} · skips: ${JSON.stringify(skips)}`);
 }
 
 // ============================================================== 4. slots ====
@@ -131,11 +146,11 @@ const rewardsOf = async (campaignId) => {
   const claims = [];
   for (let i = 0; i < 6; i++) claims.push(await seedClaim(cid, { last: `S${i}`, zip: `797${10 + i}` }));
   const settled = await Promise.all(claims.map((c, i) => approve(c.receipt, i)));
-  const { okCount, codes } = tally(settled);
+  const { okCount, skips } = tally(settled);
   const rw = await rewardsOf(cid);
-  check("6 simultáneas con 2 slots de campaña → exactamente 2",
-    okCount === 2 && rw.length === 2,
-    `${okCount} ok · ${rw.length} recompensas · rechazos: ${JSON.stringify(codes)}`);
+  check("6 simultáneas con 2 slots de campaña → exactamente 2 recompensas",
+    okCount === 6 && rw.length === 2 && skips.slots_exhausted === 4,
+    `${okCount} ok · ${rw.length} recompensas · skips: ${JSON.stringify(skips)}`);
 }
 
 // =========================================================== 5. mismo hogar ==
@@ -145,9 +160,11 @@ const rewardsOf = async (campaignId) => {
   // Same surname + ZIP = same household_key, three separate accounts.
   for (let i = 0; i < 3; i++) claims.push(await seedClaim(cid, { last: "Hogar", zip: "79950" }));
   const settled = await Promise.all(claims.map((c, i) => approve(c.receipt, i)));
-  const { okCount, codes } = tally(settled);
-  check("3 cuentas del MISMO hogar aprobadas a la vez → 1 sola",
-    okCount === 1, `${okCount} ok · rechazos: ${JSON.stringify(codes)}`);
+  const { okCount, skips } = tally(settled);
+  const rw = await rewardsOf(cid);
+  check("3 cuentas del MISMO hogar aprobadas a la vez → 1 sola recompensa",
+    okCount === 3 && rw.length === 1 && skips.household_limit === 2,
+    `${okCount} ok · ${rw.length} recompensas · skips: ${JSON.stringify(skips)}`);
 }
 
 // ============================================== 6. mismo participante, 2 tickets
@@ -161,9 +178,14 @@ const rewardsOf = async (campaignId) => {
     image_hash: ("2" + seq).padStart(64, "0"),
   }).select("id").single();
   const settled = await Promise.all([approve(claim.receipt, 1), approve(second.id, 2)]);
-  const { okCount, codes } = tally(settled);
-  check("2 tickets del MISMO participante aprobados a la vez → 1 sola recompensa",
-    okCount === 1, `${okCount} ok · rechazos: ${JSON.stringify(codes)}`);
+  const { okCount, skips } = tally(settled);
+  const rw = await rewardsOf(cid);
+  // v2's retention loop in miniature: both receipts approve and both earn
+  // points, but the welcome reward stays once-ever.
+  const pts = await pointsOf(cid);
+  check("2 tickets del MISMO participante a la vez → 1 recompensa, 2 con puntos",
+    okCount === 2 && rw.length === 1 && skips.participant_limit === 1 && pts === 2 * 150,
+    `${okCount} ok · ${rw.length} recompensas · ${pts} puntos · skips: ${JSON.stringify(skips)}`);
 }
 
 // ==================================================== 7. ticket duplicado ====

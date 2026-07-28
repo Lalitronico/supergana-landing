@@ -132,7 +132,12 @@ export async function POST(
       return NextResponse.json({ error: "db_error" }, { status: 500 });
     }
 
-    if (recipient) {
+    // Since v2 an approval can carry points and no reward (second receipt,
+    // quota gone). The approved email promises "$20 on its way", so it only
+    // goes out when that promise is true. A points-only email belongs to the
+    // progress-panel step, where there will be a balance worth telling.
+    const result = (data ?? {}) as { reward_id?: string | null };
+    if (recipient && result.reward_id) {
       sendReceiptApproved(recipient, campaign.config.rewardCents).catch((e) =>
         console.error("[tickets review] approval email failed", e),
       );

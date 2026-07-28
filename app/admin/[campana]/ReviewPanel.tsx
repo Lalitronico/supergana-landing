@@ -138,7 +138,16 @@ export function ReviewPanel({
     );
   };
 
-  const send = async (payload: Record<string, unknown>, successMessage: string) => {
+  interface ApproveResult {
+    reward_id?: string | null;
+    points_awarded?: number;
+    reward_skipped?: string | null;
+  }
+
+  const send = async (
+    payload: Record<string, unknown>,
+    successMessage: string | ((reward: ApproveResult) => string),
+  ) => {
     setBusy(true);
     setError(null);
     try {
@@ -147,14 +156,21 @@ export function ReviewPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        reward?: ApproveResult;
+      };
       if (!res.ok) {
         const message = RULE_MESSAGE[body.error ?? ""] ?? "No se pudo completar la acción.";
         setError(message);
         await onDone(message, true);
         return;
       }
-      await onDone(successMessage);
+      await onDone(
+        typeof successMessage === "function"
+          ? successMessage(body.reward ?? {})
+          : successMessage,
+      );
     } catch {
       setError("Error de red. Intenta otra vez.");
     } finally {
@@ -190,7 +206,16 @@ export function ReviewPanel({
             amountCents: parseUsdToCents(line.amount) ?? 0,
           })),
       },
-      `Aprobado · ${money(rewardCents)} reservados del fondo`,
+      // What actually happened, not what usually happens: an approval since
+      // v2 can carry points and no reward (second receipt, quota gone).
+      (reward) => {
+        const pts = reward.points_awarded
+          ? ` · ${reward.points_awarded} puntos al participante`
+          : "";
+        return reward.reward_id
+          ? `Aprobado · ${money(rewardCents)} reservados del fondo${pts}`
+          : `Aprobado sin recompensa (${reward.reward_skipped ?? "límite"})${pts}`;
+      },
     );
   };
 

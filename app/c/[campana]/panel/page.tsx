@@ -268,7 +268,7 @@ export default function PanelPage() {
               </div>
             ))}
           </div>
-          {!open && !reward && (
+          {!open && (
             <Link href={`${base}subir/`} className="tk-btn sm" style={{ marginTop: 14 }}>
               {t("pnUploadAnother")} →
             </Link>
