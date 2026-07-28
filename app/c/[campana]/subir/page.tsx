@@ -11,6 +11,7 @@ import {
 } from "@/lib/tickets/config";
 import { useTickets } from "../TicketsShell";
 import { StatusTimeline } from "../StatusTimeline";
+import { ApprovalCelebration } from "../ApprovalCelebration";
 import { currentClaim, useMe } from "../useMe";
 
 const EXTENSION: Record<string, string> = {
@@ -171,6 +172,9 @@ export default function UploadPage() {
   if (openReceipt) {
     return (
       <div className="tk-pad">
+        {/* First child in every branch, so React keeps it mounted across the
+            in-flight → approved re-render — the exact moment it exists for. */}
+        <ApprovalCelebration me={me} />
         <div>
           <div className="tk-eyebrow">{t("regStep", { n: 3 })}</div>
           <h1 className="tk-h" style={{ fontSize: 26, marginTop: 6 }}>{t("prcTitle")}</h1>
@@ -193,6 +197,7 @@ export default function UploadPage() {
 
   return (
     <div className="tk-pad">
+      <ApprovalCelebration me={me} />
       <div>
         <div className="tk-eyebrow">{t("regStep", { n: 3 })}</div>
         <h1 className="tk-h" style={{ fontSize: 28, marginTop: 6 }}>{t("capTitle")}</h1>

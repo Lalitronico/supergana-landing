@@ -110,6 +110,11 @@ const es = {
   przAt: "{points} pts",
   przNote:
     "Premios de acumulación: se alcanzan por puntos, sin sorteos. Canje con el equipo de la promoción.",
+  clbTitle: "¡Tu ticket fue aprobado!",
+  clbPoints: "Ganaste {points} puntos.",
+  clbReward: "Y tu recompensa de {amount} quedó reservada.",
+  clbCta: "Ver mi panel",
+
   lbTitle: "Tabla de líderes",
   lbEmpty: "Todavía no hay puntos en la tabla. Sé quien la estrene.",
   lbYou: "Tú",
@@ -336,6 +341,11 @@ const en: Dict = {
   przAt: "{points} pts",
   przNote:
     "Accumulation prizes: reached by points, no drawings involved. Redeem with the promotion team.",
+  clbTitle: "Your receipt was approved!",
+  clbPoints: "You earned {points} points.",
+  clbReward: "And your {amount} reward is reserved.",
+  clbCta: "See my panel",
+
   lbTitle: "Leaderboard",
   lbEmpty: "No points on the board yet. Be the first.",
   lbYou: "You",

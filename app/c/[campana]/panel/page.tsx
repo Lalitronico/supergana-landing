@@ -8,6 +8,7 @@ import { RECEIPT_STATUS_KEY, REWARD_STATUS_KEY } from "@/lib/tickets/i18n";
 import type { ReceiptStatus, RewardStatus } from "@/lib/tickets/config";
 import { useTickets } from "../TicketsShell";
 import { StatusTimeline } from "../StatusTimeline";
+import { ApprovalCelebration } from "../ApprovalCelebration";
 import { useMe, type MeReceipt } from "../useMe";
 
 const RECEIPT_PILL: Record<ReceiptStatus, string> = {
@@ -321,6 +322,7 @@ export default function PanelPage() {
 
   return (
     <div className="tk-pad">
+      <ApprovalCelebration me={me} />
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10 }}>
         <div>
           <h1 className="tk-h" style={{ fontSize: 30 }}>{t("pnTitle")}</h1>
