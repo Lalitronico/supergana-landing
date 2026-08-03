@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { supabaseAuthConfigured, supabaseBrowser } from "@/lib/supabase/browser";
 import type { ReceiptStatus, RewardStatus } from "@/lib/tickets/config";
 
 export interface MeReceipt {
@@ -146,6 +147,45 @@ export function useMe(slug: string) {
   const reload = useCallback(async () => {
     setState(await fetchMe());
   }, [fetchMe]);
+
+  /**
+   * Re-read when the signed-in identity changes.
+   *
+   * This is what makes it safe for one `useMe` to serve a whole layout. When
+   * each screen owned its own copy, signing in and navigating remounted the hook
+   * and it read the new cookie by accident of the remount. Hoisted into the
+   * shell, the hook outlives every client-side navigation — so a session state
+   * fetched while anonymous stayed "anon" after a successful sign-in, and every
+   * gated screen bounced back to /entrar/ in a loop that only a hard reload
+   * broke. The visibility refetch and the 20s poll do not rescue it: the tab
+   * never hid, and a brand-new account has no open receipt to poll for.
+   *
+   * Now the hook watches for the thing that actually changed instead of relying
+   * on a remount to notice it. Works no matter which screen signs in, and picks
+   * up a sign-in that happened in another tab.
+   */
+  const lastUserId = useRef<string | null | undefined>(undefined);
+
+  useEffect(() => {
+    if (!supabaseAuthConfigured()) return;
+    const { data } = supabaseBrowser().auth.onAuthStateChange((event, session) => {
+      const userId = session?.user?.id ?? null;
+      // Fires on subscribe. The mount effect above is already fetching, so this
+      // one only records who we started as.
+      if (event === "INITIAL_SESSION") {
+        lastUserId.current = userId;
+        return;
+      }
+      // A new token for the same person changes nothing this hook reports.
+      if (event === "TOKEN_REFRESHED") return;
+      // Some versions re-announce SIGNED_IN on tab focus; only an identity
+      // change is worth a request.
+      if (userId === lastUserId.current) return;
+      lastUserId.current = userId;
+      void reload();
+    });
+    return () => data.subscription.unsubscribe();
+  }, [reload]);
 
   return { status: state.status, me: state.me, reload };
 }
