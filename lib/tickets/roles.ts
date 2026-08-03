@@ -21,3 +21,17 @@ export const canReview = (role: StaffRole) =>
 /** Roles that may move a reward along its delivery states. */
 export const canPayout = (role: StaffRole) =>
   role === "finance" || role === "supervisor" || role === "admin";
+
+/**
+ * Roles that may curate the prize store: open and close the weekly Drop, price
+ * its prizes, set inventory, and mark a redemption delivered.
+ *
+ * Narrower than reviewing on purpose. A reviewer decides whether one receipt is
+ * real; inventory decides how much the campaign gives away this week, and every
+ * seat with that power is a seat that can empty the Drop. `finance` is out for
+ * the same reason it cannot review: it settles what was promised, it does not
+ * decide the promise. Reading the store needs no predicate — any seat on the
+ * campaign already sees the console.
+ */
+export const canManageStore = (role: StaffRole) =>
+  role === "supervisor" || role === "admin";

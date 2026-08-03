@@ -3,6 +3,7 @@
 
 import { z } from "zod";
 import { ACCEPTED_IMAGE_TYPES, RECEIPT_STATUSES, REWARD_STATUSES } from "./config";
+import { PRIZE_KINDS } from "./store";
 
 // ---------------------------------------------------------------------------
 // Participant
@@ -96,6 +97,65 @@ export const payoutSchema = z.object({
 });
 
 export type PayoutInput = z.infer<typeof payoutSchema>;
+
+// ---------------------------------------------------------------------------
+// Prize store
+// ---------------------------------------------------------------------------
+
+/** The participant sends nothing but which prize they want; the RPC knows who they are. */
+export const redeemSchema = z.object({
+  dropItemId: z.uuid(),
+});
+
+export type RedeemInput = z.infer<typeof redeemSchema>;
+
+// Prices and stock are bounded here as well as in the CHECK constraints: a
+// typo'd 150000-point prize is only embarrassing, a typo'd 5000-unit inventory
+// is a promise the campaign cannot keep.
+const prizeFields = {
+  nameEs: z.string().trim().min(1).max(120),
+  nameEn: z.string().trim().max(120).nullable().optional(),
+  kind: z.enum(PRIZE_KINDS),
+  pointsCost: z.number().int().min(1).max(1_000_000),
+  inventory: z.number().int().min(0).max(10_000),
+  detail: z.record(z.string(), z.unknown()).optional(),
+};
+
+/**
+ * Console actions, one discriminated union so an unknown action is a 400 and
+ * never a partially applied write.
+ */
+export const storeAdminSchema = z.discriminatedUnion("action", [
+  // No week argument: the console only ever creates the current week's Drop.
+  // Scheduling future drops is out of scope for v1, and an operator picking a
+  // date is an operator picking the wrong one.
+  z.object({ action: z.literal("create_drop") }),
+  z.object({
+    action: z.literal("set_drop_status"),
+    dropId: z.uuid(),
+    status: z.enum(["scheduled", "open", "closed"]),
+  }),
+  z.object({ action: z.literal("add_item"), dropId: z.uuid(), ...prizeFields }),
+  z.object({
+    action: z.literal("update_item"),
+    itemId: z.uuid(),
+    nameEs: prizeFields.nameEs.optional(),
+    nameEn: prizeFields.nameEn,
+    kind: prizeFields.kind.optional(),
+    pointsCost: prizeFields.pointsCost.optional(),
+    inventory: prizeFields.inventory.optional(),
+    active: z.boolean().optional(),
+  }),
+  z.object({ action: z.literal("fulfill"), redemptionId: z.uuid() }),
+  // Cancelling a redemption is deliberately absent from v1. The schema keeps
+  // the 'canceled' status because the RPC already reads it as "this unit is
+  // back on the shelf", but undoing a redemption also owes the participant
+  // their points back, and a refund plus an inventory release across two
+  // statements outside a transaction is exactly the shape that loses somebody's
+  // balance. It belongs in its own RPC, next to the one that spends them.
+]);
+
+export type StoreAdminInput = z.infer<typeof storeAdminSchema>;
 
 // ---------------------------------------------------------------------------
 // Row shapes (service-role reads)

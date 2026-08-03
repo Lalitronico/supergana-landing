@@ -149,6 +149,40 @@ const es = {
   clbReward: "Y tu recompensa de {amount} quedó reservada.",
   clbCta: "Ver mi panel",
 
+  // ---- tienda de premios --------------------------------------------------
+  // Drops semanales con inventario limitado. El copy dice tres cosas y ninguna
+  // es adorno: que abre el lunes, que el inventario es real y que el primero
+  // que canjea se lo lleva. Prometer un premio que ya no está es peor que
+  // decir "agotado".
+  stTitle: "Tienda de Premios",
+  stSub:
+    "Cada lunes abre un Drop nuevo con premios limitados. El primero que canjea, se lo lleva.",
+  stNoDrop: "El próximo Drop abre el lunes.",
+  stNoDropNote: "Mientras tanto sigue sumando: tus puntos no se reinician.",
+  stUnavailable: "La Tienda de Premios todavía no está abierta en esta campaña.",
+  stCost: "{points} pts",
+  stLeft: "quedan {left}",
+  stSoldOut: "Agotado",
+  stSoldOutNote: "Se agotó esta semana. Vuelve el lunes: el Drop se renueva.",
+  stRedeem: "Canjear",
+  stRedeeming: "Canjeando…",
+  stConfirmQ: "¿Canjear {prize} por {points} puntos?",
+  stConfirmNote: "Se descuentan de tu saldo al confirmar. Tu lugar en la carrera no baja.",
+  stConfirmYes: "Sí, canjear",
+  stConfirmNo: "Mejor no",
+  stNeedMore: "Te faltan {points} pts",
+  stCodeTitle: "Tu código de canje",
+  stCodeNote: "Muéstralo en la tienda para recoger tu premio. Queda guardado en tus canjes.",
+  stHistTitle: "Mis canjes",
+  stRedeemedOn: "Canjeado el {date}",
+  stStConfirmed: "Por recoger",
+  stStFulfilled: "Entregado",
+  stStCanceled: "Cancelado",
+  stErrPoints: "No te alcanzan los puntos para este premio.",
+  stErrSoldOut: "Alguien se te adelantó: ese premio se acaba de agotar.",
+  stErrAlready: "Ya canjeaste este premio en el Drop de esta semana.",
+  stErrClosed: "Este Drop ya cerró. El próximo abre el lunes.",
+
   lbTitle: "Tabla de líderes",
   lbEmpty: "Todavía no hay puntos en la tabla. Sé quien la estrene.",
   lbYou: "Tú",
@@ -405,6 +439,35 @@ const en: Dict = {
   clbReward: "And your {amount} reward is reserved.",
   clbCta: "See my panel",
 
+  stTitle: "Prize Store",
+  stSub:
+    "A new Drop opens every Monday with limited prizes. First to redeem takes it.",
+  stNoDrop: "The next Drop opens Monday.",
+  stNoDropNote: "Keep earning meanwhile — your points never reset.",
+  stUnavailable: "The Prize Store isn't open in this campaign yet.",
+  stCost: "{points} pts",
+  stLeft: "{left} left",
+  stSoldOut: "Sold out",
+  stSoldOutNote: "Gone for this week. Come back Monday for the next Drop.",
+  stRedeem: "Redeem",
+  stRedeeming: "Redeeming…",
+  stConfirmQ: "Redeem {prize} for {points} points?",
+  stConfirmNote: "They come off your balance on confirm. Your race position stays put.",
+  stConfirmYes: "Yes, redeem",
+  stConfirmNo: "Not now",
+  stNeedMore: "{points} pts to go",
+  stCodeTitle: "Your redemption code",
+  stCodeNote: "Show it at the store to pick up your prize. It stays in your redemptions.",
+  stHistTitle: "My redemptions",
+  stRedeemedOn: "Redeemed on {date}",
+  stStConfirmed: "Ready for pickup",
+  stStFulfilled: "Delivered",
+  stStCanceled: "Canceled",
+  stErrPoints: "You don't have enough points for this prize.",
+  stErrSoldOut: "Someone beat you to it — that prize just sold out.",
+  stErrAlready: "You already redeemed this prize in this week's Drop.",
+  stErrClosed: "This Drop is closed. The next one opens Monday.",
+
   lbTitle: "Leaderboard",
   lbEmpty: "No points on the board yet. Be the first.",
   lbYou: "You",
@@ -562,6 +625,12 @@ export const REWARD_STATUS_KEY = {
   delivered: "rwDelivered",
   failed: "rwFailed",
   canceled: "rwCanceled",
+} as const satisfies Record<string, CopyKey>;
+
+export const REDEMPTION_STATUS_KEY = {
+  confirmed: "stStConfirmed",
+  fulfilled: "stStFulfilled",
+  canceled: "stStCanceled",
 } as const satisfies Record<string, CopyKey>;
 
 /**
