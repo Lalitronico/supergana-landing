@@ -78,6 +78,29 @@ export interface Campaign {
   config: CampaignConfig;
 }
 
+/**
+ * Which story the participant screens tell.
+ *
+ *  · `threshold`    — "spend {min} in one transaction, get {reward} back"
+ *                     (Ticket al Tanque). Rationed: weekly quota, total slots,
+ *                     a fund. The screens talk about the reward and its stock.
+ *  · `accumulation` — every eligible peso earns points and there is no per
+ *                     ticket reward (Carrera Alaska). No minimum, no stock,
+ *                     nothing to run out of.
+ *
+ * Derived, deliberately not a new config key: a campaign whose reward is worth
+ * nothing has no reward to announce, and the five gates that would ration it
+ * (min purchase, slots, weekly quota, per participant/household limits, fund)
+ * are all zeroed in the same breath — turning the reward off IS the accumulation
+ * setup. Reading it back from `reward_cents` means no campaign row has to be
+ * edited to get the right screens, and no seed can set the two out of sync.
+ */
+export type CampaignMechanic = "threshold" | "accumulation";
+
+export const mechanicOf = (
+  config: Pick<CampaignConfig, "rewardCents">,
+): CampaignMechanic => (config.rewardCents > 0 ? "threshold" : "accumulation");
+
 const DEFAULTS: CampaignConfig = {
   minPurchaseCents: 1000,
   rewardCents: 2000,
@@ -171,6 +194,8 @@ export interface PublicCampaign {
   orgName: string;
   status: CampaignStatus;
   locales: Locale[];
+  /** Decides which set of screens the participant gets. See `mechanicOf`. */
+  mechanic: CampaignMechanic;
   acceptsReceipts: boolean;
   minPurchaseCents: number;
   rewardCents: number;
@@ -190,6 +215,7 @@ export const toPublicCampaign = (campaign: Campaign): PublicCampaign => ({
   orgName: campaign.orgName,
   status: campaign.status,
   locales: campaign.locales,
+  mechanic: mechanicOf(campaign.config),
   acceptsReceipts: campaign.status === "live",
   minPurchaseCents: campaign.config.minPurchaseCents,
   rewardCents: campaign.config.rewardCents,
@@ -248,6 +274,17 @@ export const weekStart = (timezone: string, at: Date = new Date()): Date => {
   monday.setUTCDate(monday.getUTCDate() - offset);
   return monday;
 };
+
+/**
+ * Points ledger kinds (migration 0011) that spend points instead of earning
+ * them. The balance is the SUM of everything; the leaderboard is the SUM of
+ * everything except these — canjear no te saca de la carrera.
+ *
+ * An exclusion list rather than an allow-list of earning kinds on purpose: a
+ * future earning kind (welcome bonus, streak bonus) should rank the day it
+ * exists, while a future spending kind is a deliberate edit here.
+ */
+export const POINTS_SPEND_KINDS = ["redemption"] as const;
 
 export const RECEIPT_STATUSES = [
   "received",

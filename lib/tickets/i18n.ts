@@ -53,6 +53,35 @@ const es = {
     "Aplican términos: compra mínima en una sola transacción, calculada después de descuentos y antes de impuestos. Recompensas semanales limitadas y sujetas al fondo disponible. Debes tener 18 años o más.",
   rulesLink: "Reglas oficiales",
 
+  // ---- home, modo acumulación ---------------------------------------------
+  // Campañas sin recompensa por ticket (ver `mechanicOf`): aquí no hay monto
+  // mínimo, ni cupos, ni fondo que se agote, así que nada de eso se nombra.
+  // Tampoco "dólares": la primera campaña de este modo es mexicana y el signo
+  // $ ya se entiende solo.
+  accHeroTitle: "Cada compra suma puntos",
+  accHeroTitleMark: "suma puntos",
+  accHeroSub:
+    "Sube el ticket de tus compras de productos {org} y gana {rate} puntos por cada $1. Tus puntos se acumulan compra tras compra.",
+  accRateLabel: "Así suman tus puntos",
+  accRateLine: "$1 = {rate} puntos",
+  accRateNote:
+    "Cualquier compra cuenta: cada ticket con productos participantes abona puntos en cuanto lo validamos.",
+  accHowTitle: "¿Cómo funciona?",
+  acc1Lead: "Compra productos {org}",
+  acc1Rest: "en cualquier tienda participante, del tamaño que quieras.",
+  acc2Lead: "Sube tu ticket",
+  acc2Rest: "con tu teléfono. Toma menos de un minuto.",
+  acc3Lead: "Suma {rate} puntos por cada $1",
+  acc3Rest: "en cuanto validamos tu ticket. Tus puntos no se reinician.",
+  accProductsTitle: "Productos que suman",
+  accProductsNote: "Cualquier presentación de {org} cuenta para tus puntos.",
+  accLegalHome:
+    "Aplican términos: los puntos se abonan sobre el monto de productos participantes, cuando validamos tu ticket. Debes tener 18 años o más.",
+  accAcSub:
+    "Con este correo entras a tu panel y sigues tus puntos: escríbelo con cuidado.",
+  accRegSub: "Solo pedimos lo necesario para abonarte tus puntos.",
+  accPtsRate: "Ganas {rate} puntos por cada $1 de productos participantes.",
+
   // ---- sign in ------------------------------------------------------------
   authTitle: "Entra con tu email",
   // Sin número de dígitos en el copy: la longitud del OTP es configuración de
@@ -101,6 +130,11 @@ const es = {
   // ---- points & prizes ----------------------------------------------------
   ptsTitle: "Mis puntos",
   ptsUnit: "puntos",
+  // Solo cuando el balance y el acumulado dejan de coincidir, es decir cuando
+  // ya hubo un canje. Antes del primer canje el panel dice "puntos" a secas.
+  ptsUnitAvailable: "puntos disponibles",
+  ptsRaceTotal:
+    "Acumulado en la carrera: {points} puntos. Canjear no te baja del ranking.",
   ptsRate: "Ganas {rate} puntos por cada dólar elegible de tus tickets aprobados.",
   ptsNext: "Te faltan {points} puntos para: {prize}",
   ptsAllDone: "Alcanzaste todos los premios del catálogo. 🏆",
@@ -289,6 +323,29 @@ const en: Dict = {
     "Terms apply: minimum purchase in a single transaction, calculated after discounts and before tax. Weekly rewards are limited and subject to available funds. Must be 18 or older.",
   rulesLink: "Official rules",
 
+  accHeroTitle: "Every purchase earns points",
+  accHeroTitleMark: "earns points",
+  accHeroSub:
+    "Upload the receipt for your {org} purchases and earn {rate} points for every $1. Your points add up purchase after purchase.",
+  accRateLabel: "How your points add up",
+  accRateLine: "$1 = {rate} points",
+  accRateNote:
+    "Any purchase counts: every receipt with participating products earns points as soon as we validate it.",
+  accHowTitle: "How it works",
+  acc1Lead: "Buy {org} products",
+  acc1Rest: "at any participating store, in any size.",
+  acc2Lead: "Upload your receipt",
+  acc2Rest: "from your phone. It takes under a minute.",
+  acc3Lead: "Earn {rate} points per $1",
+  acc3Rest: "as soon as we validate your receipt. Your points never reset.",
+  accProductsTitle: "Products that earn",
+  accProductsNote: "Any {org} size counts toward your points.",
+  accLegalHome:
+    "Terms apply: points are credited on the participating-product amount once we validate your receipt. Must be 18 or older.",
+  accAcSub: "This email is how you reach your panel and track your points — type it carefully.",
+  accRegSub: "We only ask for what's needed to credit your points.",
+  accPtsRate: "You earn {rate} points for every $1 of participating products.",
+
   authTitle: "Sign in with your email",
   authSub: "We'll email you a single-use code.",
   authEmail: "Email",
@@ -332,6 +389,8 @@ const en: Dict = {
 
   ptsTitle: "My points",
   ptsUnit: "points",
+  ptsUnitAvailable: "points available",
+  ptsRaceTotal: "Race total: {points} points. Redeeming never drops you down the board.",
   ptsRate: "You earn {rate} points per eligible dollar on approved receipts.",
   ptsNext: "{points} points to go for: {prize}",
   ptsAllDone: "You've reached every prize in the catalog. 🏆",
