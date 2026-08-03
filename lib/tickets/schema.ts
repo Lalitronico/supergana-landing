@@ -2,38 +2,94 @@
 // Zod 4 top-level validators (z.email, z.uuid), matching lib/mundial/schema.ts.
 
 import { z } from "zod";
-import { ACCEPTED_IMAGE_TYPES, RECEIPT_STATUSES, REWARD_STATUSES } from "./config";
+import {
+  ACCEPTED_IMAGE_TYPES,
+  DEFAULT_PROFILE_FIELDS,
+  RECEIPT_STATUSES,
+  REWARD_STATUSES,
+  type ProfileFieldMode,
+  type ProfileFields,
+} from "./config";
 import { PRIZE_KINDS } from "./store";
 
 // ---------------------------------------------------------------------------
 // Participant
 // ---------------------------------------------------------------------------
 
-// Both consents are literal `true`: the brief requires age/eligibility and
-// rules acceptance to be affirmative acts. Marketing is separate, optional and
-// never pre-checked — mixing them is exactly what regulators look for.
-export const profileSchema = z.object({
-  firstName: z.string().trim().min(1).max(60),
-  lastName: z.string().trim().min(1).max(60),
-  // The leaderboard shows this and nothing else about the person. Asked for
-  // at registration precisely so real names never reach a public ranking.
-  alias: z.string().trim().min(2).max(20),
-  zip: z
-    .string()
-    .trim()
-    .regex(/^\d{5}(-\d{4})?$/, "zip"),
-  state: z
-    .string()
-    .trim()
-    .regex(/^[A-Za-z]{2}$/, "state")
-    .transform((s) => s.toUpperCase()),
-  locale: z.enum(["es", "en"]),
-  acceptedAgeState: z.literal(true),
-  acceptedRules: z.literal(true),
-  acceptedMarketing: z.boolean(),
-});
+const zipField = z
+  .string()
+  .trim()
+  .regex(/^\d{5}(-\d{4})?$/, "zip");
 
-export type ProfileInput = z.infer<typeof profileSchema>;
+const stateField = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z]{2}$/, "state")
+  .transform((s) => s.toUpperCase());
+
+// Already E.164 by the time it gets here: the browser normalises what was
+// typed (lib/tickets/phone.ts) and this is the server refusing to take its
+// word for it. Mirrors the CHECK added in migration 0015, so the two cannot
+// drift into a state where the API accepts what the column rejects.
+const phoneField = z
+  .string()
+  .trim()
+  .regex(/^\+[0-9]{10,15}$/, "phone");
+
+/**
+ * One profile field bent to the mode its campaign configured.
+ *
+ * `off` swallows whatever arrives and yields null instead of erroring: a
+ * browser holding a cached bundle from before the campaign turned a field off
+ * would otherwise get a 400 it cannot explain, and the value it is sending is
+ * one we have decided not to keep. Refusing to *store* it is the point;
+ * refusing to *serve* the person is not.
+ */
+const fieldByMode = (
+  field: z.ZodType<string, unknown>,
+  mode: ProfileFieldMode,
+): z.ZodType<string | null, unknown> => {
+  // `.optional()` is load-bearing, not decoration: in Zod 4 `z.unknown()` alone
+  // still requires the key to be present inside an object, so without it a
+  // client that simply stops sending a field the campaign switched off gets a
+  // 400 for doing exactly the right thing.
+  if (mode === "off") return z.unknown().optional().transform(() => null);
+  if (mode === "required") return field.transform((value): string | null => value);
+  return z
+    .union([field, z.literal("")])
+    .nullish()
+    .transform((value) => (typeof value === "string" && value !== "" ? value : null));
+};
+
+/**
+ * Profile plus consent, shaped by the campaign.
+ *
+ * A factory rather than a constant because "which fields are obligatory" is
+ * now a per-campaign answer, and the server must validate against the same
+ * answer the form was drawn from — a fixed schema here would let a campaign
+ * render a form whose submission its own API rejects.
+ *
+ * Both consents are literal `true`: the brief requires age/eligibility and
+ * rules acceptance to be affirmative acts. Marketing is separate, optional and
+ * never pre-checked — mixing them is exactly what regulators look for.
+ */
+export const profileSchemaFor = (fields: ProfileFields = DEFAULT_PROFILE_FIELDS) =>
+  z.object({
+    firstName: z.string().trim().min(1).max(60),
+    lastName: z.string().trim().min(1).max(60),
+    // The leaderboard shows this and nothing else about the person. Asked for
+    // at registration precisely so real names never reach a public ranking.
+    alias: z.string().trim().min(2).max(20),
+    phone: fieldByMode(phoneField, fields.phone),
+    zip: fieldByMode(zipField, fields.zip),
+    state: fieldByMode(stateField, fields.state),
+    locale: z.enum(["es", "en"]),
+    acceptedAgeState: z.literal(true),
+    acceptedRules: z.literal(true),
+    acceptedMarketing: z.boolean(),
+  });
+
+export type ProfileInput = z.infer<ReturnType<typeof profileSchemaFor>>;
 
 // Password sign-up. 8 is the floor Supabase's leaked-password protection
 // assumes; the ceiling only guards against absurd payloads. The email is also
@@ -173,10 +229,14 @@ export interface ParticipantRow {
   last_name: string;
   /** Leaderboard display name. Null only on profiles that predate the field. */
   alias: string | null;
-  zip: string;
+  /** Null on campaigns whose `profile_fields.zip` is not 'required' (0015). */
+  zip: string | null;
   state: string | null;
+  /** E.164. Null unless the campaign asks for it — see `ProfileFields`. */
+  phone: string | null;
   locale: "es" | "en";
-  household_key: string;
+  /** Generated from last_name + zip, so it is null wherever the ZIP is. */
+  household_key: string | null;
   /** Set once the address is proven real — the payout gate reads this. */
   email_verified_at: string | null;
   created_at: string;
@@ -233,7 +293,14 @@ export interface QueueRow {
   receipt: ReceiptRow;
   participant: Pick<
     ParticipantRow,
-    "id" | "email" | "first_name" | "last_name" | "zip" | "state" | "household_key"
+    | "id"
+    | "email"
+    | "first_name"
+    | "last_name"
+    | "zip"
+    | "state"
+    | "phone"
+    | "household_key"
   >;
   flags: RiskFlag[];
 }
