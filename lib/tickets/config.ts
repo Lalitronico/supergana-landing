@@ -51,6 +51,8 @@ export interface CampaignConfig {
   brands: Brand[];
   /** Points earned per eligible dollar. Must mirror the RPC's default. */
   pointsPerDollar: number;
+  /** Which fields "completa tu perfil" asks for. See `ProfileFields`. */
+  profileFields: ProfileFields;
   /**
    * Accumulation prizes: reached by points threshold, no chance anywhere.
    * This is the legal line that keeps the campaign out of lottery territory —
@@ -66,6 +68,45 @@ export interface Prize {
   nameEs: string;
   nameEn: string;
 }
+
+/**
+ * How hard a campaign asks for one profile field.
+ *  · `required` — the form will not submit without it, the API rejects it.
+ *  · `optional` — rendered, accepted empty, stored as null.
+ *  · `off`      — never rendered, and ignored if a client sends it anyway.
+ */
+export type ProfileFieldMode = "required" | "optional" | "off";
+
+/**
+ * The fields of "completa tu perfil" that differ between campaigns.
+ *
+ * Name, surname, alias, email and locale are absent on purpose: they are what
+ * the module is built on (the leaderboard needs an alias, the reward needs an
+ * address) and a campaign that could switch them off would be a campaign that
+ * could break the module through configuration.
+ *
+ * These three are the ones geography decides. A US promotion is scoped by ZIP
+ * and state and rations by household; a Mexican one delivers a top-up to a
+ * phone number and has no use for either. That is a difference between clients,
+ * which means it belongs in `campaigns.config`, not in an `if` on the slug.
+ */
+export interface ProfileFields {
+  phone: ProfileFieldMode;
+  zip: ProfileFieldMode;
+  state: ProfileFieldMode;
+}
+
+/**
+ * Deliberately the shape Ticket al Tanque already has, not a neutral one: the
+ * campaign has live participants and its config carries no `profile_fields`
+ * key, so anything else here would change a running campaign by deploying a
+ * parser. A new campaign that wants something different says so in its config.
+ */
+export const DEFAULT_PROFILE_FIELDS: ProfileFields = {
+  phone: "off",
+  zip: "required",
+  state: "required",
+};
 
 export interface Campaign {
   id: string;
@@ -118,6 +159,7 @@ const DEFAULTS: CampaignConfig = {
   showGrandPrize: false,
   brands: [],
   pointsPerDollar: 10,
+  profileFields: DEFAULT_PROFILE_FIELDS,
   prizes: [],
 };
 
@@ -147,6 +189,21 @@ const asPrizes = (value: unknown): Prize[] =>
         })
         .sort((a, b) => a.points - b.points)
     : [];
+
+// An unrecognised mode falls back to the default rather than throwing. A typo
+// in one key must not take the registration form down for a whole campaign,
+// and "we kept asking the way we asked yesterday" is the safe way to be wrong.
+const asFieldMode = (value: unknown, fallback: ProfileFieldMode): ProfileFieldMode =>
+  value === "required" || value === "optional" || value === "off" ? value : fallback;
+
+const asProfileFields = (value: unknown): ProfileFields => {
+  const f = (value ?? {}) as Record<string, unknown>;
+  return {
+    phone: asFieldMode(f.phone, DEFAULT_PROFILE_FIELDS.phone),
+    zip: asFieldMode(f.zip, DEFAULT_PROFILE_FIELDS.zip),
+    state: asFieldMode(f.state, DEFAULT_PROFILE_FIELDS.state),
+  };
+};
 
 const asBrands = (value: unknown): Brand[] =>
   Array.isArray(value)
@@ -179,6 +236,7 @@ export const parseCampaignConfig = (raw: unknown): CampaignConfig => {
     showGrandPrize: c.show_grand_prize === true,
     brands: asBrands(c.brands),
     pointsPerDollar: asInt(c.points_per_dollar, DEFAULTS.pointsPerDollar),
+    profileFields: asProfileFields(c.profile_fields),
     prizes: asPrizes(c.prizes),
   };
 };
@@ -206,6 +264,12 @@ export interface PublicCampaign {
   rulesUrl: string | null;
   rulesVersion: string;
   pointsPerDollar: number;
+  /**
+   * Safe to publish: it says which boxes the form draws, not anything about
+   * anybody. The browser needs it to render the form, and the API validates
+   * against its own copy — this one is a rendering hint, never the authority.
+   */
+  profileFields: ProfileFields;
   prizes: Prize[];
 }
 
@@ -226,6 +290,7 @@ export const toPublicCampaign = (campaign: Campaign): PublicCampaign => ({
   rulesUrl: campaign.config.rulesUrl,
   rulesVersion: campaign.config.rulesVersion,
   pointsPerDollar: campaign.config.pointsPerDollar,
+  profileFields: campaign.config.profileFields,
   prizes: campaign.config.prizes,
 });
 
