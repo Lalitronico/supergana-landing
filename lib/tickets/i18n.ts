@@ -178,6 +178,10 @@ const es = {
 
   // ---- prize store, redesign ---------------------------------------------
   stFeatured: "Destacado",
+  // One unit per prize per participant per Drop, which the redeem RPC enforces.
+  // The shelf has to say so, or it offers something that would be refused.
+  stMine: "Ya es tuyo",
+  stMineNote: "Lo canjeaste en este Drop. Vuelve el lunes por el siguiente.",
   stAvailable: "Disponible",
   // The stamp for a prize within reach. Not a number — the number is right
   // above it on the bar, and repeating it twice in two type sizes is noise.
@@ -528,6 +532,8 @@ const en: Dict = {
   stNoDropNote: "Keep earning meanwhile — your points never reset.",
   stDropCadence: "New prizes every Monday",
   stFeatured: "Featured",
+  stMine: "Already yours",
+  stMineNote: "You claimed it in this Drop. Come back Monday for the next one.",
   stAvailable: "Available",
   stAlmost: "Almost there",
   stKindPhysical: "Physical prize",

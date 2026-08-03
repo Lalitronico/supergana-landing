@@ -4,6 +4,7 @@ import { useState } from "react";
 import { REDEMPTION_STATUS_KEY } from "@/lib/tickets/i18n";
 import {
   prizeName,
+  redemptionHoldsStock,
   REDEEM_ERROR_KEY,
   type PrizeKind,
   type RedemptionStatus,
@@ -39,11 +40,14 @@ function PrizeCard({
   prize,
   points,
   featured,
+  mine,
   onPick,
 }: {
   prize: StorePrize;
   points: number;
   featured: boolean;
+  /** Already claimed in this Drop. The RPC would refuse a second one. */
+  mine: boolean;
   onPick: () => void;
 }) {
   const { locale, t } = useTickets();
@@ -64,15 +68,31 @@ function PrizeCard({
 
   return (
     <div
-      className={["tk-prize", featured ? "featured" : null, soldOut ? "gone" : null]
+      className={[
+        "tk-prize",
+        featured ? "featured" : null,
+        mine ? "mine" : soldOut ? "gone" : null,
+      ]
         .filter(Boolean)
         .join(" ")}
     >
+      {/* One stamp, and "already yours" outranks everything: whether somebody
+          can afford a prize they already took is not the fact that matters.
+
+          The featured card shows the badge and skips the reachable/almost stamp:
+          two labels do not fit beside each other at 390px, "Destacado" already
+          says this is the highlight, and the bar underneath gives the exact
+          number that "casi lo logras" only gestures at. Sold out and already
+          yours still stamp — those are facts no bar can convey. */}
       <div className="tk-prize-stamps">
-        {featured && !soldOut && <span className="tk-badge brand">{t("stFeatured")}</span>}
-        {soldOut ? (
+        {featured && !soldOut && !mine && (
+          <span className="tk-badge brand">{t("stFeatured")}</span>
+        )}
+        {mine ? (
+          <span className="tk-stamp mine">{t("stMine")}</span>
+        ) : soldOut ? (
           <span className="tk-stamp gone">{t("stSoldOut")}</span>
-        ) : almost ? (
+        ) : featured ? null : almost ? (
           <span className="tk-stamp almost">{t("stAlmost")}</span>
         ) : !short ? (
           <span className="tk-stamp ok">{t("stAvailable")}</span>
@@ -103,10 +123,16 @@ function PrizeCard({
             a small campaign; a vague "few left" risks reading as a lie, and the
             inventory is restocked every Monday. */}
         <span className="tk-prize-stock">
-          {soldOut ? t("stSoldOut") : t("stLeft", { left: prize.remaining })}
+          {mine
+            ? t("stMineNote")
+            : soldOut
+              ? t("stSoldOut")
+              : t("stLeft", { left: prize.remaining })}
         </span>
 
-        {short && !soldOut && (
+        {/* No bar on something already claimed: "te faltan 500 pts" for a prize
+            sitting in your redemptions is the screen contradicting itself. */}
+        {short && !soldOut && !mine && (
           <>
             <div className="tk-progress">
               <div className="tk-progress-fill" style={{ width: `${pct}%` }} />
@@ -118,7 +144,11 @@ function PrizeCard({
         )}
       </div>
 
-      {soldOut ? (
+      {mine ? (
+        <button type="button" className="tk-btn sm" disabled>
+          {t("stMine")}
+        </button>
+      ) : soldOut ? (
         <button type="button" className="tk-btn sm" disabled>
           {t("stSoldOut")}
         </button>
@@ -234,7 +264,19 @@ export function PrizeStore({
   // Cheapest first, as the API sends them, so the featured prize is the one most
   // people can actually reach rather than the most expensive thing on the shelf.
   const items = drop?.items ?? [];
-  const featured = items.find((item) => item.remaining > 0) ?? items[0] ?? null;
+
+  // One unit per prize per participant per Drop, counted the way the RPC counts
+  // it (`status <> 'canceled'`). Without this the shelf offers a second copy of
+  // something and the database refuses it after the person has already decided.
+  const claimed = new Set(
+    redemptions.filter((r) => redemptionHoldsStock(r.status)).map((r) => r.dropItemId),
+  );
+
+  const featured =
+    items.find((item) => item.remaining > 0 && !claimed.has(item.id)) ??
+    items.find((item) => item.remaining > 0) ??
+    items[0] ??
+    null;
   const rest = featured ? items.filter((item) => item.id !== featured.id) : items;
   const allGone = items.length > 0 && items.every((item) => item.remaining <= 0);
 
@@ -282,6 +324,7 @@ export function PrizeStore({
               prize={featured}
               points={points}
               featured
+              mine={claimed.has(featured.id)}
               onPick={() => {
                 setError(null);
                 setConfirming(featured);
@@ -297,6 +340,7 @@ export function PrizeStore({
                   prize={prize}
                   points={points}
                   featured={false}
+                  mine={claimed.has(prize.id)}
                   onPick={() => {
                     setError(null);
                     setConfirming(prize);

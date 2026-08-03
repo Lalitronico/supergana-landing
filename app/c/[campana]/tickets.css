@@ -1088,6 +1088,14 @@ a.tk-storedoor:active {
    Drop is real and moves fast, which is the reason to come back on Monday. */
 .tk-prize.gone { opacity: 0.6; box-shadow: none; }
 
+/* Already claimed is settled, not lost, so it keeps its contrast and loses only
+   the shadow that says "press me". Dimming it to 60% like a sold-out prize would
+   read as bad news about something that went right. */
+.tk-prize.mine {
+  box-shadow: none;
+  background: color-mix(in srgb, var(--tk-green) 9%, #ffffff);
+}
+
 .tk-prize-stamps {
   position: absolute;
   top: -11px;
@@ -1163,7 +1171,10 @@ a.tk-storedoor:active {
   background: var(--tk-yellow);
   transform: rotate(-4deg);
   white-space: nowrap;
-  max-width: 108px;
+  /* Wide enough for the longest stamp ("Casi lo logras") on a grid card. The
+     ellipsis is a backstop for a translation nobody has written yet, not a
+     licence to clip the copy that exists — a truncated stamp reads as a bug. */
+  max-width: 128px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -1171,6 +1182,10 @@ a.tk-storedoor:active {
 .tk-stamp.ok { background: var(--tk-yellow); }
 .tk-stamp.almost { background: #fff; }
 .tk-stamp.gone { background: var(--tk-cream-deep); color: var(--tk-ink-mute); }
+
+/* Already claimed. Green, because this is the only quiet state that is good
+   news — the prize is theirs, it just isn't available twice. */
+.tk-stamp.mine { background: var(--tk-green); color: var(--tk-ink); }
 
 .tk-histcode {
   font-family: var(--tk-mono);
