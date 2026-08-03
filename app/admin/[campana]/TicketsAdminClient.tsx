@@ -215,6 +215,7 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
               minCents={campaign.config.minPurchaseCents}
               pointsPerDollar={campaign.config.pointsPerDollar}
               stores={campaign.config.stores}
+              timezone={campaign.config.timezone}
               profileFields={campaign.config.profileFields}
               onDone={async (message, bad) => {
                 notify(message, bad);
@@ -570,6 +571,7 @@ function QueueView({
   minCents,
   pointsPerDollar,
   stores,
+  timezone,
   profileFields,
   onDone,
 }: {
@@ -586,6 +588,8 @@ function QueueView({
   pointsPerDollar: number;
   /** Participating stores as they print, offered as suggestions to the reviewer. */
   stores: string[];
+  /** The plaza, so the date box cannot offer a day that has not happened there. */
+  timezone: string;
   /** Decides which identifying column is worth a place in the queue table. */
   profileFields: ProfileFields;
   onDone: (message: string, bad?: boolean) => void | Promise<void>;
@@ -701,6 +705,7 @@ function QueueView({
           minCents={minCents}
           pointsPerDollar={pointsPerDollar}
           stores={stores}
+          timezone={timezone}
           onDone={onDone}
         />
       )}

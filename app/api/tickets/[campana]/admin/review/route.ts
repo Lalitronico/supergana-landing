@@ -9,6 +9,7 @@ import {
   sendReceiptRejected,
 } from "@/lib/tickets/email";
 import { approveSchema, reviewSchema } from "@/lib/tickets/schema";
+import { isFuturePurchaseDate } from "@/lib/tickets/config";
 import type { Locale } from "@/lib/tickets/config";
 
 export const runtime = "nodejs";
@@ -118,6 +119,14 @@ export async function POST(
      */
     if (body.eligibleCents <= 0) {
       return NextResponse.json({ error: "eligible_zero" }, { status: 409 });
+    }
+
+    // A ticket cannot have been printed tomorrow. The schema checks the date's
+    // shape and never its value, which is how one receipt ended up stored with a
+    // purchase date two days after it was reviewed. Judged in the campaign's
+    // plaza, because that is where the paper was printed.
+    if (isFuturePurchaseDate(body.purchaseDate, campaign.config.timezone)) {
+      return NextResponse.json({ error: "future_date" }, { status: 409 });
     }
 
     const { data, error } = await db.rpc("tickets_approve_receipt", {

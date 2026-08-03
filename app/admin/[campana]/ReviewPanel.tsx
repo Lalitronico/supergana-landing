@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { formatUsdCents, parseUsdToCents } from "@/lib/tickets/config";
+import { formatUsdCents, isFuturePurchaseDate, parseUsdToCents, todayInTz } from "@/lib/tickets/config";
 import type { CampaignMechanic } from "@/lib/tickets/config";
 import { formatMxPhone } from "@/lib/tickets/phone";
 import type { AdminProduct, QueueItem } from "./types";
@@ -32,6 +32,8 @@ const RULE_MESSAGE: Record<string, string> = {
   fund_exhausted: "No queda fondo suficiente para pagar esta recompensa.",
   receipt_not_found: "El ticket ya no existe.",
   role_cannot_review: "Tu rol no puede decidir reclamos.",
+  future_date:
+    "La fecha de compra es posterior a hoy en la plaza de la campaña. Un ticket no puede venir del futuro.",
   eligible_zero:
     "El elegible llegó en 0 y una aprobación tiene que abonar algo. Captura las líneas de productos participantes, o rechaza el ticket.",
 };
@@ -119,6 +121,7 @@ export function ReviewPanel({
   minCents,
   pointsPerDollar,
   stores,
+  timezone,
   onDone,
 }: {
   slug: string;
@@ -132,6 +135,8 @@ export function ReviewPanel({
   pointsPerDollar: number;
   /** Participating stores as they print. Empty on campaigns that never listed them. */
   stores: string[];
+  /** The plaza. Decides what "today" means for the purchase date. */
+  timezone: string;
   onDone: (message: string, bad?: boolean) => void | Promise<void>;
 }) {
   const { receipt, participant, flags } = item;
@@ -271,6 +276,12 @@ export function ReviewPanel({
      * approval, and the console already has `rejected` and `needs_new_image` for
      * saying so.
      */
+    if (isFuturePurchaseDate(purchaseDate, timezone)) {
+      setError(
+        `La fecha de compra (${purchaseDate}) es posterior a hoy en la plaza de la campaña. Revisa el ticket: un ticket no puede venir del futuro.`,
+      );
+      return;
+    }
     if (eligibleCents <= 0) {
       setError(
         mechanic === "accumulation"
@@ -441,6 +452,10 @@ export function ReviewPanel({
                   Fecha de compra
                   <input
                     type="date"
+                    // The picker stops at today in the campaign's plaza, so the
+                    // guard below is a backstop rather than the first thing a
+                    // reviewer meets.
+                    max={todayInTz(timezone)}
                     value={purchaseDate}
                     onChange={(e) => setPurchaseDate(e.target.value)}
                   />

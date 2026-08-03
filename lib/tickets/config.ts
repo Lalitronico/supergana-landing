@@ -397,6 +397,44 @@ export const weekStart = (timezone: string, at: Date = new Date()): Date => {
 };
 
 /**
+ * Today's wall-clock date in the campaign's plaza, as `YYYY-MM-DD`.
+ *
+ * The plaza and not UTC, for the same reason Monday is decided there: at 19:00
+ * in Ciudad Juárez it is already tomorrow in UTC, and a receipt printed an hour
+ * ago would be judged against a day that has not happened locally.
+ *
+ * `en-CA` because it formats as YYYY-MM-DD, which compares correctly as a string
+ * and is the shape `receipts.purchase_date` already stores.
+ */
+export const todayInTz = (timezone: string, at: Date = new Date()): string =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(at);
+
+/**
+ * A purchase date cannot be in the future.
+ *
+ * Sounds obvious enough not to need a function, and it was missing: the approve
+ * schema validated the SHAPE of the date and nothing about its value, so a
+ * reviewer's typo sailed through. One receipt in Carrera Alaska is stored with a
+ * purchase date two days after it was reviewed.
+ *
+ * It matters beyond tidiness. The anti-duplicate lock is (store + date + total),
+ * and the campaign's validity window is checked against this date — a wrong date
+ * moves a receipt out of the period it belongs to and out of the way of the
+ * duplicate it is a copy of.
+ *
+ * No lower bound here on purpose. The floor is the campaign's `starts_at`, which
+ * Carrera Alaska does not have yet (question 1 of PREGUNTAS_ABIERTAS), and
+ * inventing an arbitrary one would reject legitimately older receipts.
+ */
+export const isFuturePurchaseDate = (date: string, timezone: string): boolean =>
+  date > todayInTz(timezone);
+
+/**
  * Points ledger kinds (migration 0011) that spend points instead of earning
  * them. The balance is the SUM of everything; the leaderboard is the SUM of
  * everything except these — canjear no te saca de la carrera.
