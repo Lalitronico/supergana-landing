@@ -35,9 +35,12 @@ export interface AdminParticipant {
   email: string;
   firstName: string;
   lastName: string;
-  zip: string;
+  zip: string | null;
   state: string | null;
-  householdKey: string;
+  /** E.164. Where the operator sends a top-up, so the console must show it. */
+  phone: string | null;
+  /** Null when the campaign asks for no ZIP: there is no household without one. */
+  householdKey: string | null;
   createdAt: string;
 }
 

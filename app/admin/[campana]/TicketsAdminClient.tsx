@@ -5,7 +5,8 @@ import { authThrottleKind, supabaseBrowser } from "@/lib/supabase/browser";
 import { formatUsdCents, mechanicOf } from "@/lib/tickets/config";
 import { canPayout, canReview } from "@/lib/tickets/roles";
 import { PAYOUT_TRANSITIONS } from "@/lib/tickets/payouts";
-import type { CampaignMechanic, RewardStatus } from "@/lib/tickets/config";
+import { formatMxPhone } from "@/lib/tickets/phone";
+import type { CampaignMechanic, ProfileFields, RewardStatus } from "@/lib/tickets/config";
 import type { AdminData, AdminProduct, QueueItem } from "./types";
 import { ReviewPanel } from "./ReviewPanel";
 import { StoreView } from "./StoreView";
@@ -213,6 +214,7 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
               rewardCents={campaign.config.rewardCents}
               minCents={campaign.config.minPurchaseCents}
               pointsPerDollar={campaign.config.pointsPerDollar}
+              profileFields={campaign.config.profileFields}
               onDone={async (message, bad) => {
                 notify(message, bad);
                 if (!bad) {
@@ -566,6 +568,7 @@ function QueueView({
   rewardCents,
   minCents,
   pointsPerDollar,
+  profileFields,
   onDone,
 }: {
   slug: string;
@@ -579,10 +582,18 @@ function QueueView({
   rewardCents: number;
   minCents: number;
   pointsPerDollar: number;
+  /** Decides which identifying column is worth a place in the queue table. */
+  profileFields: ProfileFields;
   onDone: (message: string, bad?: boolean) => void | Promise<void>;
 }) {
   const all = useMemo(() => [...queue, ...decided], [queue, decided]);
   const current = all.find((item) => item.receipt.id === selected) ?? null;
+
+  // One narrow column, spent on whatever this campaign actually collected. A
+  // ZIP column full of dashes tells the reviewer nothing; on a campaign that
+  // pays in phone top-ups, the number is the thing they scan the list for.
+  const showsZip = profileFields.zip !== "off";
+  const contactHeader = showsZip ? "ZIP" : profileFields.phone !== "off" ? "Celular" : "—";
 
   return (
     <>
@@ -600,7 +611,7 @@ function QueueView({
             <tr>
               <th>Enviado</th>
               <th>Participante</th>
-              <th>ZIP</th>
+              <th>{contactHeader}</th>
               <th>Señales</th>
               <th>Elegible</th>
               <th>Estado</th>
@@ -645,7 +656,13 @@ function QueueView({
                       {item.participant?.email}
                     </span>
                   </td>
-                  <td>{item.participant?.zip ?? "—"}</td>
+                  <td>
+                    {showsZip
+                      ? (item.participant?.zip ?? "—")
+                      : item.participant?.phone
+                        ? formatMxPhone(item.participant.phone)
+                        : "—"}
+                  </td>
                   <td>
                     <span className={`tka-pill ${worst === "ok" ? "ok" : worst === "warn" ? "warn" : "bad"}`}>
                       {worst === "ok" ? "Limpio" : worst === "warn" ? "Revisar" : "Alerta"}

@@ -14,9 +14,11 @@ interface ParticipantLite {
   email: string;
   first_name: string;
   last_name: string;
-  zip: string;
+  zip: string | null;
   state: string | null;
-  household_key: string;
+  phone: string | null;
+  /** Generated from last_name + zip, so it is null wherever the ZIP is (0015). */
+  household_key: string | null;
   created_at: string;
 }
 
@@ -61,10 +63,12 @@ export async function GET(
   const db = supabaseAdmin();
   const [participantsQ, receiptsQ, rewardsQ, productsQ, consentsQ, quota] =
     await Promise.all([
-      db
-        .from("participants")
-        .select("id, email, first_name, last_name, zip, state, household_key, created_at")
-        .eq("campaign_id", campaign.id),
+      // `*` rather than a column list, unlike every other read here: `phone`
+      // arrives with migration 0015 and an explicit list naming it would take
+      // the whole console down on any project that has not run it yet — the
+      // normal state between a deploy and a migration. What actually reaches
+      // the browser is still an explicit projection, in `toRow` below.
+      db.from("participants").select("*").eq("campaign_id", campaign.id),
       db
         .from("receipts")
         .select(
@@ -112,8 +116,12 @@ export async function GET(
   const rewardedHouseholds = new Set(
     rewards.filter((r) => r.status !== "canceled").map((r) => r.household_key),
   );
+  // Null keys are skipped, not counted: a campaign that asks for no ZIP leaves
+  // every participant without a household (0015), and grouping them under the
+  // same absent key would flag the whole campaign as one enormous family.
   const householdSize = new Map<string, number>();
   for (const p of participants) {
+    if (!p.household_key) continue;
     householdSize.set(p.household_key, (householdSize.get(p.household_key) ?? 0) + 1);
   }
   const receiptsPerParticipant = new Map<string, number>();
@@ -136,13 +144,19 @@ export async function GET(
         code: "participant_rewarded",
         detail: "Este participante ya recibió una recompensa en esta campaña",
       });
-    } else if (rewardedHouseholds.has(participant.household_key)) {
+    } else if (
+      participant.household_key &&
+      rewardedHouseholds.has(participant.household_key)
+    ) {
       flags.push({
         level: "bad",
         code: "household_rewarded",
         detail: `Otro participante del mismo hogar (${participant.last_name} · ${participant.zip}) ya fue premiado`,
       });
-    } else if ((householdSize.get(participant.household_key) ?? 0) > 1) {
+    } else if (
+      participant.household_key &&
+      (householdSize.get(participant.household_key) ?? 0) > 1
+    ) {
       flags.push({
         level: "warn",
         code: "household_shared",
@@ -191,6 +205,7 @@ export async function GET(
             lastName: p.last_name,
             zip: p.zip,
             state: p.state,
+            phone: p.phone ?? null,
             householdKey: p.household_key,
             createdAt: p.created_at,
           }

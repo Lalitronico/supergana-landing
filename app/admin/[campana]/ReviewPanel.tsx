@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatUsdCents, parseUsdToCents } from "@/lib/tickets/config";
 import type { CampaignMechanic } from "@/lib/tickets/config";
+import { formatMxPhone } from "@/lib/tickets/phone";
 import type { AdminProduct, QueueItem } from "./types";
 
 const money = (cents: number) => formatUsdCents(cents, "en");
@@ -300,8 +301,19 @@ export function ReviewPanel({
             <dd>{participant?.email ?? "—"}</dd>
             <dt>Hogar</dt>
             <dd className="tka-mono">{participant?.householdKey ?? "—"}</dd>
+            {/* Solo cuando existe: en las campañas que piden celular, este es
+                el dato con el que se entrega la recarga, y una fila vacía en
+                las que no lo piden sería ruido en la pantalla de trabajo. */}
+            {participant?.phone && (
+              <>
+                <dt>Celular</dt>
+                <dd className="tka-mono">{formatMxPhone(participant.phone)}</dd>
+              </>
+            )}
             <dt>ZIP / estado</dt>
-            <dd>{participant ? `${participant.zip} · ${participant.state ?? "—"}` : "—"}</dd>
+            <dd>
+              {participant ? `${participant.zip ?? "—"} · ${participant.state ?? "—"}` : "—"}
+            </dd>
             <dt>Enviado</dt>
             <dd>{new Date(receipt.submitted_at).toLocaleString("es-MX")}</dd>
             <dt>Hash de imagen</dt>
