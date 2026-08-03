@@ -176,6 +176,34 @@ const es = {
   // ticking to a moment nobody guaranteed is a promise the platform can't keep.
   stDropCadence: "Nuevos premios cada lunes",
 
+  // ---- prize store, redesign ---------------------------------------------
+  stFeatured: "Destacado",
+  stAvailable: "Disponible",
+  // The stamp for a prize within reach. Not a number — the number is right
+  // above it on the bar, and repeating it twice in two type sizes is noise.
+  stAlmost: "Casi lo logras",
+  // Physical or digital, derived from `kind`: one is collected at a counter,
+  // the other arrives without anybody moving. It changes what to expect, so it
+  // is a badge and not a footnote.
+  stKindPhysical: "Premio físico",
+  stKindDigital: "Premio digital",
+  stConfirmTitle: "¿Confirmas que quieres canjear este premio?",
+  stConfirmUndo: "No podrás deshacer esta acción.",
+  stAfterLead: "Te quedarán",
+  stAfterRest: "después de canjear",
+  stRedeemedTitle: "¡Premio canjeado!",
+  stCodeLabel: "Código de recolección",
+  stCodeAria: "Tu código de recolección es {code}",
+  stShowTitle: "Muéstralo en tienda para recoger tu premio",
+  stShowSub: "Presenta este código en cualquier tienda participante.",
+  stDigitalTitle: "Te lo entregamos nosotros",
+  stDigitalSub: "El equipo de la promoción lo procesa y te avisa. Guarda tu código.",
+  stBalanceNow: "Tu saldo ahora",
+  stSavedTitle: "Guardado en tus canjes",
+  stSavedSub: "Lo encontrarás en tu historial cuando lo necesites.",
+  stSeeHist: "Ver mis canjes",
+  stBackToPrizes: "Volver a premios",
+
   // ---- next-prize progress ------------------------------------------------
   // Split lead/number so the points can be bold without carving a substring
   // out of a sentence — the same reason how1Lead/how1Rest are two keys.
@@ -499,6 +527,27 @@ const en: Dict = {
   stNoDrop: "The next Drop opens Monday.",
   stNoDropNote: "Keep earning meanwhile — your points never reset.",
   stDropCadence: "New prizes every Monday",
+  stFeatured: "Featured",
+  stAvailable: "Available",
+  stAlmost: "Almost there",
+  stKindPhysical: "Physical prize",
+  stKindDigital: "Digital prize",
+  stConfirmTitle: "Confirm you want to redeem this prize?",
+  stConfirmUndo: "This can't be undone.",
+  stAfterLead: "You'll have",
+  stAfterRest: "left after redeeming",
+  stRedeemedTitle: "Prize redeemed!",
+  stCodeLabel: "Pickup code",
+  stCodeAria: "Your pickup code is {code}",
+  stShowTitle: "Show it in store to collect your prize",
+  stShowSub: "Present this code at any participating store.",
+  stDigitalTitle: "We deliver this one",
+  stDigitalSub: "The promotion team processes it and lets you know. Keep your code.",
+  stBalanceNow: "Your balance now",
+  stSavedTitle: "Saved to your redemptions",
+  stSavedSub: "You'll find it in your history whenever you need it.",
+  stSeeHist: "See my redemptions",
+  stBackToPrizes: "Back to prizes",
   npTitle: "Your next prize",
   npMissingLead: "You need",
   npMissingPts: "{points} more pts",
