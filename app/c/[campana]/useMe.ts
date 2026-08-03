@@ -30,8 +30,11 @@ export interface MeProfile {
   lastName: string;
   /** Leaderboard display name; null on profiles that predate the field. */
   alias: string | null;
-  zip: string;
+  /** Null wherever the campaign's `profileFields.zip` is not 'required'. */
+  zip: string | null;
   state: string | null;
+  /** E.164, or null on campaigns that never ask for it. */
+  phone: string | null;
   locale: "es" | "en";
   /** False until the address is proven; the reward won't release before then. */
   emailVerified: boolean;

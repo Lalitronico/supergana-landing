@@ -218,6 +218,12 @@ const es = {
   fState: "Estado",
   fStatePick: "Elige tu estado",
   fLangPref: "Idioma preferido",
+  // Teléfono: solo aparece en campañas cuyo premio llega al celular. El texto
+  // dice a dónde va el premio, no "para contactarte" — es el dato con el que
+  // el operador hace la recarga, y quien lo escribe mal se queda sin ella.
+  fPhone: "Celular",
+  fPhoneHint: "Aquí llegan tus recargas y premios digitales.",
+  fPhonePreview: "Lo guardamos como {phone}",
   chkAge: "Confirmo que tengo 18 años o más y resido en un estado elegible.",
   chkRules: "Acepto las reglas oficiales y el aviso de privacidad.",
   chkMkt: "Quiero recibir noticias y promociones de {org} por email. (Opcional)",
@@ -295,6 +301,7 @@ const es = {
     "Ahora mismo no podemos enviarte el código. No es tu culpa: ya avisamos al equipo. Intenta de nuevo más tarde.",
   errRequired: "Completa los campos obligatorios.",
   errZip: "El ZIP debe tener 5 dígitos.",
+  errPhone: "Escribe tu celular a 10 dígitos. Puedes usar +52, lada y espacios.",
   errConsents: "Debes confirmar tu edad y aceptar las reglas para continuar.",
   errState: "Esta promoción todavía no aplica en tu estado.",
   errFileType: "Formato no admitido. Usa una foto JPG, PNG, WEBP o HEIC.",
@@ -501,6 +508,9 @@ const en: Dict = {
   fState: "State",
   fStatePick: "Pick your state",
   fLangPref: "Preferred language",
+  fPhone: "Mobile number",
+  fPhoneHint: "Top-ups and digital prizes are delivered to this number.",
+  fPhonePreview: "We'll save it as {phone}",
   chkAge: "I confirm I am 18+ and reside in an eligible state.",
   chkRules: "I accept the official rules and the privacy notice.",
   chkMkt: "I want to receive {org} news and offers by email. (Optional)",
@@ -571,6 +581,7 @@ const en: Dict = {
     "We can't send your code right now. This isn't your fault — the team has been notified. Please try again later.",
   errRequired: "Please fill in the required fields.",
   errZip: "ZIP must be 5 digits.",
+  errPhone: "Enter your 10-digit mobile number. +52, area code and spaces are fine.",
   errConsents: "You must confirm your age and accept the rules to continue.",
   errState: "This promotion isn't available in your state yet.",
   errFileType: "Unsupported format. Use a JPG, PNG, WEBP or HEIC photo.",

@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatMxPhone, normalizeMxPhone } from "@/lib/tickets/phone";
 import { pickableStates } from "@/lib/tickets/states";
 import { useTickets } from "../TicketsShell";
 import { useMe, type MeProfile } from "../useMe";
 
-const ERROR_KEYS: Record<string, "errZip" | "errConsents" | "errState" | "errGeneric"> = {
+const ERROR_KEYS: Record<
+  string,
+  "errZip" | "errPhone" | "errConsents" | "errState" | "errGeneric"
+> = {
   bad_zip: "errZip",
+  bad_phone: "errPhone",
   consents_required: "errConsents",
   state_not_eligible: "errState",
 };
@@ -45,6 +50,11 @@ export default function RegisterPage() {
  * with the rules version stamped on each — marketing is optional and starts
  * unchecked, which is not a UX preference but the thing that keeps the
  * marketing list defensible.
+ *
+ * Which of phone / ZIP / state appear is the campaign's answer, not this
+ * file's: `profileFields` comes from `campaigns.config` (see `ProfileFields`).
+ * A US promotion is scoped by ZIP and state; a Mexican one delivers a top-up
+ * to a phone number and asks for neither.
  */
 function ProfileForm({
   initial,
@@ -55,9 +65,15 @@ function ProfileForm({
 }) {
   const { campaign, locale, t } = useTickets();
 
+  const fields = campaign.profileFields;
+  const asksPhone = fields.phone !== "off";
+  const asksZip = fields.zip !== "off";
+  const asksState = fields.state !== "off";
+
   const [firstName, setFirstName] = useState(initial?.firstName ?? "");
   const [lastName, setLastName] = useState(initial?.lastName ?? "");
   const [alias, setAlias] = useState(initial?.alias ?? "");
+  const [phone, setPhone] = useState(initial?.phone ?? "");
   const [zip, setZip] = useState(initial?.zip ?? "");
   const [state, setState] = useState(initial?.state ?? "");
   const [ageState, setAgeState] = useState(false);
@@ -68,11 +84,16 @@ function ProfileForm({
 
   const states = pickableStates(campaign.eligibleStates);
 
+  // Derived every render instead of stored: the field the participant edits is
+  // whatever they typed, and the E.164 form is a view of it. Keeping a second
+  // piece of state in step with the first is how the two end up disagreeing.
+  const phoneE164 = phone.trim() ? normalizeMxPhone(phone) : null;
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!firstName.trim() || !lastName.trim() || !state) {
+    if (!firstName.trim() || !lastName.trim() || (fields.state === "required" && !state)) {
       setError(t("errRequired"));
       return;
     }
@@ -80,8 +101,16 @@ function ProfileForm({
       setError(t("errAlias"));
       return;
     }
-    if (!/^\d{5}(-\d{4})?$/.test(zip.trim())) {
-      setError(t("errZip"));
+    // Empty is only an error where the campaign says the field is required;
+    // a value that is present must be well-formed whatever the mode says.
+    if (asksZip && (zip.trim() || fields.zip === "required")) {
+      if (!/^\d{5}(-\d{4})?$/.test(zip.trim())) {
+        setError(t("errZip"));
+        return;
+      }
+    }
+    if (asksPhone && (phone.trim() || fields.phone === "required") && !phoneE164) {
+      setError(t("errPhone"));
       return;
     }
     if (!ageState || !rules) {
@@ -98,8 +127,12 @@ function ProfileForm({
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           alias: alias.trim(),
-          zip: zip.trim(),
-          state,
+          // Always E.164 on the wire. What the person typed never leaves the
+          // browser: the number is how a prize gets delivered, and two
+          // spellings of it are two people as far as any operator can tell.
+          phone: asksPhone ? phoneE164 : null,
+          zip: asksZip ? zip.trim() : null,
+          state: asksState ? state : null,
           locale,
           acceptedAgeState: true,
           acceptedRules: true,
@@ -174,32 +207,72 @@ function ProfileForm({
           <span className="tk-foot" style={{ marginTop: 4 }}>{t("fAliasHint")}</span>
         </label>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        {asksPhone && (
           <label className="tk-field">
-            {t("fZip")}
+            {t("fPhone")}
             <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="postal-code"
-              maxLength={10}
-              value={zip}
-              onChange={(e) => setZip(e.target.value)}
-              placeholder="79901"
-              required
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              maxLength={20}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="656 111 2233"
+              required={fields.phone === "required"}
             />
+            {/* The normalised number, before anything is saved. The participant
+                types it their way and confirms ours — the only moment a typo in
+                the field that receives the prize can still be caught. */}
+            <span className="tk-foot" style={{ marginTop: 4 }}>
+              {phoneE164
+                ? t("fPhonePreview", { phone: formatMxPhone(phoneE164) })
+                : t("fPhoneHint")}
+            </span>
           </label>
-          <label className="tk-field">
-            {t("fState")}
-            <select value={state} onChange={(e) => setState(e.target.value)} required>
-              <option value="">{t("fStatePick")}</option>
-              {states.map((s) => (
-                <option key={s.code} value={s.code}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
+        )}
+
+        {(asksZip || asksState) && (
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: asksZip && asksState ? "1fr 1fr" : "1fr",
+              gap: 12,
+            }}
+          >
+            {asksZip && (
+              <label className="tk-field">
+                {t("fZip")}
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="postal-code"
+                  maxLength={10}
+                  value={zip}
+                  onChange={(e) => setZip(e.target.value)}
+                  placeholder="79901"
+                  required={fields.zip === "required"}
+                />
+              </label>
+            )}
+            {asksState && (
+              <label className="tk-field">
+                {t("fState")}
+                <select
+                  value={state}
+                  onChange={(e) => setState(e.target.value)}
+                  required={fields.state === "required"}
+                >
+                  <option value="">{t("fStatePick")}</option>
+                  {states.map((s) => (
+                    <option key={s.code} value={s.code}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+        )}
 
         <label className="tk-check">
           <input
