@@ -2,15 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { authThrottleKind, supabaseBrowser } from "@/lib/supabase/browser";
-import { formatUsdCents } from "@/lib/tickets/config";
+import { formatUsdCents, mechanicOf } from "@/lib/tickets/config";
 import { canPayout, canReview } from "@/lib/tickets/roles";
 import { PAYOUT_TRANSITIONS } from "@/lib/tickets/payouts";
-import type { RewardStatus } from "@/lib/tickets/config";
+import type { CampaignMechanic, RewardStatus } from "@/lib/tickets/config";
 import type { AdminData, AdminProduct, QueueItem } from "./types";
 import { ReviewPanel } from "./ReviewPanel";
+import { StoreView } from "./StoreView";
 
 type Gate = "loading" | "anon" | "forbidden" | "ready" | "error";
-type View = "dash" | "queue" | "payouts" | "catalog";
+type View = "dash" | "queue" | "payouts" | "catalog" | "store";
 
 const money = (cents: number) => formatUsdCents(cents, "en");
 
@@ -119,13 +120,27 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
   const { campaign, quota, summary, queue, decided, rewards, products, staff } = data;
   const reviewer = canReview(staff.role);
   const finance = canPayout(staff.role);
+  const mechanic = mechanicOf(campaign.config);
 
   const notify = (text: string, bad?: boolean) => setToast({ text, bad });
 
+  // Two mechanics, two consoles. A threshold campaign rations a fund and has no
+  // store; an accumulation one has no fund to ration and spends its points in
+  // the weekly Drop. Showing both to both is how an operator learns to ignore
+  // half the screen.
   const NAV: { key: View; label: string; count?: number }[] = [
     { key: "dash", label: "Resumen" },
     { key: "queue", label: "Cola de revisión", count: queue.length },
-    { key: "payouts", label: "Recompensas", count: rewards.length },
+    ...(mechanic === "accumulation"
+      ? [{ key: "store" as View, label: "Tienda de Premios" }]
+      : []),
+    // A reward ledger with nothing in it and nothing that can enter it is
+    // noise. It stays for threshold campaigns, and for any campaign that has
+    // rewards on the books — turning the reward off must never hide money
+    // already promised.
+    ...(mechanic === "threshold" || rewards.length > 0
+      ? [{ key: "payouts" as View, label: "Recompensas", count: rewards.length }]
+      : []),
     { key: "catalog", label: "Catálogo y reglas" },
   ];
 
@@ -177,7 +192,12 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
 
         <div className="tka-content">
           {view === "dash" && (
-            <DashView quota={quota} summary={summary} config={campaign.config} />
+            <DashView
+              quota={quota}
+              summary={summary}
+              config={campaign.config}
+              mechanic={mechanic}
+            />
           )}
 
           {view === "queue" && (
@@ -189,8 +209,10 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
               selected={selected}
               setSelected={setSelected}
               canReview={reviewer}
+              mechanic={mechanic}
               rewardCents={campaign.config.rewardCents}
               minCents={campaign.config.minPurchaseCents}
+              pointsPerDollar={campaign.config.pointsPerDollar}
               onDone={async (message, bad) => {
                 notify(message, bad);
                 if (!bad) {
@@ -200,6 +222,8 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
               }}
             />
           )}
+
+          {view === "store" && <StoreView slug={slug} onNotify={notify} />}
 
           {view === "payouts" && (
             <PayoutsView
@@ -214,7 +238,9 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
             />
           )}
 
-          {view === "catalog" && <CatalogView products={products} config={campaign.config} />}
+          {view === "catalog" && (
+            <CatalogView products={products} config={campaign.config} mechanic={mechanic} />
+          )}
         </div>
       </div>
 
@@ -362,13 +388,19 @@ function DashView({
   quota,
   summary,
   config,
+  mechanic,
 }: {
   quota: AdminData["quota"];
   summary: AdminData["summary"];
   config: AdminData["campaign"]["config"];
+  mechanic: CampaignMechanic;
 }) {
   const pct = (n: number) => (quota.fundCents > 0 ? (n / quota.fundCents) * 100 : 0);
   const paid = quota.fundUsedCents - quota.fundReservedCents;
+  // An accumulation campaign has no fund, no weekly quota and no slots — they
+  // are zeroed on purpose (that IS how the reward layer is turned off). Four
+  // cards reading $0 do not describe the campaign, they hide it.
+  const rationed = mechanic === "threshold";
 
   const funnel: [string, number][] = [
     ["Participantes", summary.participants],
@@ -383,32 +415,46 @@ function DashView({
       <div>
         <h2 className="tka-title">Resumen de campaña</h2>
         <div className="tka-sub">
-          Liberación escalonada: {quota.weeklyQuota} recompensas por semana · objetivo de
-          servicio {config.reviewSlaHours} h · límite de {config.perHouseholdLimit} por hogar
-          (apellido + ZIP)
+          {rationed ? (
+            <>
+              Liberación escalonada: {quota.weeklyQuota} recompensas por semana · objetivo de
+              servicio {config.reviewSlaHours} h · límite de {config.perHouseholdLimit} por
+              hogar (apellido + ZIP)
+            </>
+          ) : (
+            <>
+              Acumulación: {config.pointsPerDollar} puntos por cada $1 elegible, sin recompensa
+              por ticket · objetivo de servicio {config.reviewSlaHours} h · los puntos se
+              canjean en el Drop semanal de la Tienda de Premios
+            </>
+          )}
         </div>
       </div>
 
       <div className="tka-grid4">
-        <div className="tka-card tka-kpi">
-          <div className="v">{money(quota.fundLeftCents)}</div>
-          <div className="l">Fondo restante de {money(quota.fundCents)}</div>
-          <div className="d">
-            {money(paid)} entregado · {money(quota.fundReservedCents)} reservado
+        {rationed && (
+          <div className="tka-card tka-kpi">
+            <div className="v">{money(quota.fundLeftCents)}</div>
+            <div className="l">Fondo restante de {money(quota.fundCents)}</div>
+            <div className="d">
+              {money(paid)} entregado · {money(quota.fundReservedCents)} reservado
+            </div>
           </div>
-        </div>
+        )}
         <div className="tka-card tka-kpi">
           <div className="v">{summary.approved}</div>
-          <div className="l">Recompensas aprobadas</div>
+          <div className="l">{rationed ? "Recompensas aprobadas" : "Tickets aprobados"}</div>
           <div className="d">de {summary.receipts} tickets recibidos</div>
         </div>
-        <div className="tka-card tka-kpi">
-          <div className="v">{quota.weeklyLeft}</div>
-          <div className="l">Cupo restante esta semana</div>
-          <div className="d">
-            {quota.weeklyUsed} de {quota.weeklyQuota} usadas
+        {rationed && (
+          <div className="tka-card tka-kpi">
+            <div className="v">{quota.weeklyLeft}</div>
+            <div className="l">Cupo restante esta semana</div>
+            <div className="d">
+              {quota.weeklyUsed} de {quota.weeklyQuota} usadas
+            </div>
           </div>
-        </div>
+        )}
         <div className="tka-card tka-kpi">
           <div className="v">
             {summary.medianReviewMinutes === null
@@ -422,6 +468,7 @@ function DashView({
         </div>
       </div>
 
+      {rationed && (
       <div className="tka-card">
         <h3>Uso del fondo de premios</h3>
         <span className="tka-note">
@@ -452,6 +499,7 @@ function DashView({
           {quota.totalLeft} disponibles.
         </p>
       </div>
+      )}
 
       <div className="tka-grid2">
         <div className="tka-card">
@@ -478,8 +526,21 @@ function DashView({
           <dl className="tka-kv" style={{ marginTop: 14 }}>
             <dt>Gasto elegible promedio</dt>
             <dd>{summary.avgEligibleCents === null ? "—" : money(summary.avgEligibleCents)}</dd>
-            <dt>Compra mínima</dt>
-            <dd>{money(config.minPurchaseCents)}</dd>
+            {rationed ? (
+              <>
+                <dt>Compra mínima</dt>
+                <dd>{money(config.minPurchaseCents)}</dd>
+              </>
+            ) : (
+              <>
+                <dt>Puntos por ticket promedio</dt>
+                <dd>
+                  {summary.avgEligibleCents === null
+                    ? "—"
+                    : Math.floor((summary.avgEligibleCents * config.pointsPerDollar) / 100)}
+                </dd>
+              </>
+            )}
             <dt>Pendientes de revisar</dt>
             <dd>{summary.pending}</dd>
             <dt>Rechazados</dt>
@@ -501,8 +562,10 @@ function QueueView({
   selected,
   setSelected,
   canReview: allowed,
+  mechanic,
   rewardCents,
   minCents,
+  pointsPerDollar,
   onDone,
 }: {
   slug: string;
@@ -512,8 +575,10 @@ function QueueView({
   selected: string | null;
   setSelected: (id: string | null) => void;
   canReview: boolean;
+  mechanic: CampaignMechanic;
   rewardCents: number;
   minCents: number;
+  pointsPerDollar: number;
   onDone: (message: string, bad?: boolean) => void | Promise<void>;
 }) {
   const all = useMemo(() => [...queue, ...decided], [queue, decided]);
@@ -610,8 +675,10 @@ function QueueView({
           item={current}
           products={products}
           canReview={allowed}
+          mechanic={mechanic}
           rewardCents={rewardCents}
           minCents={minCents}
+          pointsPerDollar={pointsPerDollar}
           onDone={onDone}
         />
       )}
@@ -791,9 +858,11 @@ function PayoutsView({
 function CatalogView({
   products,
   config,
+  mechanic,
 }: {
   products: AdminProduct[];
   config: AdminData["campaign"]["config"];
+  mechanic: CampaignMechanic;
 }) {
   return (
     <>
@@ -845,13 +914,27 @@ function CatalogView({
           <h3>Reglas vigentes</h3>
           <table style={{ marginTop: 10 }}>
             <tbody>
-              <tr><td>Compra mínima elegible</td><td style={{ textAlign: "right" }}><b>{money(config.minPurchaseCents)}</b></td></tr>
-              <tr><td>Recompensa</td><td style={{ textAlign: "right" }}><b>{money(config.rewardCents)}</b></td></tr>
-              <tr><td>Cupo semanal</td><td style={{ textAlign: "right" }}><b>{config.weeklyQuota}</b></td></tr>
-              <tr><td>Slots de campaña</td><td style={{ textAlign: "right" }}><b>{config.totalRewardSlots}</b></td></tr>
-              <tr><td>Por participante</td><td style={{ textAlign: "right" }}><b>{config.perParticipantLimit}</b></td></tr>
-              <tr><td>Por hogar (apellido + ZIP)</td><td style={{ textAlign: "right" }}><b>{config.perHouseholdLimit}</b></td></tr>
-              <tr><td>Fondo</td><td style={{ textAlign: "right" }}><b>{money(config.fundCents)}</b></td></tr>
+              {/* Los cinco gates de la recompensa valen 0 en una campaña de
+                  acumulación: enseñarlos ahí es enseñar siete ceros y esconder
+                  la única regla que sí decide algo, la tasa de puntos. */}
+              {mechanic === "threshold" ? (
+                <>
+                  <tr><td>Compra mínima elegible</td><td style={{ textAlign: "right" }}><b>{money(config.minPurchaseCents)}</b></td></tr>
+                  <tr><td>Recompensa</td><td style={{ textAlign: "right" }}><b>{money(config.rewardCents)}</b></td></tr>
+                  <tr><td>Cupo semanal</td><td style={{ textAlign: "right" }}><b>{config.weeklyQuota}</b></td></tr>
+                  <tr><td>Slots de campaña</td><td style={{ textAlign: "right" }}><b>{config.totalRewardSlots}</b></td></tr>
+                  <tr><td>Por participante</td><td style={{ textAlign: "right" }}><b>{config.perParticipantLimit}</b></td></tr>
+                  <tr><td>Por hogar (apellido + ZIP)</td><td style={{ textAlign: "right" }}><b>{config.perHouseholdLimit}</b></td></tr>
+                  <tr><td>Fondo</td><td style={{ textAlign: "right" }}><b>{money(config.fundCents)}</b></td></tr>
+                </>
+              ) : (
+                <>
+                  <tr><td>Mecánica</td><td style={{ textAlign: "right" }}><b>Acumulación de puntos</b></td></tr>
+                  <tr><td>Puntos por $1 elegible</td><td style={{ textAlign: "right" }}><b>{config.pointsPerDollar}</b></td></tr>
+                  <tr><td>Recompensa por ticket</td><td style={{ textAlign: "right" }}><b>sin recompensa</b></td></tr>
+                  <tr><td>Canje</td><td style={{ textAlign: "right" }}><b>Drop semanal de la tienda</b></td></tr>
+                </>
+              )}
               <tr><td>SLA de revisión</td><td style={{ textAlign: "right" }}><b>{config.reviewSlaHours} h</b></td></tr>
               <tr><td>Zona horaria (lunes)</td><td style={{ textAlign: "right" }}><b>{config.timezone}</b></td></tr>
               <tr><td>Estados elegibles</td><td style={{ textAlign: "right" }}><b>{config.eligibleStates.join(", ") || "sin restringir"}</b></td></tr>
@@ -860,8 +943,9 @@ function CatalogView({
             </tbody>
           </table>
           <p className="tka-note" style={{ marginTop: 12 }}>
-            Puntos, misiones, leaderboard y premio mayor son v1.1. El premio mayor arrastra
-            AMOE y registro estatal, y no puede anunciarse antes de tener reglas oficiales.
+            {mechanic === "accumulation"
+              ? "Los premios y su inventario NO son configuración de campaña: viven en el Drop de la semana, que se cura desde la vista Tienda de Premios."
+              : "El premio mayor arrastra AMOE y registro estatal, y no puede anunciarse antes de tener reglas oficiales."}
           </p>
         </div>
       </div>

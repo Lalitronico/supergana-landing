@@ -3,9 +3,15 @@
 // Hand-written rather than generated: the console is the only consumer, and a
 // mismatch here is caught by tsc the moment the route's response changes shape.
 
-import type { CampaignConfig, ReceiptStatus, RewardStatus } from "@/lib/tickets/config";
+import type {
+  CampaignConfig,
+  CampaignMechanic,
+  ReceiptStatus,
+  RewardStatus,
+} from "@/lib/tickets/config";
 import type { RiskFlag } from "@/lib/tickets/schema";
 import type { StaffRole } from "@/lib/tickets/roles";
+import type { DropStatus, PrizeKind, RedemptionStatus } from "@/lib/tickets/store";
 
 export type { StaffRole, RiskFlag };
 
@@ -106,4 +112,56 @@ export interface AdminData {
   decided: QueueItem[];
   rewards: AdminReward[];
   products: AdminProduct[];
+}
+
+// ---------------------------------------------------------------------------
+// Prize store — GET /api/tickets/[campana]/admin/store
+// ---------------------------------------------------------------------------
+
+export interface AdminDropItem {
+  id: string;
+  nameEs: string;
+  nameEn: string | null;
+  kind: PrizeKind;
+  pointsCost: number;
+  inventory: number;
+  /** Non-canceled redemptions against this prize. Counted, never stored. */
+  claimed: number;
+  remaining: number;
+  active: boolean;
+  detail: Record<string, unknown>;
+}
+
+export interface AdminDrop {
+  id: string;
+  weekStart: string;
+  status: DropStatus;
+  createdAt: string;
+  /** The RPC refuses everything else, whatever the status says. */
+  isCurrentWeek: boolean;
+  items: AdminDropItem[];
+}
+
+export interface AdminRedemption {
+  id: string;
+  code: string;
+  status: RedemptionStatus;
+  pointsSpent: number;
+  createdAt: string;
+  fulfilledAt: string | null;
+  prizeName: string;
+  prizeKind: PrizeKind | null;
+  participantName: string | null;
+  participantAlias: string | null;
+  participantEmail: string | null;
+}
+
+export interface StoreAdminData {
+  /** False while migration 0013 has not run against this project. */
+  available: boolean;
+  weekStart: string;
+  canManage: boolean;
+  mechanic: CampaignMechanic;
+  drops: AdminDrop[];
+  redemptions: AdminRedemption[];
 }
