@@ -36,10 +36,14 @@ export default async function TicketsCampaignLayout({
   const campaign = await getCampaign(campana);
   if (!campaign || !isVisible(campaign)) notFound();
 
+  // The cookie is shared across campaigns, so a preference picked on a
+  // bilingual one must not force a language a single-locale campaign never
+  // translated. Campaign locales win; the cookie only chooses among them.
   const cookieLocale = (await cookies()).get("tk_locale")?.value;
-  const initial: Locale = isLocale(cookieLocale)
-    ? cookieLocale
-    : (campaign.locales[0] ?? "es");
+  const initial: Locale =
+    isLocale(cookieLocale) && campaign.locales.includes(cookieLocale)
+      ? cookieLocale
+      : (campaign.locales[0] ?? "es");
 
   return (
     <>

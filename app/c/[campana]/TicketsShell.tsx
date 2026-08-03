@@ -108,18 +108,23 @@ export function TicketsShell({
               <span className="dot" />
               {t("appName")}
             </div>
-            <div className="tk-lang" role="group" aria-label={t("langLabel")}>
-              {(["es", "en"] as Locale[]).map((code) => (
-                <button
-                  key={code}
-                  type="button"
-                  aria-pressed={locale === code}
-                  onClick={() => setLocale(code)}
-                >
-                  {code.toUpperCase()}
-                </button>
-              ))}
-            </div>
+            {/* Only the languages this campaign actually ships. A one-locale
+                campaign offering an EN button promises a translation nobody
+                wrote — Carrera Alaska is `['es']` and gets no toggle at all. */}
+            {campaign.locales.length > 1 && (
+              <div className="tk-lang" role="group" aria-label={t("langLabel")}>
+                {campaign.locales.map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    aria-pressed={locale === code}
+                    onClick={() => setLocale(code)}
+                  >
+                    {code.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            )}
           </header>
 
           <main className="tk-screen">{children}</main>
