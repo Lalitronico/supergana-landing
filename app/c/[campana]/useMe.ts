@@ -44,6 +44,11 @@ export interface Me {
   rewards: MeReward[];
   /** Balance: SUM over the points ledger, computed server-side. */
   points: number;
+  /**
+   * Points earned, ignoring redemptions — the number the leaderboard ranks on.
+   * Equal to `points` until the first redemption exists.
+   */
+  pointsEarned: number;
   /** Staff walking a draft campaign: may submit receipts before launch. */
   canRehearse: boolean;
 }

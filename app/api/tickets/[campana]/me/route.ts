@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { resolveParticipant, resolveStaff } from "@/lib/tickets/access";
 import { getCampaign, isVisible } from "@/lib/tickets/campaigns";
 import { profileSchema } from "@/lib/tickets/schema";
+import { POINTS_SPEND_KINDS } from "@/lib/tickets/config";
 import type { ReceiptRow, RewardRow } from "@/lib/tickets/schema";
 
 export const runtime = "nodejs";
@@ -35,6 +36,7 @@ export async function GET(
       receipts: [],
       rewards: [],
       points: 0,
+      pointsEarned: 0,
       canRehearse,
     });
   }
@@ -53,13 +55,19 @@ export async function GET(
       .order("created_at", { ascending: false }),
     db
       .from("points_entries")
-      .select("points")
+      .select("points, kind")
       .eq("participant_id", ctx.participant.id),
   ]);
 
   // The balance is a SUM over the ledger, computed here and nowhere else the
   // client can see — a mutable balance column is how history and total drift.
-  const pointsBalance = (points.data ?? []).reduce((sum, e) => sum + e.points, 0);
+  const ledger = (points.data ?? []) as { points: number; kind: string }[];
+  const pointsBalance = ledger.reduce((sum, e) => sum + e.points, 0);
+  // The race total the leaderboard ranks on: everything except spending, so
+  // redeeming a prize costs balance and never position.
+  const pointsEarned = ledger
+    .filter((e) => !POINTS_SPEND_KINDS.includes(e.kind as (typeof POINTS_SPEND_KINDS)[number]))
+    .reduce((sum, e) => sum + e.points, 0);
 
   return NextResponse.json({
     email: ctx.email,
@@ -76,6 +84,7 @@ export async function GET(
     receipts: (receipts.data ?? []) as Partial<ReceiptRow>[],
     rewards: (rewards.data ?? []) as Partial<RewardRow>[],
     points: pointsBalance,
+    pointsEarned,
     canRehearse,
   });
 }

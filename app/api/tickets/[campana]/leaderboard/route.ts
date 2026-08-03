@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { resolveParticipant } from "@/lib/tickets/access";
 import { getCampaign, isVisible } from "@/lib/tickets/campaigns";
+import { POINTS_SPEND_KINDS } from "@/lib/tickets/config";
 
 export const runtime = "nodejs";
 
@@ -15,6 +16,11 @@ export const runtime = "nodejs";
  * Ranking is pure accumulation. Whatever prizes hang off these positions
  * must stay chance-free; a drawing fed by this ranking is the one shape the
  * legal frame forbids.
+ *
+ * It ranks by points EARNED, not by the spendable balance the panel shows.
+ * Those are two different numbers: `points_entries` is one ledger holding both
+ * what you won and what you spent, and ranking on its raw SUM would mean the
+ * prize store demotes its own customers.
  */
 
 const TOP = 10;
@@ -35,10 +41,13 @@ export async function GET(
   if (!ctx) return NextResponse.json({ error: "not_signed_in" }, { status: 401 });
 
   const db = supabaseAdmin();
+  // Business rule: canjear no te saca de la carrera — redeeming points spends
+  // the balance, never the position earned.
   const { data: entries, error } = await db
     .from("points_entries")
     .select("participant_id, points, participants(alias, first_name, last_name)")
-    .eq("campaign_id", campaign.id);
+    .eq("campaign_id", campaign.id)
+    .not("kind", "in", `(${POINTS_SPEND_KINDS.join(",")})`);
 
   if (error) {
     console.error("[tickets leaderboard] read failed", error);

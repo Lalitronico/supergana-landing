@@ -33,20 +33,33 @@ const REWARD_PILL: Record<RewardStatus, string> = {
  * Accumulation only — a prize here is reached, never raffled. That wording is
  * load-bearing (see the v2 brief's legal frame), not marketing copy.
  */
-function PointsCard({ points }: { points: number }) {
+function PointsCard({ points, earned }: { points: number; earned: number }) {
   const { campaign, locale, t, base } = useTickets();
   const prizes = campaign.prizes;
   const prizeName = (p: (typeof prizes)[number]) => (locale === "es" ? p.nameEs : p.nameEn);
   const next = prizes.find((p) => p.points > points) ?? null;
   const pct = next ? Math.min(100, Math.round((points / next.points) * 100)) : 100;
 
+  // Two different numbers since the leaderboard stopped counting redemptions:
+  // `points` is the spendable balance, `earned` is the race total. They only
+  // part ways once someone has redeemed, and the panel stays quiet until then.
+  const spent = earned > points;
+
   return (
     <div className="tk-card">
       <div className="tk-eyebrow">{t("ptsTitle")}</div>
       <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginTop: 6 }}>
         <span className="tk-amount" style={{ fontSize: 40 }}>{points}</span>
-        <b style={{ fontFamily: "var(--tk-display)", fontSize: 14 }}>{t("ptsUnit")}</b>
+        <b style={{ fontFamily: "var(--tk-display)", fontSize: 14 }}>
+          {t(spent ? "ptsUnitAvailable" : "ptsUnit")}
+        </b>
       </div>
+
+      {spent && (
+        <p className="tk-foot" style={{ marginTop: 6 }}>
+          {t("ptsRaceTotal", { points: earned })}
+        </p>
+      )}
 
       {points === 0 && (
         <p className="tk-foot" style={{ marginTop: 8 }}>{t("ptsEmpty")}</p>
@@ -86,7 +99,11 @@ function PointsCard({ points }: { points: number }) {
       )}
 
       <p className="tk-foot" style={{ marginTop: 8 }}>
-        {t("ptsRate", { rate: campaign.pointsPerDollar })}
+        {/* "per eligible dollar" is true in El Paso and wrong in Ciudad Juárez;
+            the accumulation line says "$1" and leaves the currency alone. */}
+        {t(campaign.mechanic === "accumulation" ? "accPtsRate" : "ptsRate", {
+          rate: campaign.pointsPerDollar,
+        })}
       </p>
       {points === 0 && (
         <Link href={`${base}subir/`} className="tk-btn sm" style={{ marginTop: 12 }}>
@@ -332,7 +349,7 @@ export default function PanelPage() {
         </div>
       </div>
 
-      <PointsCard points={me.points} />
+      <PointsCard points={me.points} earned={me.pointsEarned} />
       <LeaderboardCard slug={campaign.slug} />
 
       {reward && me.participant && !me.participant.emailVerified && (
