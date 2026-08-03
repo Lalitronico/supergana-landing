@@ -1,15 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { REDEMPTION_STATUS_KEY } from "@/lib/tickets/i18n";
 import {
   prizeName,
   REDEEM_ERROR_KEY,
   type RedemptionStatus,
   type StorePrize,
-  type StoreSnapshot,
 } from "@/lib/tickets/store";
-import { useTickets } from "../TicketsShell";
+import { useStoreState, useTickets } from "../TicketsShell";
 
 const REDEMPTION_PILL: Record<RedemptionStatus, string> = {
   confirmed: "wait",
@@ -32,50 +31,19 @@ export function PrizeStore({
   onRedeemed,
 }: {
   slug: string;
-  /** Refreshes the panel's balance — the points card is upstream of this one. */
+  /** Refreshes the shared session, which is what repaints the balance chip. */
   onRedeemed: () => void;
 }) {
   const { locale, t } = useTickets();
-  const [snapshot, setSnapshot] = useState<StoreSnapshot | null>(null);
-  const [failed, setFailed] = useState(false);
+  // The shelf is read once, in the shell: the next-prize bar on the home and in
+  // Mi panel reads the same snapshot, and two fetches would mean two answers
+  // about how many units are left.
+  const { status, snapshot, reload: load } = useStoreState();
   const [confirming, setConfirming] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   /** The code just won, shown large until the participant navigates away. */
   const [fresh, setFresh] = useState<{ code: string; prize: string } | null>(null);
-
-  // Fetching and storing are split the way useMe splits them: the mount effect
-  // only writes state from inside its own callback, so a slow response cannot
-  // land on a panel the participant already left.
-  const fetchSnapshot = useCallback(async (): Promise<StoreSnapshot | null> => {
-    try {
-      const res = await fetch(`/api/tickets/${slug}/store/`, { cache: "no-store" });
-      // 404 here is the endpoint saying "no store in this campaign" — a
-      // threshold campaign, or one whose store is not deployed. Same screen.
-      if (!res.ok) return null;
-      return (await res.json()) as StoreSnapshot;
-    } catch {
-      return null;
-    }
-  }, [slug]);
-
-  const load = useCallback(async () => {
-    const next = await fetchSnapshot();
-    if (next) setSnapshot(next);
-    else setFailed(true);
-  }, [fetchSnapshot]);
-
-  useEffect(() => {
-    let alive = true;
-    fetchSnapshot().then((next) => {
-      if (!alive) return;
-      if (next) setSnapshot(next);
-      else setFailed(true);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [fetchSnapshot]);
 
   const redeem = async (prize: StorePrize) => {
     setBusy(prize.id);
@@ -111,11 +79,11 @@ export function PrizeStore({
     }
   };
 
-  // Nothing rendered while the first read is in flight: the store is the third
-  // card down, and a skeleton that resolves to "no drop" is worse than silence.
-  if (!snapshot && !failed) return null;
+  // Nothing rendered while the first read is in flight: a skeleton that
+  // resolves to "no drop" is worse than silence.
+  if (status === "loading" || status === "off") return null;
 
-  if (failed || snapshot?.available === false) {
+  if (status === "unavailable" || snapshot?.available === false) {
     return (
       <div className="tk-card">
         <h2 className="tk-h" style={{ fontSize: 18, marginBottom: 6 }}>{t("stTitle")}</h2>

@@ -2,6 +2,11 @@
 
 import Link from "next/link";
 import { useSession, useTickets } from "./TicketsShell";
+import { Confetti } from "./Confetti";
+import { Headline } from "./Headline";
+import { Mascot } from "./Mascot";
+import { NextPrizeProgress } from "./NextPrizeProgress";
+import { StepStrip } from "./StepStrip";
 
 interface QuotaView {
   weeklyQuota: number;
@@ -15,16 +20,37 @@ interface ProductView {
   size: string | null;
 }
 
-/** Wraps the keyword in a highlighter without hardcoding word order per language. */
-function Headline({ text, mark }: { text: string; mark: string }) {
-  const at = text.indexOf(mark);
-  if (at === -1) return <>{text}</>;
+/**
+ * The upload call to action, as the bottom half of the ticket.
+ *
+ * A camera on a ticket stub, not a button that says "upload": the whole
+ * mechanic is "photograph the paper in your hand", and the mockups are right
+ * that this is the one element on the home that should look pressable from
+ * across the room. It stays inside the ticket rather than becoming a second
+ * yellow slab, so the rate above it and the action below it read as one object.
+ */
+function CtaLine({ href, title, sub }: { href: string; title: string; sub: string }) {
   return (
-    <>
-      {text.slice(0, at)}
-      <span className="tk-mark">{mark}</span>
-      {text.slice(at + mark.length)}
-    </>
+    <Link href={href} className="tk-ctaline">
+      <span className="tk-ctaline-ico" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3.4 8.6c0-1 .8-1.8 1.8-1.8h2.3l1.3-2h6.4l1.3 2h2.3c1 0 1.8.8 1.8 1.8v8.6c0 1-.8 1.8-1.8 1.8H5.2c-1 0-1.8-.8-1.8-1.8Z" />
+          <circle cx="12" cy="13" r="3.4" />
+        </svg>
+      </span>
+      <span className="tk-ctaline-text">
+        <b>{title}</b>
+        <span>{sub}</span>
+      </span>
+      {/* An SVG chevron, not "›": Bricolage draws that glyph as a comma-sized
+          tick at any weight, which reads as a rendering fault on the one
+          element of this screen that has to look pressable. */}
+      <span className="tk-ctaline-go" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m9 5 7 7-7 7" />
+        </svg>
+      </span>
+    </Link>
   );
 }
 
@@ -225,15 +251,30 @@ function AccumulationHome({ products }: { products: ProductView[] }) {
       ? products.map((p) => ({ key: `${p.brand} ${p.name}`, label: p.name }))
       : campaign.brands.map((b) => ({ key: b.name, label: b.name }));
 
+  // The hero art is the mascot's, and the confetti belongs to it: a tenant with
+  // no artwork gets a full-width headline, which is exactly the layout this
+  // screen shipped with. No tenant needs an illustrator to launch.
+  const hasArt = Boolean(campaign.theme.mascots.greet);
+
   return (
     <div className="tk-pad">
-      <div>
-        <div className="tk-eyebrow">{t("heroEyebrow", { org })}</div>
-        <h1 className="tk-h" style={{ fontSize: 34, marginTop: 6 }}>
-          <Headline text={t("accHeroTitle")} mark={t("accHeroTitleMark")} />
+      {/* No eyebrow here, unlike the threshold home: this headline already says
+          the org's name, in the org's colour, and saying it twice in the two
+          biggest type sizes on the screen reads as a stutter. */}
+      <div className={hasArt ? "tk-hero art" : "tk-hero"}>
+        <h1 className="tk-h tk-hero-title">
+          <Headline text={t("accHeroTitle", { org })} mark={org} as="brand" />
         </h1>
+        {hasArt && (
+          <div className="tk-hero-art">
+            <Confetti />
+            <Mascot pose="greet" />
+          </div>
+        )}
       </div>
-      <p className="tk-body">{t("accHeroSub", { org, rate })}</p>
+      <p className="tk-body">{t("accHeroSub")}</p>
+
+      <StepStrip />
 
       <div className="tk-ticket">
         <div className="top">
@@ -244,12 +285,18 @@ function AccumulationHome({ products }: { products: ProductView[] }) {
           <p className="tk-foot" style={{ marginTop: 8 }}>{t("accRateNote")}</p>
         </div>
         <div className="rip" />
-        <div className="bottom">
-          <Link href={`${base}subir/`} className="tk-btn ink">
-            {t("heroCta")} →
-          </Link>
+        <div className="bottom pressable">
+          <CtaLine
+            href={`${base}subir/`}
+            title={t("ctaUploadTitle")}
+            sub={t("ctaUploadSub")}
+          />
         </div>
       </div>
+
+      {/* Renders nothing until there is a session and an open Drop. For a
+          participant it is the reason to press the ticket above. */}
+      <NextPrizeProgress />
 
       <AccountDoors />
 

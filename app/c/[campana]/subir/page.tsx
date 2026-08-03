@@ -12,6 +12,10 @@ import {
 import { useSession, useTickets } from "../TicketsShell";
 import { StatusTimeline } from "../StatusTimeline";
 import { ApprovalCelebration } from "../ApprovalCelebration";
+import { Headline } from "../Headline";
+import { Mascot } from "../Mascot";
+import { NextPrizeProgress } from "../NextPrizeProgress";
+import { PrivacyPill } from "../PrivacyPill";
 import { currentClaim } from "../useMe";
 
 const EXTENSION: Record<string, string> = {
@@ -46,6 +50,9 @@ export default function UploadPage() {
 
   // Staff rehearsing a draft campaign can submit even though the public can't.
   const canSubmit = campaign.acceptsReceipts || (me?.canRehearse ?? false);
+
+  // The tenant's mascot for this screen, if it has one. Decoration only.
+  const hasArt = Boolean(campaign.theme.mascots.ticket);
 
   useEffect(() => {
     if (status === "anon") router.replace(`${base}entrar/`);
@@ -185,6 +192,11 @@ export default function UploadPage() {
         <div className="tk-card">
           <StatusTimeline status={openReceipt.status} />
         </div>
+
+        {/* What the points will be worth once the review lands. A wait with a
+            destination is a different wait. */}
+        <NextPrizeProgress />
+
         <Link href={`${base}panel/`} className="tk-btn ghost sm">
           {t("navPanel")} →
         </Link>
@@ -198,10 +210,19 @@ export default function UploadPage() {
   return (
     <div className="tk-pad">
       <ApprovalCelebration me={me} />
-      <div>
-        <div className="tk-eyebrow">{t("regStep", { n: 3 })}</div>
-        <h1 className="tk-h" style={{ fontSize: 28, marginTop: 6 }}>{t("capTitle")}</h1>
-        <p className="tk-body" style={{ fontSize: 13.5, marginTop: 6 }}>{t("capSub")}</p>
+      <div className={hasArt ? "tk-hero art" : undefined}>
+        <div>
+          <div className="tk-eyebrow">{t("regStep", { n: 3 })}</div>
+          <h1 className="tk-h" style={{ fontSize: 28, marginTop: 6 }}>
+            <Headline text={t("capTitle")} mark={t("capTitleMark")} as="brand" />
+          </h1>
+          <p className="tk-body" style={{ fontSize: 13.5, marginTop: 6 }}>{t("capSub")}</p>
+        </div>
+        {hasArt && (
+          <div className="tk-hero-art">
+            <Mascot pose="ticket" />
+          </div>
+        )}
       </div>
 
       {needsRetry && (
@@ -233,6 +254,8 @@ export default function UploadPage() {
         )}
         <div className="tk-hint">{preview ? (file?.name ?? "") : t("capEmpty")}</div>
       </div>
+
+      <PrivacyPill />
 
       <div className="tk-card flat tk-checklist">
         {[t("capQ1"), t("capQ2"), t("capQ3")].map((line) => (
@@ -273,22 +296,26 @@ export default function UploadPage() {
         </>
       ) : (
         <button
-          className="tk-btn"
+          className="tk-btn tk-btn-ico"
           type="button"
           onClick={() => fileInput.current?.click()}
           disabled={!canSubmit}
         >
-          📸 {t("capPick")}
+          {/* An SVG camera rather than 📸: the emoji renders as a different
+              object on every platform and as a box in some Windows fonts, on
+              the one button this whole screen exists for. */}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3.4 8.6c0-1 .8-1.8 1.8-1.8h2.3l1.3-2h6.4l1.3 2h2.3c1 0 1.8.8 1.8 1.8v8.6c0 1-.8 1.8-1.8 1.8H5.2c-1 0-1.8-.8-1.8-1.8Z" />
+            <circle cx="12" cy="13" r="3.4" />
+          </svg>
+          {t("capPick")}
         </button>
       )}
 
       <p className="tk-foot" style={{ textAlign: "center" }}>{t("capNote")}</p>
       <p className="tk-foot">
         {campaign.mechanic === "accumulation"
-          ? t("accHeroSub", {
-              org: campaign.orgName,
-              rate: campaign.pointsPerDollar,
-            })
+          ? t("accPtsRate", { rate: campaign.pointsPerDollar })
           : t("heroSub", {
               min: money(campaign.minPurchaseCents),
               reward: money(campaign.rewardCents),

@@ -320,6 +320,286 @@
 
 .tk-card.flat { box-shadow: none; }
 
+/* ---- hero, mascots and confetti ----------------------------------------- */
+
+/* The tenant's colour on the biggest type on the screen. --tk-brand, not
+   --tk-brand-ink: at 34px this is large text, where 3:1 is the bar and the
+   colour reads as the brand rather than as a darkened version of it. */
+.tk-brandword { color: var(--tk-brand); }
+
+.tk-hero.art {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38%;
+  align-items: start;
+  gap: 4px;
+}
+
+.tk-hero-title { font-size: 34px; }
+
+/* 30px of headline is worth more than 30px of mascot, so the art is allowed to
+   overflow its column upward into the header's breathing room instead of
+   pushing the title down. */
+.tk-hero-art {
+  position: relative;
+  align-self: center;
+  margin-top: -6px;
+}
+
+.tk-mascot {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 190px;
+  object-fit: contain;
+}
+
+@keyframes tk-bob {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-7px) rotate(1.5deg); }
+}
+
+.tk-mascot.bob { animation: tk-bob 3.4s ease-in-out infinite; }
+
+/* Confetti. Absolutely positioned pieces falling through their container, which
+   is why every user of it must be position:relative or the overlay itself. */
+.tk-confetti {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Over the celebration overlay rather than inside the card: the room
+   celebrates, not the box. */
+.tk-confetti.over {
+  position: absolute;
+  inset: 0;
+  z-index: 31;
+}
+
+.tk-confetti .p {
+  position: absolute;
+  top: -14%;
+  border: 1.5px solid var(--tk-ink);
+  animation-name: tk-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+.tk-confetti .p.bar { width: 5px; height: 12px; border-radius: 2px; }
+.tk-confetti .p.sq { width: 9px; height: 9px; border-radius: 2px; }
+.tk-confetti .p.dot { width: 8px; height: 8px; border-radius: 50%; }
+
+@keyframes tk-fall {
+  0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+  12% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { transform: translateY(320px) rotate(var(--tk-spin, 360deg)); opacity: 0; }
+}
+
+/* ---- step strip --------------------------------------------------------- */
+
+/* Four circles joined by one dashed line drawn behind them. The line is a
+   pseudo-element on the list rather than a border on each item, so it cannot
+   end up hanging off the last circle. */
+.tk-strip {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 2px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.tk-strip::before {
+  content: "";
+  position: absolute;
+  top: 27px;
+  left: 12%;
+  right: 12%;
+  border-top: 3px dashed var(--tk-ink);
+  opacity: 0.35;
+}
+
+.tk-strip li {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.tk-strip-ico {
+  width: 54px;
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--tk-ink);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--tk-brand-ink);
+  box-shadow: 3px 3px 0 0 var(--tk-ink);
+}
+
+.tk-strip-ico svg { width: 27px; height: 27px; }
+
+/* Sits on the circle's lower-left edge with a cream ring around it, so it reads
+   as a separate token instead of a bite taken out of the circle's border. */
+.tk-strip-n {
+  position: absolute;
+  top: 38px;
+  left: 50%;
+  transform: translateX(-25px);
+  width: 21px;
+  height: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 11px;
+  color: var(--tk-cream);
+  background: var(--tk-ink);
+  border: 2px solid var(--tk-cream);
+  border-radius: 50%;
+  box-sizing: content-box;
+}
+
+.tk-strip-label {
+  font-family: var(--tk-display);
+  font-weight: 700;
+  font-size: 11.5px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  padding-inline: 1px;
+  text-wrap: balance;
+}
+
+/* ---- the upload call to action ------------------------------------------ */
+
+/* The ticket's yellow stub becomes the button: no nested border, because the
+   ticket already has one, and a border inside a border is what made the demo's
+   CTA look like a button glued onto a card. */
+.tk-ticket .bottom.pressable { padding: 0; }
+
+.tk-ctaline {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  color: var(--tk-ink);
+  text-decoration: none;
+  transition: background 120ms ease;
+}
+
+.tk-ctaline:active { background: var(--tk-yellow-deep); }
+
+.tk-ctaline-ico {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--tk-ink);
+  border-radius: 12px;
+  background: var(--tk-cream);
+}
+
+.tk-ctaline-ico svg { width: 24px; height: 24px; }
+
+.tk-ctaline-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+
+.tk-ctaline-text b {
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.tk-ctaline-text span { font-size: 12.5px; font-weight: 600; line-height: 1.3; }
+
+.tk-ctaline-go {
+  margin-left: auto;
+  flex: none;
+  display: flex;
+  width: 22px;
+  height: 22px;
+}
+
+.tk-ctaline-go svg { width: 100%; height: 100%; }
+
+/* ---- next-prize progress ------------------------------------------------ */
+
+/* The tenant's colour earns its keep here: a progress fill is identity, not
+   affordance, so it reads --tk-brand while the button that acts on it stays
+   yellow. */
+.tk-progress {
+  height: 14px;
+  margin-top: 8px;
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 999px;
+  background: var(--tk-cream-deep);
+  overflow: hidden;
+}
+
+.tk-progress-fill {
+  height: 100%;
+  background: var(--tk-brand);
+  border-right: 2.5px solid var(--tk-ink);
+  border-radius: 0 999px 999px 0;
+  /* Grows when a ticket lands rather than snapping: the bar moving IS the
+     feedback that the points arrived. */
+  transition: width 700ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* A 0% fill would show a lone 2.5px border floating at the left edge. */
+.tk-progress-fill[style*="width: 0%"] { border-right: none; }
+
+a.tk-nextprize {
+  display: block;
+  color: var(--tk-ink);
+  text-decoration: none;
+}
+
+a.tk-nextprize:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 0 var(--tk-ink);
+}
+
+.tk-nextprize-name {
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-top: 3px;
+  text-wrap: balance;
+}
+
+.tk-nextprize-gap {
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 7px;
+  color: var(--tk-ink-soft);
+}
+
+/* Brand-ink, not brand: at 13px the fill colour misses the 4.5:1 body copy
+   needs on cream. Same pair, different jobs — see lib/tickets/theme.ts. */
+.tk-nextprize-gap b { font-weight: 800; color: var(--tk-brand-ink); }
+.tk-nextprize-of { color: var(--tk-ink-mute); font-weight: 600; }
+.tk-nextprize-ready { color: var(--tk-brand-ink); }
+
+.tk-nextprize.compact .tk-nextprize-name { font-size: 16px; }
+.tk-nextprize.compact .tk-nextprize-gap { margin-top: 5px; font-size: 12.5px; }
+
 /* The panel's door to the store. A card that is a link, so the whole surface is
    the target — a 44px arrow on a phone is a dare, not a button. */
 a.tk-storedoor {
@@ -688,6 +968,44 @@ a.tk-storedoor:active {
   white-space: nowrap;
 }
 
+/* Sits centred under the camera frame, where somebody is deciding whether to
+   photograph a piece of paper with their name and their purchases on it. */
+.tk-privacy {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px 6px 10px;
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 999px;
+  background: #fff;
+  font-family: var(--tk-display);
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.tk-privacy-ico {
+  display: flex;
+  width: 17px;
+  height: 17px;
+  color: var(--tk-yellow-deep);
+  flex: none;
+}
+
+.tk-privacy-ico svg { width: 100%; height: 100%; }
+
+/* A button whose label is preceded by an icon. The icon is sized in the button's
+   own type scale so it grows with the text rather than floating next to it. */
+.tk-btn-ico {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.tk-btn-ico svg { width: 22px; height: 22px; flex: none; }
+
 .tk-checklist { display: flex; flex-direction: column; gap: 8px; }
 
 .tk-checklist .item {
@@ -751,6 +1069,12 @@ a.tk-storedoor:active {
   .tk-btn, .tk-btn:hover, .tk-btn:active { transition: none; transform: none; }
   .tk-modal { animation: none; }
   .tk-modal-emoji { animation: none; }
+  /* The confetti is removed, not paused: frozen mid-air it reads as a rendering
+     bug, and it carries no information to preserve. */
+  .tk-confetti { display: none; }
+  .tk-mascot.bob { animation: none; }
+  .tk-progress-fill { transition: none; }
+  .tk-ctaline { transition: none; }
 }
 
 /* ---- celebration --------------------------------------------------------- */
@@ -782,6 +1106,52 @@ a.tk-storedoor:active {
   flex-direction: column;
   align-items: center;
   animation: tk-modal-in 0.28s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* The mascot's version of the card. The overlay's confetti falls behind it, so
+   the modal has to sit above that layer. */
+.tk-modal.celebrate { position: relative; z-index: 32; }
+
+.tk-modal-mascot {
+  width: 132px;
+  margin-bottom: 6px;
+}
+
+/* "+50 pts" as an object, not a sentence: it is what the person opened the app
+   to see. Yellow because a point earned is the system's currency, and the
+   tenant's colour is reserved for identity. */
+.tk-plusbadge {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: 12px;
+  padding: 8px 18px 9px;
+  background: var(--tk-yellow);
+  border: 3px solid var(--tk-ink);
+  border-radius: 999px;
+  box-shadow: var(--tk-shadow);
+  transform: rotate(-2deg);
+}
+
+.tk-plusbadge b {
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.tk-plusbadge span {
+  font-family: var(--tk-display);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* Inside the modal the bar has no card of its own — the modal is the card. */
+.tk-modal .tk-nextprize.compact {
+  width: 100%;
+  margin-top: 14px;
+  text-align: left;
 }
 
 .tk-modal-emoji {

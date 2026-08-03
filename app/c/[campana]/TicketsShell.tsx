@@ -8,6 +8,8 @@ import { translator, type Translate } from "@/lib/tickets/i18n";
 import { formatUsdCents, type Locale, type PublicCampaign } from "@/lib/tickets/config";
 import { isCobranded, themeCssVars } from "@/lib/tickets/theme";
 import { useMe, type Me, type MeStatus } from "./useMe";
+import { useStore, type StoreStatus } from "./useStore";
+import type { StoreSnapshot } from "@/lib/tickets/store";
 
 /**
  * Session state, fetched once per page and shared.
@@ -23,6 +25,13 @@ export interface Session {
   reload: () => Promise<void>;
 }
 
+/** This week's Drop and the participant's redemptions. See `useStore`. */
+export interface Store {
+  status: StoreStatus;
+  snapshot: StoreSnapshot | null;
+  reload: () => Promise<void>;
+}
+
 interface TicketsContextValue {
   campaign: PublicCampaign;
   locale: Locale;
@@ -32,6 +41,7 @@ interface TicketsContextValue {
   base: string;
   money: (cents: number) => string;
   session: Session;
+  store: Store;
 }
 
 const TicketsContext = createContext<TicketsContextValue | null>(null);
@@ -44,6 +54,9 @@ export const useTickets = (): TicketsContextValue => {
 
 /** The session alone, for the many screens that need nothing else from the shell. */
 export const useSession = (): Session => useTickets().session;
+
+/** The shelf alone. Off on threshold campaigns and before sign-in. */
+export const useStoreState = (): Store => useTickets().store;
 
 const LOCALE_COOKIE = "tk_locale";
 
@@ -112,6 +125,20 @@ export function TicketsShell({
 
   const session = useMemo<Session>(() => ({ status, me, reload }), [status, me, reload]);
 
+  // Only campaigns that have a shelf, and only once somebody is standing at it.
+  const storeState = useStore(
+    campaign.slug,
+    campaign.mechanic === "accumulation" && status === "ready",
+  );
+  const store = useMemo<Store>(
+    () => ({
+      status: storeState.status,
+      snapshot: storeState.snapshot,
+      reload: storeState.reload,
+    }),
+    [storeState.status, storeState.snapshot, storeState.reload],
+  );
+
   const value = useMemo<TicketsContextValue>(
     () => ({
       campaign,
@@ -121,8 +148,9 @@ export function TicketsShell({
       base,
       money: (cents: number) => formatUsdCents(cents, locale),
       session,
+      store,
     }),
-    [campaign, locale, setLocale, base, session],
+    [campaign, locale, setLocale, base, session, store],
   );
 
   const t = value.t;

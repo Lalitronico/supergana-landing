@@ -40,7 +40,8 @@ export default function PrizesPage() {
   return (
     <div className="tk-pad">
       {/* onRedeemed refreshes the shared session, which is what repaints the
-          balance chip in the header — the number the participant just spent. */}
+          balance chip in the header — the number the participant just spent.
+          The shelf itself reloads through the store state, inside PrizeStore. */}
       <PrizeStore slug={campaign.slug} onRedeemed={reload} />
     </div>
   );

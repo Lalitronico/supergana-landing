@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { formatMxPhone, normalizeMxPhone } from "@/lib/tickets/phone";
 import { pickableStates } from "@/lib/tickets/states";
 import { useSession, useTickets } from "../TicketsShell";
+import { Headline } from "../Headline";
+import { Mascot } from "../Mascot";
 import type { MeProfile } from "../useMe";
 
 const ERROR_KEYS: Record<
@@ -84,6 +86,8 @@ function ProfileForm({
 
   const states = pickableStates(campaign.eligibleStates);
 
+  const hasArt = Boolean(campaign.theme.mascots.greet);
+
   // Derived every render instead of stored: the field the participant edits is
   // whatever they typed, and the E.164 form is a view of it. Keeping a second
   // piece of state in step with the first is how the two end up disagreeing.
@@ -154,14 +158,25 @@ function ProfileForm({
 
   return (
     <div className="tk-pad">
-      <div>
-        <div className="tk-eyebrow">{t("regStep", { n: 2 })}</div>
-        <h1 className="tk-h" style={{ fontSize: 28, marginTop: 6 }}>
-          {t("regTitle")}
-        </h1>
-        <p className="tk-body" style={{ fontSize: 13.5, marginTop: 6 }}>
-          {t(campaign.mechanic === "accumulation" ? "accRegSub" : "regSub")}
-        </p>
+      {/* The one screen with no mockup — Codex never saw it, because the phone
+          field did not exist when the mockups were drawn. Built from the system:
+          the step counter, the brand word, and the mascot the other screens use.
+          A form is where people leave, so it gets the same warmth as the rest. */}
+      <div className={hasArt ? "tk-hero art" : undefined}>
+        <div>
+          <div className="tk-eyebrow">{t("regStep", { n: 2 })}</div>
+          <h1 className="tk-h" style={{ fontSize: 28, marginTop: 6 }}>
+            <Headline text={t("regTitle")} mark={t("regTitleMark")} as="brand" />
+          </h1>
+          <p className="tk-body" style={{ fontSize: 13.5, marginTop: 6 }}>
+            {t(campaign.mechanic === "accumulation" ? "accRegSub" : "regSub")}
+          </p>
+        </div>
+        {hasArt && (
+          <div className="tk-hero-art">
+            <Mascot pose="greet" />
+          </div>
+        )}
       </div>
 
       {error && <p className="tk-error">{error}</p>}

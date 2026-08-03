@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/browser";
 import { RECEIPT_STATUS_KEY, REWARD_STATUS_KEY } from "@/lib/tickets/i18n";
 import type { ReceiptStatus, RewardStatus } from "@/lib/tickets/config";
-import { useSession, useTickets } from "../TicketsShell";
+import { useSession, useStoreState, useTickets } from "../TicketsShell";
 import { StatusTimeline } from "../StatusTimeline";
 import { ApprovalCelebration } from "../ApprovalCelebration";
+import { NextPrizeProgress } from "../NextPrizeProgress";
 import type { MeReceipt } from "../useMe";
 
 const RECEIPT_PILL: Record<ReceiptStatus, string> = {
@@ -35,10 +36,25 @@ const REWARD_PILL: Record<RewardStatus, string> = {
  */
 function PointsCard({ points, earned }: { points: number; earned: number }) {
   const { campaign, locale, t, base } = useTickets();
+  const store = useStoreState();
   const prizes = campaign.prizes;
   const prizeName = (p: (typeof prizes)[number]) => (locale === "es" ? p.nameEs : p.nameEn);
   const next = prizes.find((p) => p.points > points) ?? null;
   const pct = next ? Math.min(100, Math.round((points / next.points) * 100)) : 100;
+
+  /**
+   * Two prize lists exist and only one of them is a shelf.
+   *
+   * `campaign.config.prizes` is the older catalogue: named tiers a balance
+   * reaches, with no inventory and no week. `prize_drop_items` is the store,
+   * which knows what is actually in stock right now. A campaign carrying both
+   * would draw two progress bars in one card, so the config one steps aside
+   * whenever the store can answer — the store is the list somebody can act on.
+   *
+   * Today neither tenant has both: Alaska's config prizes are empty and Novamex
+   * has no store. This keeps the third one from being a surprise.
+   */
+  const showCatalogProgress = prizes.length > 0 && store.status !== "ready";
 
   // Two different numbers since the leaderboard stopped counting redemptions:
   // `points` is the spendable balance, `earned` is the race total. They only
@@ -67,19 +83,23 @@ function PointsCard({ points, earned }: { points: number; earned: number }) {
 
       {prizes.length > 0 && (
         <>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
-            <div className="tk-quota-track">
-              <div className="tk-quota-fill" style={{ width: `${pct}%` }} />
-            </div>
-            <b style={{ fontFamily: "var(--tk-display)", fontSize: 13, whiteSpace: "nowrap" }}>
-              {pct}%
-            </b>
-          </div>
-          <p className="tk-foot" style={{ marginTop: 8 }}>
-            {next
-              ? t("ptsNext", { points: next.points - points, prize: prizeName(next) })
-              : t("ptsAllDone")}
-          </p>
+          {showCatalogProgress && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+                <div className="tk-quota-track">
+                  <div className="tk-quota-fill" style={{ width: `${pct}%` }} />
+                </div>
+                <b style={{ fontFamily: "var(--tk-display)", fontSize: 13, whiteSpace: "nowrap" }}>
+                  {pct}%
+                </b>
+              </div>
+              <p className="tk-foot" style={{ marginTop: 8 }}>
+                {next
+                  ? t("ptsNext", { points: next.points - points, prize: prizeName(next) })
+                  : t("ptsAllDone")}
+              </p>
+            </>
+          )}
 
           <div className="tk-hist" style={{ marginTop: 12 }}>
             {prizes.map((prize) => (
@@ -350,6 +370,10 @@ export default function PanelPage() {
       </div>
 
       <PointsCard points={me.points} earned={me.pointsEarned} />
+
+      {/* The distance to the next prize in this week's Drop. Silent on campaigns
+          with no store, which is why it sits outside the card above. */}
+      <NextPrizeProgress />
 
       {/* Accumulation only. A threshold campaign pays a fixed reward per
           receipt and has no balance to spend — there is nothing for a store to

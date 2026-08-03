@@ -46,6 +46,12 @@ export interface StoreRedemption {
   pointsSpent: number;
   createdAt: string;
   fulfilledAt: string | null;
+  /**
+   * Which Drop item this claimed. Present so a screen can tell "you already
+   * took this one" from "you can't afford it yet" — `nextPrize` needs it, and
+   * without it the progress bar would point at a prize the RPC would refuse.
+   */
+  dropItemId: string;
   prizeNameEs: string;
   prizeNameEn: string | null;
   kind: PrizeKind;
@@ -65,6 +71,67 @@ export interface StoreSnapshot {
   drop: StoreDrop | null;
   redemptions: StoreRedemption[];
 }
+
+/**
+ * The prize the balance is heading towards, and how far along it is.
+ *
+ * This is what replaced the mockup's "PASO 3 DE 7" rail. There are no seven
+ * steps in this mechanic and inventing them would have been decoration; the
+ * distance to the next reachable prize is a real number the participant can
+ * act on, and it is derivable from data the store already sends.
+ *
+ * "Reachable" does three exclusions, each matching a rule the redeem RPC
+ * enforces, so the bar can never point at a prize that would be refused:
+ *   · sold out — `remaining <= 0` is gone until Monday
+ *   · already claimed in THIS Drop — one unit per prize per participant per
+ *     Drop (`status <> 'canceled'`, exactly as the RPC counts it)
+ *   · nothing left to aim at — every prize claimed or gone returns null, and
+ *     the caller says "you've taken everything in this Drop" instead of a bar
+ *     stuck at 100%.
+ */
+export interface NextPrize {
+  prize: StorePrize;
+  points: number;
+  /** Points still missing. 0 means it is affordable right now. */
+  missing: number;
+  /** 0–100, for the bar's width. Reaches 100 exactly when missing is 0. */
+  pct: number;
+  affordable: boolean;
+}
+
+export const nextPrize = (snapshot: StoreSnapshot | null): NextPrize | null => {
+  if (!snapshot?.drop) return null;
+
+  const claimed = new Set(
+    snapshot.redemptions
+      .filter((r) => redemptionHoldsStock(r.status))
+      .map((r) => r.dropItemId),
+  );
+
+  // Items arrive ordered by cost from the API, but sorting here means the
+  // helper does not depend on that promise holding.
+  const reachable = snapshot.drop.items
+    .filter((item) => item.remaining > 0 && !claimed.has(item.id))
+    .sort((a, b) => a.pointsCost - b.pointsCost);
+
+  // The cheapest one still out of reach is the goal. If everything reachable is
+  // already affordable, the goal is the cheapest of those — "you can claim this
+  // now" is the more useful thing to say than "you are 100% of the way to it".
+  const target = reachable.find((item) => item.pointsCost > snapshot.points) ?? reachable[0];
+  if (!target) return null;
+
+  const missing = Math.max(0, target.pointsCost - snapshot.points);
+  return {
+    prize: target,
+    points: snapshot.points,
+    missing,
+    pct:
+      target.pointsCost > 0
+        ? Math.min(100, Math.round((snapshot.points / target.pointsCost) * 100))
+        : 100,
+    affordable: missing === 0,
+  };
+};
 
 /** The name to print, honouring campaigns that only wrote one language. */
 export const prizeName = (

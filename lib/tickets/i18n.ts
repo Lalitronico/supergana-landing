@@ -66,10 +66,12 @@ const es = {
   // mínimo, ni cupos, ni fondo que se agote, así que nada de eso se nombra.
   // Tampoco "dólares": la primera campaña de este modo es mexicana y el signo
   // $ ya se entiende solo.
-  accHeroTitle: "Cada compra suma puntos",
-  accHeroTitleMark: "suma puntos",
+  // The org's name IS the mark here: it gets the tenant's colour, not the
+  // yellow highlighter. The threshold home keeps the highlighter on a phrase —
+  // that campaign's headline has no client name in it to paint.
+  accHeroTitle: "¡Gana premios con {org}!",
   accHeroSub:
-    "Sube el ticket de tus compras de productos {org} y gana {rate} puntos por cada $1. Tus puntos se acumulan compra tras compra.",
+    "Compra, sube tu ticket y canjea. Tus puntos se acumulan compra tras compra.",
   accRateLabel: "Así suman tus puntos",
   accRateLine: "$1 = {rate} puntos",
   accRateNote:
@@ -153,7 +155,9 @@ const es = {
   przNote:
     "Premios de acumulación: se alcanzan por puntos, sin sorteos. Canje con el equipo de la promoción.",
   clbTitle: "¡Tu ticket fue aprobado!",
-  clbPoints: "Ganaste {points} puntos.",
+  // The points themselves are a badge now, not a sentence — this is the line
+  // for an approval that added none (a campaign that pays a reward instead).
+  clbApproved: "Tu ticket quedó validado.",
   clbReward: "Y tu recompensa de {amount} quedó reservada.",
   clbCta: "Ver mi panel",
 
@@ -171,6 +175,27 @@ const es = {
   // which does not exist: a Drop closes when an operator closes it, and a timer
   // ticking to a moment nobody guaranteed is a promise the platform can't keep.
   stDropCadence: "Nuevos premios cada lunes",
+
+  // ---- next-prize progress ------------------------------------------------
+  // Split lead/number so the points can be bold without carving a substring
+  // out of a sentence — the same reason how1Lead/how1Rest are two keys.
+  npTitle: "Tu próximo premio",
+  npMissingLead: "Te faltan",
+  npMissingPts: "{points} pts",
+  npReady: "¡Ya lo puedes canjear!",
+  npOf: "{points} de {cost} pts",
+  npAllTaken: "Ya te llevaste todo lo que había en el Drop de esta semana. El lunes se renueva.",
+  npAria: "Progreso hacia {name}: {pct}%",
+
+  // ---- step strip ---------------------------------------------------------
+  // Two words each, on purpose: four labels share 390px and anything longer
+  // wraps to three lines under the icon.
+  stripBuy: "Compra",
+  stripUpload: "Sube tu ticket",
+  stripEarn: "Gana puntos",
+  stripRedeem: "Elige tu premio",
+  ctaUploadTitle: "Subir ticket",
+  ctaUploadSub: "Captura tu ticket y gana puntos",
   stUnavailable: "La Tienda de Premios todavía no está abierta en esta campaña.",
   stCost: "{points} pts",
   stLeft: "quedan {left}",
@@ -223,6 +248,9 @@ const es = {
   // ---- register -----------------------------------------------------------
   regStep: "Paso {n} de 3",
   regTitle: "Completa tu perfil",
+  // The tenant's colour lands on the possessive noun: the form asks for
+  // personal data, and "tu perfil" is the half of the sentence that says whose.
+  regTitleMark: "tu perfil",
   regSub: "Solo pedimos lo necesario para validar tu recompensa.",
   fName: "Nombre",
   fLast: "Apellido",
@@ -246,6 +274,10 @@ const es = {
 
   // ---- capture ------------------------------------------------------------
   capTitle: "Sube tu ticket",
+  // The word the tenant's colour lands on. Both languages happen to end on
+  // the noun, which is why marking a word beats marking a position.
+  capTitleMark: "ticket",
+  capPrivacy: "Tus datos están seguros",
   capSub: "Captura el ticket completo, de la tienda a la fecha y el total.",
   capQ1: "Ticket completo, sin recortes",
   capQ2: "Fecha y tienda visibles",
@@ -380,10 +412,9 @@ const en: Dict = {
     "Terms apply: minimum purchase in a single transaction, calculated after discounts and before tax. Weekly rewards are limited and subject to available funds. Must be 18 or older.",
   rulesLink: "Official rules",
 
-  accHeroTitle: "Every purchase earns points",
-  accHeroTitleMark: "earns points",
+  accHeroTitle: "Win prizes with {org}!",
   accHeroSub:
-    "Upload the receipt for your {org} purchases and earn {rate} points for every $1. Your points add up purchase after purchase.",
+    "Buy, upload your receipt, redeem. Your points add up purchase after purchase.",
   accRateLabel: "How your points add up",
   accRateLine: "$1 = {rate} points",
   accRateNote:
@@ -458,7 +489,7 @@ const en: Dict = {
   przNote:
     "Accumulation prizes: reached by points, no drawings involved. Redeem with the promotion team.",
   clbTitle: "Your receipt was approved!",
-  clbPoints: "You earned {points} points.",
+  clbApproved: "Your receipt is validated.",
   clbReward: "And your {amount} reward is reserved.",
   clbCta: "See my panel",
 
@@ -468,6 +499,19 @@ const en: Dict = {
   stNoDrop: "The next Drop opens Monday.",
   stNoDropNote: "Keep earning meanwhile — your points never reset.",
   stDropCadence: "New prizes every Monday",
+  npTitle: "Your next prize",
+  npMissingLead: "You need",
+  npMissingPts: "{points} more pts",
+  npReady: "Ready to claim!",
+  npOf: "{points} of {cost} pts",
+  npAllTaken: "You've claimed everything in this week's Drop. A new one opens Monday.",
+  npAria: "Progress towards {name}: {pct}%",
+  stripBuy: "Buy",
+  stripUpload: "Upload receipt",
+  stripEarn: "Earn points",
+  stripRedeem: "Pick a prize",
+  ctaUploadTitle: "Upload receipt",
+  ctaUploadSub: "Snap your receipt and earn points",
   stUnavailable: "The Prize Store isn't open in this campaign yet.",
   stCost: "{points} pts",
   stLeft: "{left} left",
@@ -518,6 +562,7 @@ const en: Dict = {
 
   regStep: "Step {n} of 3",
   regTitle: "Complete your profile",
+  regTitleMark: "your profile",
   regSub: "We only ask for what's needed to validate your reward.",
   fName: "First name",
   fLast: "Last name",
@@ -537,6 +582,8 @@ const en: Dict = {
     "We record the date and the rules version you accept. Marketing consent is separate and you can withdraw it at any time.",
 
   capTitle: "Upload your receipt",
+  capTitleMark: "receipt",
+  capPrivacy: "Your data is safe",
   capSub: "Capture the whole receipt, from store name to date and total.",
   capQ1: "Full receipt, no cropping",
   capQ2: "Date and store visible",

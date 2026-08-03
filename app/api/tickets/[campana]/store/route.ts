@@ -52,6 +52,7 @@ interface RedemptionRow {
   points_spent: number;
   created_at: string;
   fulfilled_at: string | null;
+  drop_item_id: string;
   prize_drop_items: { name_es: string; name_en: string | null; kind: PrizeKind } | null;
 }
 
@@ -179,7 +180,7 @@ export async function GET(
     db
       .from("prize_redemptions")
       .select(
-        "id, redemption_code, status, points_spent, created_at, fulfilled_at, prize_drop_items(name_es, name_en, kind)",
+        "id, redemption_code, status, points_spent, created_at, fulfilled_at, drop_item_id, prize_drop_items(name_es, name_en, kind)",
       )
       .eq("participant_id", ctx.participant.id)
       .order("created_at", { ascending: false })
@@ -200,6 +201,7 @@ export async function GET(
       pointsSpent: row.points_spent,
       createdAt: row.created_at,
       fulfilledAt: row.fulfilled_at,
+      dropItemId: row.drop_item_id,
       prizeNameEs: row.prize_drop_items?.name_es ?? "—",
       prizeNameEn: row.prize_drop_items?.name_en ?? null,
       kind: row.prize_drop_items?.kind ?? "item",
