@@ -10,6 +10,7 @@ import { useTickets } from "../TicketsShell";
 import { StatusTimeline } from "../StatusTimeline";
 import { ApprovalCelebration } from "../ApprovalCelebration";
 import { useMe, type MeReceipt } from "../useMe";
+import { PrizeStore } from "./PrizeStore";
 
 const RECEIPT_PILL: Record<ReceiptStatus, string> = {
   received: "wait",
@@ -350,6 +351,14 @@ export default function PanelPage() {
       </div>
 
       <PointsCard points={me.points} earned={me.pointsEarned} />
+
+      {/* Accumulation only. A threshold campaign pays a fixed reward per
+          receipt and has no balance to spend — there is nothing for a store to
+          sell, and its endpoint answers 404 to match. */}
+      {campaign.mechanic === "accumulation" && (
+        <PrizeStore slug={campaign.slug} onRedeemed={reload} />
+      )}
+
       <LeaderboardCard slug={campaign.slug} />
 
       {reward && me.participant && !me.participant.emailVerified && (
