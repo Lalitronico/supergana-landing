@@ -2,9 +2,19 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { formatUsdCents, parseUsdToCents } from "@/lib/tickets/config";
+import type { CampaignMechanic } from "@/lib/tickets/config";
 import type { AdminProduct, QueueItem } from "./types";
 
 const money = (cents: number) => formatUsdCents(cents, "en");
+
+/**
+ * What the participant will be credited, mirroring the RPC's arithmetic:
+ * `(eligible_cents * points_per_dollar) / 100` in integer division. Kept in
+ * step on purpose — a console promising 515 points while the database writes
+ * 510 is worse than a console that says nothing.
+ */
+const pointsFor = (eligibleCents: number, rate: number) =>
+  Math.floor((eligibleCents * rate) / 100);
 
 // Machine codes from tickets_approve_receipt, in the reviewer's language. Each
 // one is a rule the campaign refused on, not a bug — the console says which.
@@ -67,16 +77,21 @@ export function ReviewPanel({
   item,
   products,
   canReview,
+  mechanic,
   rewardCents,
   minCents,
+  pointsPerDollar,
   onDone,
 }: {
   slug: string;
   item: QueueItem;
   products: AdminProduct[];
   canReview: boolean;
+  /** Decides what approving MEANS here: reserving money, or crediting points. */
+  mechanic: CampaignMechanic;
   rewardCents: number;
   minCents: number;
+  pointsPerDollar: number;
   onDone: (message: string, bad?: boolean) => void | Promise<void>;
 }) {
   const { receipt, participant, flags } = item;
@@ -212,6 +227,14 @@ export function ReviewPanel({
         const pts = reward.points_awarded
           ? ` · ${reward.points_awarded} puntos al participante`
           : "";
+        // In an accumulation campaign there is no reward to skip: the five
+        // gates are zeroed by design, so every approval logs
+        // reward_skipped='participant_limit'. Reporting that as "aprobado sin
+        // recompensa (participant_limit)" reads like a failure and is just the
+        // reward layer being off.
+        if (mechanic === "accumulation") {
+          return `Aprobado · ${reward.points_awarded ?? 0} puntos abonados`;
+        }
         return reward.reward_id
           ? `Aprobado · ${money(rewardCents)} reservados del fondo${pts}`
           : `Aprobado sin recompensa (${reward.reward_skipped ?? "límite"})${pts}`;
@@ -415,7 +438,9 @@ export function ReviewPanel({
 
               <div className="tka-actions">
                 <button className="tka-btn ok" disabled={!canReview || busy} onClick={approve}>
-                  ✓ Aprobar y reservar {money(rewardCents)}
+                  {mechanic === "accumulation"
+                    ? `✓ Aprobar y abonar ${pointsFor(eligibleCents, pointsPerDollar)} puntos`
+                    : `✓ Aprobar y reservar ${money(rewardCents)}`}
                 </button>
                 <button
                   className="tka-btn ghost"
@@ -439,12 +464,23 @@ export function ReviewPanel({
                 </p>
               )}
 
-              <p className="tka-note" style={{ marginTop: 12 }}>
-                Al aprobar se reservan {money(rewardCents)} del fondo dentro de la misma
-                transacción y se crea la recompensa con su{" "}
-                <span className="tka-mono">external_id</span> único. Reintentar nunca
-                duplica el pago.
-              </p>
+              {mechanic === "accumulation" ? (
+                <p className="tka-note" style={{ marginTop: 12 }}>
+                  Esta campaña no paga recompensa por ticket: abona{" "}
+                  <b>{pointsPerDollar} puntos por cada $1</b> elegible, dentro de la misma
+                  transacción que aprueba el ticket. Con {money(eligibleCents)} elegibles son{" "}
+                  <b>{pointsFor(eligibleCents, pointsPerDollar)} puntos</b>. Reintentar la
+                  aprobación nunca abona dos veces: el ledger acepta una entrada de compra
+                  por ticket.
+                </p>
+              ) : (
+                <p className="tka-note" style={{ marginTop: 12 }}>
+                  Al aprobar se reservan {money(rewardCents)} del fondo dentro de la misma
+                  transacción y se crea la recompensa con su{" "}
+                  <span className="tka-mono">external_id</span> único. Reintentar nunca
+                  duplica el pago.
+                </p>
+              )}
             </>
           )}
         </div>
