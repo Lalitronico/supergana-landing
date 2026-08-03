@@ -91,7 +91,9 @@ export default function CreateAccountPage() {
           {t("acTitle")}
         </h1>
         <p className="tk-body" style={{ fontSize: 13.5, marginTop: 6 }}>
-          {t("acSub")}
+          {/* An accumulation campaign never emails a reward, so promising one
+              here would be the first lie the participant reads. */}
+          {t(campaign.mechanic === "accumulation" ? "accAcSub" : "acSub")}
         </p>
       </div>
 

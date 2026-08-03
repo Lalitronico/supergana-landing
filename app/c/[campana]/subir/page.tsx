@@ -284,10 +284,15 @@ export default function UploadPage() {
 
       <p className="tk-foot" style={{ textAlign: "center" }}>{t("capNote")}</p>
       <p className="tk-foot">
-        {t("heroSub", {
-          min: money(campaign.minPurchaseCents),
-          reward: money(campaign.rewardCents),
-        })}
+        {campaign.mechanic === "accumulation"
+          ? t("accHeroSub", {
+              org: campaign.orgName,
+              rate: campaign.pointsPerDollar,
+            })
+          : t("heroSub", {
+              min: money(campaign.minPurchaseCents),
+              reward: money(campaign.rewardCents),
+            })}
       </p>
     </div>
   );

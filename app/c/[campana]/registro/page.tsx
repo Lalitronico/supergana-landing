@@ -127,7 +127,7 @@ function ProfileForm({
           {t("regTitle")}
         </h1>
         <p className="tk-body" style={{ fontSize: 13.5, marginTop: 6 }}>
-          {t("regSub")}
+          {t(campaign.mechanic === "accumulation" ? "accRegSub" : "regSub")}
         </p>
       </div>
 
