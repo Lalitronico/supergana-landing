@@ -9,6 +9,10 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
   trailingSlash: true,
+  // Dev-only: lets a phone on the same Wi-Fi load dev-mode JS for the mobile
+  // pass. Without it Next blocks cross-origin dev assets and the page reaches
+  // the phone as HTML that never hydrates — dead buttons, eternal "Cargando".
+  allowedDevOrigins: ["192.168.1.19"],
   // Kept for the asset() helpers that used to prefix GitHub Pages paths.
   env: {
     NEXT_PUBLIC_BASE_PATH: "",

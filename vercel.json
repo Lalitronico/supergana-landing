@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/tickets/cron/sweep-orphans/",
+      "schedule": "17 8 * * *"
+    }
+  ]
+}
