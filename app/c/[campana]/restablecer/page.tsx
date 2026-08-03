@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/browser";
-import { useTickets } from "../TicketsShell";
-import { useMe } from "../useMe";
+import { useSession, useTickets } from "../TicketsShell";
 
 /**
  * Set a new password. Serves two doors with one screen: the recovery link
@@ -13,9 +12,9 @@ import { useMe } from "../useMe";
  * predate passwords and only ever signed in by code.
  */
 export default function ResetPasswordPage() {
-  const { campaign, t, base } = useTickets();
+  const { t, base } = useTickets();
   const router = useRouter();
-  const { status } = useMe(campaign.slug);
+  const { status } = useSession();
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");

@@ -6,11 +6,10 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/browser";
 import { RECEIPT_STATUS_KEY, REWARD_STATUS_KEY } from "@/lib/tickets/i18n";
 import type { ReceiptStatus, RewardStatus } from "@/lib/tickets/config";
-import { useTickets } from "../TicketsShell";
+import { useSession, useTickets } from "../TicketsShell";
 import { StatusTimeline } from "../StatusTimeline";
 import { ApprovalCelebration } from "../ApprovalCelebration";
-import { useMe, type MeReceipt } from "../useMe";
-import { PrizeStore } from "./PrizeStore";
+import type { MeReceipt } from "../useMe";
 
 const RECEIPT_PILL: Record<ReceiptStatus, string> = {
   received: "wait",
@@ -301,7 +300,7 @@ function VerifyEmailCard({
 export default function PanelPage() {
   const { campaign, locale, t, base, money } = useTickets();
   const router = useRouter();
-  const { status, me, reload } = useMe(campaign.slug);
+  const { status, me, reload } = useSession();
 
   useEffect(() => {
     if (status === "anon") router.replace(`${base}entrar/?next=panel`);
@@ -354,9 +353,19 @@ export default function PanelPage() {
 
       {/* Accumulation only. A threshold campaign pays a fixed reward per
           receipt and has no balance to spend — there is nothing for a store to
-          sell, and its endpoint answers 404 to match. */}
+          sell, and its endpoint answers 404 to match.
+
+          The store itself moved to /premios/. What stays here is the door: the
+          panel is where somebody counts their points, and the next thought
+          after counting them is what they are worth. */}
       {campaign.mechanic === "accumulation" && (
-        <PrizeStore slug={campaign.slug} onRedeemed={reload} />
+        <Link href={`${base}premios/`} className="tk-card tk-storedoor">
+          <div>
+            <h2 className="tk-h" style={{ fontSize: 18 }}>{t("stTitle")}</h2>
+            <p className="tk-foot" style={{ marginTop: 4 }}>{t("stDropCadence")}</p>
+          </div>
+          <span className="tk-storedoor-go" aria-hidden="true">→</span>
+        </Link>
       )}
 
       <LeaderboardCard slug={campaign.slug} />

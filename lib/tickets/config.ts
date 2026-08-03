@@ -6,6 +6,8 @@
 // with the ones hardcoded in `tickets_approve_receipt` (migration 0006), which
 // is the authority whenever money is involved.
 
+import type { OrgTheme } from "./theme";
+
 export type Locale = "es" | "en";
 
 export const LOCALES: Locale[] = ["es", "en"];
@@ -116,6 +118,8 @@ export interface Campaign {
   locales: Locale[];
   orgName: string;
   orgSlug: string;
+  /** The tenant's brand, as far as it is allowed to reach. See `theme.ts`. */
+  theme: OrgTheme;
   config: CampaignConfig;
 }
 
@@ -252,6 +256,11 @@ export interface PublicCampaign {
   orgName: string;
   status: CampaignStatus;
   locales: Locale[];
+  /**
+   * Safe to publish: a logo path and two brand colours are what the tenant
+   * prints on a shelf talker. No key of this shape describes anybody.
+   */
+  theme: OrgTheme;
   /** Decides which set of screens the participant gets. See `mechanicOf`. */
   mechanic: CampaignMechanic;
   acceptsReceipts: boolean;
@@ -279,6 +288,7 @@ export const toPublicCampaign = (campaign: Campaign): PublicCampaign => ({
   orgName: campaign.orgName,
   status: campaign.status,
   locales: campaign.locales,
+  theme: campaign.theme,
   mechanic: mechanicOf(campaign.config),
   acceptsReceipts: campaign.status === "live",
   minPurchaseCents: campaign.config.minPurchaseCents,

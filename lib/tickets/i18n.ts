@@ -15,10 +15,18 @@ const es = {
   langLabel: "Idioma",
   navHome: "Inicio",
   navUpload: "Subir ticket",
+  navPrizes: "Premios",
   navPanel: "Mi panel",
   loading: "Cargando…",
   back: "Volver",
   close: "Cerrar",
+  // A lockup, not a sentence: "Powered by" is how the platform signs a
+  // white-label header in either language, the way "Powered by Stripe" reads
+  // the same on a Spanish checkout. The translated form lives in `poweredBy`,
+  // which is what the footer of every screen prints.
+  headPoweredBy: "Powered by",
+  pointsUnit: "pts",
+  pointsAria: "Tus puntos — ir a Mi panel",
 
   // ---- home ---------------------------------------------------------------
   heroEyebrow: "{org} te premia",
@@ -159,6 +167,10 @@ const es = {
     "Cada lunes abre un Drop nuevo con premios limitados. El primero que canjea, se lo lleva.",
   stNoDrop: "El próximo Drop abre el lunes.",
   stNoDropNote: "Mientras tanto sigue sumando: tus puntos no se reinician.",
+  // The cadence, without a clock. A countdown would need `prize_drops.ends_at`,
+  // which does not exist: a Drop closes when an operator closes it, and a timer
+  // ticking to a moment nobody guaranteed is a promise the platform can't keep.
+  stDropCadence: "Nuevos premios cada lunes",
   stUnavailable: "La Tienda de Premios todavía no está abierta en esta campaña.",
   stCost: "{points} pts",
   stLeft: "quedan {left}",
@@ -331,7 +343,11 @@ const en: Dict = {
   langLabel: "Language",
   navHome: "Home",
   navUpload: "Upload receipt",
+  navPrizes: "Prizes",
   navPanel: "My panel",
+  headPoweredBy: "Powered by",
+  pointsUnit: "pts",
+  pointsAria: "Your points — go to My panel",
   loading: "Loading…",
   back: "Back",
   close: "Close",
@@ -451,6 +467,7 @@ const en: Dict = {
     "A new Drop opens every Monday with limited prizes. First to redeem takes it.",
   stNoDrop: "The next Drop opens Monday.",
   stNoDropNote: "Keep earning meanwhile — your points never reset.",
+  stDropCadence: "New prizes every Monday",
   stUnavailable: "The Prize Store isn't open in this campaign yet.",
   stCost: "{points} pts",
   stLeft: "{left} left",

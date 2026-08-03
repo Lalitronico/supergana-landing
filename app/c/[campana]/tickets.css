@@ -15,6 +15,21 @@
   --tk-red: #ff4757;
   --tk-blue: #1e90ff;
   --tk-green: #2ecc71;
+
+  /* The tenant's identity colour, and the only pair `organizations.theme` may
+     repaint (see lib/tickets/theme.ts). Defaults are the system's own blue, so
+     an unthemed campaign renders through the exact same code path as a themed
+     one — there is no "Supergana version" of any component.
+
+     --tk-brand is for fills and display type only: at #1e90ff it clears 3:1
+     against cream, which is the large-text bar, and misses the 4.5:1 that body
+     copy needs. Anything small reads --tk-brand-ink (6.3:1). Agua Alaska's pair
+     lands in the same place: #0098E0 is 3.0:1, its navy #001C74 is 13.8:1. */
+  --tk-brand: #1e90ff;
+  --tk-brand-ink: #0b5cad;
+  /* Derived rather than asked of the tenant: one fewer value per client to get
+     wrong, and it tracks --tk-brand automatically when a theme overrides it. */
+  --tk-brand-soft: color-mix(in srgb, var(--tk-brand) 14%, #ffffff);
   --tk-display: var(--font-bricolage), system-ui, sans-serif;
   --tk-body: var(--font-inter), Inter, "Segoe UI", system-ui, sans-serif;
   --tk-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
@@ -101,7 +116,78 @@
   border-radius: 50%;
   background: var(--tk-yellow);
   border: 2.5px solid var(--tk-ink);
+  flex: none;
 }
+
+.tk-headright {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* The client's logo. Height-constrained and width-auto on purpose: tenant logos
+   arrive in whatever aspect their brand book says, and the header must not care.
+   34px is the cap that keeps a wide lockup (Alaska is 260×135) legible without
+   pushing the header taller than the three-line chrome budget allows. */
+.tk-cobrand {
+  height: 34px;
+  width: auto;
+  max-width: 46%;
+  object-fit: contain;
+  flex: none;
+}
+
+.tk-powered {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  min-width: 0;
+}
+
+.tk-powered .by {
+  font-family: var(--tk-display);
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--tk-ink-mute);
+  line-height: 1;
+}
+
+.tk-powered .tk-logo { font-size: 15px; gap: 6px; }
+.tk-powered .tk-logo .dot { width: 9px; height: 9px; border-width: 2px; }
+
+/* Balance chip. A link, not a label: the number is the reason somebody opens
+   the app, so tapping it goes where the rest of the story is. */
+.tk-points {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px 5px 8px;
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 999px;
+  background: var(--tk-cream);
+  box-shadow: 2px 2px 0 0 var(--tk-ink);
+  color: var(--tk-ink);
+  text-decoration: none;
+  font-family: var(--tk-display);
+  line-height: 1;
+  flex: none;
+}
+
+.tk-points b { font-weight: 800; font-size: 15px; letter-spacing: -0.01em; }
+.tk-points .unit { font-weight: 700; font-size: 11px; color: var(--tk-ink-soft); }
+.tk-points:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 0 var(--tk-ink); }
+
+.tk-star {
+  display: flex;
+  width: 17px;
+  height: 17px;
+}
+
+.tk-star svg { width: 100%; height: 100%; }
 
 .tk-lang {
   display: flex;
@@ -153,17 +239,22 @@
   gap: 18px;
 }
 
+/* Flex rather than fixed columns: accumulation campaigns run four tabs and
+   threshold ones run three, and the bar must not be edited to add a
+   destination. The CTA keeps the extra room it had under the 1fr 1.2fr 1fr grid. */
 .tk-nav {
-  display: grid;
-  grid-template-columns: 1fr 1.2fr 1fr;
+  display: flex;
   border-top: 3px solid var(--tk-ink);
   background: var(--tk-cream);
 }
 
 .tk-nav a {
+  flex: 1 1 0;
+  min-width: 0;
   font-family: var(--tk-display);
   font-weight: 700;
   font-size: 11px;
+  text-align: center;
   padding: 10px 4px 12px;
   color: var(--tk-ink-mute);
   text-decoration: none;
@@ -199,7 +290,23 @@
   height: 30px;
 }
 
-.tk-nav a.cta { color: var(--tk-ink); }
+.tk-nav a.cta { color: var(--tk-ink); flex-grow: 1.2; }
+
+/* Four destinations in 390px leave ~97px a tab. "Subir ticket" fits; the label
+   is allowed to sit on one line and shrink a hair rather than wrap into the
+   icon. Wrapping is what made the bar grow taller than the CTA pill. */
+.tk-nav[data-tabs="4"] a {
+  font-size: 10.5px;
+  letter-spacing: -0.01em;
+  padding-inline: 2px;
+}
+
+.tk-navlabel {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* ---- shared components -------------------------------------------------- */
 
@@ -212,6 +319,38 @@
 }
 
 .tk-card.flat { box-shadow: none; }
+
+/* The panel's door to the store. A card that is a link, so the whole surface is
+   the target — a 44px arrow on a phone is a dare, not a button. */
+a.tk-storedoor {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--tk-ink);
+  text-decoration: none;
+}
+
+a.tk-storedoor:active {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 0 var(--tk-ink);
+}
+
+.tk-storedoor-go {
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 20px;
+  line-height: 1;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--tk-ink);
+  border-radius: 999px;
+  background: var(--tk-yellow);
+}
 .tk-card.yellow { background: var(--tk-yellow); }
 .tk-card.ink { background: var(--tk-ink); color: var(--tk-cream); }
 

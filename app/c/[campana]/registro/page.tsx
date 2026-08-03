@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatMxPhone, normalizeMxPhone } from "@/lib/tickets/phone";
 import { pickableStates } from "@/lib/tickets/states";
-import { useTickets } from "../TicketsShell";
-import { useMe, type MeProfile } from "../useMe";
+import { useSession, useTickets } from "../TicketsShell";
+import type { MeProfile } from "../useMe";
 
 const ERROR_KEYS: Record<
   string,
@@ -18,9 +18,9 @@ const ERROR_KEYS: Record<
 };
 
 export default function RegisterPage() {
-  const { campaign, t, base } = useTickets();
+  const { t, base } = useTickets();
   const router = useRouter();
-  const { status, me, reload } = useMe(campaign.slug);
+  const { status, me, reload } = useSession();
 
   useEffect(() => {
     if (status === "anon") router.replace(`${base}entrar/`);

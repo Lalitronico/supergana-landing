@@ -14,6 +14,9 @@ import { useTickets } from "../TicketsShell";
  */
 type Mode = "password" | "otp-email" | "otp-code";
 
+/** In-app screens a `?next=` may name. Every one is a route under `base`. */
+const POST_LOGIN = new Set(["panel", "premios", "subir"]);
+
 export default function SignInPage() {
   const { t, base } = useTickets();
   const router = useRouter();
@@ -26,7 +29,10 @@ export default function SignInPage() {
       typeof window === "undefined"
         ? null
         : new URLSearchParams(window.location.search).get("next");
-    return target === "panel" ? `${base}panel/` : `${base}subir/`;
+    // An allowlist, not a path: `next` comes from the URL, and anything that
+    // let it name its own destination would be an open redirect wearing a
+    // login form. Unknown values land on the upload screen.
+    return target && POST_LOGIN.has(target) ? `${base}${target}/` : `${base}subir/`;
   };
 
   const [mode, setMode] = useState<Mode>("password");

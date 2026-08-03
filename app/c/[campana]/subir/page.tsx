@@ -9,10 +9,10 @@ import {
   MAX_RECEIPT_BYTES,
   RECEIPTS_BUCKET,
 } from "@/lib/tickets/config";
-import { useTickets } from "../TicketsShell";
+import { useSession, useTickets } from "../TicketsShell";
 import { StatusTimeline } from "../StatusTimeline";
 import { ApprovalCelebration } from "../ApprovalCelebration";
-import { currentClaim, useMe } from "../useMe";
+import { currentClaim } from "../useMe";
 
 const EXTENSION: Record<string, string> = {
   "image/jpeg": "jpg",
@@ -35,7 +35,7 @@ const API_ERROR_KEYS = {
 export default function UploadPage() {
   const { campaign, t, base, money } = useTickets();
   const router = useRouter();
-  const { status, me, reload } = useMe(campaign.slug);
+  const { status, me, reload } = useSession();
   const fileInput = useRef<HTMLInputElement>(null);
   const previewRef = useRef<string | null>(null);
 

@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useTickets } from "./TicketsShell";
-import { useMe } from "./useMe";
+import { useSession, useTickets } from "./TicketsShell";
 
 interface QuotaView {
   weeklyQuota: number;
@@ -35,8 +34,8 @@ function Headline({ text, mark }: { text: string; mark: string }) {
  * being bounced off a gate. Session state decides which door to show.
  */
 function AccountDoors() {
-  const { campaign, t, base } = useTickets();
-  const { status } = useMe(campaign.slug);
+  const { t, base } = useTickets();
+  const { status } = useSession();
 
   return (
     <>

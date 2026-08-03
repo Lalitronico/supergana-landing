@@ -10,6 +10,7 @@ import {
   type CampaignStatus,
   type Locale,
 } from "./config";
+import { parseOrgTheme } from "./theme";
 
 interface CampaignQueryRow {
   id: string;
@@ -19,14 +20,16 @@ interface CampaignQueryRow {
   locales: string[];
   config: unknown;
   module: string;
-  organizations: { name: string; slug: string } | null;
+  organizations: { name: string; slug: string; theme: unknown } | null;
 }
 
 export const getCampaign = async (slug: string): Promise<Campaign | null> => {
   const db = supabaseAdmin();
   const { data, error } = await db
     .from("campaigns")
-    .select("id, slug, name, status, locales, config, module, organizations(name, slug)")
+    .select(
+      "id, slug, name, status, locales, config, module, organizations(name, slug, theme)",
+    )
     .eq("slug", slug)
     .eq("module", "tickets")
     .maybeSingle<CampaignQueryRow>();
@@ -47,6 +50,9 @@ export const getCampaign = async (slug: string): Promise<Campaign | null> => {
     ),
     orgName: data.organizations?.name ?? data.name,
     orgSlug: data.organizations?.slug ?? data.slug,
+    // A campaign with no organization row is not themeable, which is the same
+    // as a campaign whose organization has no theme: the Supergana look.
+    theme: parseOrgTheme(data.organizations?.theme),
     config: parseCampaignConfig(data.config),
   };
 };
