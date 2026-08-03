@@ -106,6 +106,20 @@ export async function POST(
     : null;
 
   if (body.action === "approve") {
+    /**
+     * An approval must credit something. The schema allows `eligibleCents: 0`
+     * because zero is a legal integer, and the campaign's own minimum-purchase
+     * check does not catch it in an accumulation campaign, where the minimum is
+     * zero by design — that is how a receipt got approved for no points.
+     *
+     * Enforced here and not only in the console for the usual reason: the screen
+     * deciding what to offer and the server deciding what to write are two
+     * places, and only one of them is authoritative.
+     */
+    if (body.eligibleCents <= 0) {
+      return NextResponse.json({ error: "eligible_zero" }, { status: 409 });
+    }
+
     const { data, error } = await db.rpc("tickets_approve_receipt", {
       p_receipt_id: body.receiptId,
       p_reviewer: staff.userId,

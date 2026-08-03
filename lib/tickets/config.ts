@@ -81,6 +81,18 @@ export interface CampaignConfig {
   /** Who may submit receipts while the campaign is a draft. See `Rehearsal`. */
   rehearsal: Rehearsal;
   /**
+   * Participating stores, spelled the way they print on a receipt.
+   *
+   * The reviewer types the store by hand and the anti-duplicate lock is
+   * (store + date + total), so two spellings of one shop are two shops as far
+   * as that lock can tell. Offering the list turns a free-text field into a
+   * pick, without forbidding the branch number a reviewer still has to add.
+   *
+   * Also the console's only honest source for a placeholder: it used to suggest
+   * "El Super #114 · El Paso, TX" to somebody reading a Ciudad Juárez receipt.
+   */
+  stores: string[];
+  /**
    * Accumulation prizes: reached by points threshold, no chance anywhere.
    * This is the legal line that keeps the campaign out of lottery territory —
    * a prize in this list may never be raffled among top scorers.
@@ -192,6 +204,7 @@ const DEFAULTS: CampaignConfig = {
   // Staff-only unless a campaign says otherwise: the permissive value has to be
   // asked for, never inherited by a campaign nobody edited.
   rehearsal: "staff",
+  stores: [],
   prizes: [],
 };
 
@@ -273,6 +286,7 @@ export const parseCampaignConfig = (raw: unknown): CampaignConfig => {
     // closed — the direction where a mistake costs a slower rehearsal instead of
     // an open door.
     rehearsal: c.rehearsal === "anyone" ? "anyone" : DEFAULTS.rehearsal,
+    stores: asStringArray(c.stores).map((s) => s.trim()).filter(Boolean),
     prizes: asPrizes(c.prizes),
   };
 };

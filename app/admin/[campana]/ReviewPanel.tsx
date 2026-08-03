@@ -32,6 +32,8 @@ const RULE_MESSAGE: Record<string, string> = {
   fund_exhausted: "No queda fondo suficiente para pagar esta recompensa.",
   receipt_not_found: "El ticket ya no existe.",
   role_cannot_review: "Tu rol no puede decidir reclamos.",
+  eligible_zero:
+    "El elegible llegó en 0 y una aprobación tiene que abonar algo. Captura las líneas de productos participantes, o rechaza el ticket.",
 };
 
 interface Line {
@@ -51,23 +53,57 @@ const newLine = (index: number): Line => ({
 });
 
 /**
- * Matches a printed line against the alias dictionary.
+ * Matches a printed line against the catalogue.
  *
- * Longest alias first: `CAMARONAZO 32OZ` must win over a hypothetical
- * `CAMARONAZO`, otherwise the more specific SKU never gets picked. Both sides
- * are collapsed to single spaces because receipt printers pad erratically.
+ * Aliases first and longest first: `CAMARONAZO 32OZ` must win over a
+ * hypothetical `CAMARONAZO`, otherwise the more specific SKU never gets picked.
+ *
+ * Then the product's own name, which is the part that was missing. Matching only
+ * aliases meant a campaign whose dictionary had not been harvested from real
+ * receipts yet could match nothing at all — and since the eligible amount is the
+ * sum of matched lines only, every approval credited zero. Carrera Alaska had
+ * seven real products, zero aliases, and approved a receipt for no points.
+ *
+ * An alias is a retailer's particular spelling of a product; the product's own
+ * name is the general case. Having the general case means a campaign is workable
+ * on day one and the dictionary becomes an improvement rather than a
+ * prerequisite.
+ *
+ * Diacritics are folded on both sides: receipt printers print GARRAFON, the
+ * catalogue says Garrafón, and refusing to see through that is refusing to
+ * match anything in a Mexican campaign.
  */
-const normalize = (value: string) => value.toUpperCase().replace(/\s+/g, " ").trim();
+const normalize = (value: string) =>
+  value
+    .normalize("NFD")
+    // The combining-marks block, written as escapes: the literal characters are
+    // invisible in an editor and the next person to touch this line would not
+    // know what they were deleting.
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .replace(/\s+/g, " ")
+    .trim();
 
 function matchAlias(text: string, products: AdminProduct[]) {
   const line = normalize(text);
   if (line.length < 3) return null;
-  const candidates = products
-    .flatMap((p) => p.product_aliases.map((a) => ({ product: p, alias: a.alias_text })))
-    .sort((a, b) => b.alias.length - a.alias.length);
+
+  const candidates = [
+    ...products.flatMap((p) =>
+      p.product_aliases.map((a) => ({ product: p, label: a.alias_text, fromAlias: true })),
+    ),
+    // The catalogue's own words. Brand and name together first, so "Alaska
+    // Garrafón 19 L" beats a bare "Garrafón 19 L" when both could match.
+    ...products.map((p) => ({ product: p, label: `${p.brand} ${p.name}`, fromAlias: false })),
+    ...products.map((p) => ({ product: p, label: p.name, fromAlias: false })),
+  ].sort((a, b) => normalize(b.label).length - normalize(a.label).length);
+
   for (const candidate of candidates) {
-    if (line.includes(normalize(candidate.alias))) {
-      return { productId: candidate.product.id, alias: candidate.alias };
+    const label = normalize(candidate.label);
+    if (label.length >= 3 && line.includes(label)) {
+      // Only a real alias is reported as one; a name match must not look like a
+      // dictionary entry in the audit trail.
+      return { productId: candidate.product.id, alias: candidate.fromAlias ? candidate.label : null };
     }
   }
   return null;
@@ -82,6 +118,7 @@ export function ReviewPanel({
   rewardCents,
   minCents,
   pointsPerDollar,
+  stores,
   onDone,
 }: {
   slug: string;
@@ -93,6 +130,8 @@ export function ReviewPanel({
   rewardCents: number;
   minCents: number;
   pointsPerDollar: number;
+  /** Participating stores as they print. Empty on campaigns that never listed them. */
+  stores: string[];
   onDone: (message: string, bad?: boolean) => void | Promise<void>;
 }) {
   const { receipt, participant, flags } = item;
@@ -136,6 +175,27 @@ export function ReviewPanel({
     [lines],
   );
   const totalCents = parseUsdToCents(total);
+
+  /**
+   * Examples taken from this campaign, not from the one the console was built
+   * for. The store box used to suggest "El Super #114 · El Paso, TX" and the
+   * line box "CAMARONAZO 32OZ" while a reviewer was looking at a Ciudad Juárez
+   * receipt for bottled water — a placeholder that describes another client's
+   * campaign is worse than an empty box, because it reads as instruction.
+   *
+   * The store hint comes from `config.storeHint` when the campaign sets one, and
+   * otherwise from the last store a reviewer typed here. The line hint is a real
+   * product out of this campaign's own catalogue, upper-cased the way a receipt
+   * prints it.
+   */
+  const lineHint = useMemo(() => {
+    const sample = products.find((p) => p.product_aliases.length > 0);
+    if (sample) return sample.product_aliases[0].alias_text.toUpperCase();
+    return products[0] ? `${products[0].brand} ${products[0].name}`.toUpperCase() : "";
+  }, [products]);
+
+  // A store the campaign actually lists, or nothing. Never another client's.
+  const storeHint = stores[0] ?? "";
 
   const updateLine = (key: string, patch: Partial<Line>) => {
     setLines((prev) =>
@@ -197,6 +257,26 @@ export function ReviewPanel({
   const approve = () => {
     if (!storeName.trim() || !purchaseDate || totalCents === null) {
       setError("Captura tienda, fecha y total antes de aprobar.");
+      return;
+    }
+    /**
+     * An approval has to give something. This used to be the minimum-purchase
+     * check alone, which is vacuous in an accumulation campaign: Alaska zeroes
+     * `min_purchase_cents`, so `0 < 0` was false and a receipt with no matched
+     * lines got approved for zero points. The participant then sees a validated
+     * ticket, a balance of zero and "sube tu primer ticket" — and reports it as
+     * a bug in the app, because from where they stand it is one.
+     *
+     * A real receipt with no participating products is a rejection, not an
+     * approval, and the console already has `rejected` and `needs_new_image` for
+     * saying so.
+     */
+    if (eligibleCents <= 0) {
+      setError(
+        mechanic === "accumulation"
+          ? "El elegible es 0, así que este ticket no abonaría puntos. Captura las líneas de productos participantes, o recházalo si el ticket no trae ninguno."
+          : "El elegible es 0. Captura las líneas de productos participantes antes de aprobar.",
+      );
       return;
     }
     if (eligibleCents < minCents) {
@@ -342,8 +422,20 @@ export function ReviewPanel({
                     type="text"
                     value={storeName}
                     onChange={(e) => setStoreName(e.target.value)}
-                    placeholder="El Super #114 · El Paso, TX"
+                    placeholder={storeHint}
+                    // Suggestions, not a closed set: the reviewer still has to
+                    // add the branch, and a store missing from the list must not
+                    // block a real receipt on a Saturday.
+                    list={stores.length > 0 ? "tka-stores" : undefined}
+                    autoComplete="off"
                   />
+                  {stores.length > 0 && (
+                    <datalist id="tka-stores">
+                      {stores.map((store) => (
+                        <option key={store} value={store} />
+                      ))}
+                    </datalist>
+                  )}
                 </label>
                 <label>
                   Fecha de compra
@@ -384,7 +476,7 @@ export function ReviewPanel({
                       type="text"
                       value={line.text}
                       onChange={(e) => updateLine(line.key, { text: e.target.value })}
-                      placeholder="CAMARONAZO 32OZ"
+                      placeholder={lineHint}
                     />
                     <input
                       type="text"

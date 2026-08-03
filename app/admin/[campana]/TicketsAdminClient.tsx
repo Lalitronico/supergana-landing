@@ -214,6 +214,7 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
               rewardCents={campaign.config.rewardCents}
               minCents={campaign.config.minPurchaseCents}
               pointsPerDollar={campaign.config.pointsPerDollar}
+              stores={campaign.config.stores}
               profileFields={campaign.config.profileFields}
               onDone={async (message, bad) => {
                 notify(message, bad);
@@ -568,6 +569,7 @@ function QueueView({
   rewardCents,
   minCents,
   pointsPerDollar,
+  stores,
   profileFields,
   onDone,
 }: {
@@ -582,6 +584,8 @@ function QueueView({
   rewardCents: number;
   minCents: number;
   pointsPerDollar: number;
+  /** Participating stores as they print, offered as suggestions to the reviewer. */
+  stores: string[];
   /** Decides which identifying column is worth a place in the queue table. */
   profileFields: ProfileFields;
   onDone: (message: string, bad?: boolean) => void | Promise<void>;
@@ -696,6 +700,7 @@ function QueueView({
           rewardCents={rewardCents}
           minCents={minCents}
           pointsPerDollar={pointsPerDollar}
+          stores={stores}
           onDone={onDone}
         />
       )}
@@ -896,9 +901,10 @@ function CatalogView({
         <div className="tka-card tka-scroll">
           <h3>Catálogo de productos</h3>
           <span className="tka-note">
-            Un producto sin alias no puede coincidir con ninguna línea impresa. Los alias
-            actuales vienen del demo; el diccionario real por retailer sigue pendiente con
-            Novamex.
+            Las líneas impresas se comparan primero contra los alias y luego contra el
+            nombre del producto, así que el catálogo funciona sin diccionario. Un alias
+            sirve para enseñarle cómo escribe cada tienda lo mismo, y se cosecha de
+            tickets reales de las tiendas participantes.
           </span>
           <table style={{ marginTop: 10 }}>
             <thead>
@@ -955,6 +961,15 @@ function CatalogView({
               <tr><td>SLA de revisión</td><td style={{ textAlign: "right" }}><b>{config.reviewSlaHours} h</b></td></tr>
               <tr><td>Zona horaria (lunes)</td><td style={{ textAlign: "right" }}><b>{config.timezone}</b></td></tr>
               <tr><td>Estados elegibles</td><td style={{ textAlign: "right" }}><b>{config.eligibleStates.join(", ") || "sin restringir"}</b></td></tr>
+              {/* The reviewer types the store by hand and the anti-duplicate lock
+                  is (store + date + total), so an unlisted store is a real gap
+                  and worth showing as one rather than leaving blank. */}
+              <tr>
+                <td>Tiendas participantes</td>
+                <td style={{ textAlign: "right" }}>
+                  <b>{config.stores.join(" · ") || "sin capturar"}</b>
+                </td>
+              </tr>
               <tr><td>Versión de reglas</td><td style={{ textAlign: "right" }}><b>{config.rulesVersion}</b></td></tr>
               <tr><td>Entrega</td><td style={{ textAlign: "right" }}><b>{config.payoutProvider}</b></td></tr>
             </tbody>

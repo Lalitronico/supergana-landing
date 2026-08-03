@@ -34,7 +34,21 @@ const REWARD_PILL: Record<RewardStatus, string> = {
  * Accumulation only — a prize here is reached, never raffled. That wording is
  * load-bearing (see the v2 brief's legal frame), not marketing copy.
  */
-function PointsCard({ points, earned }: { points: number; earned: number }) {
+function PointsCard({
+  points,
+  earned,
+  hasReceipts,
+}: {
+  points: number;
+  earned: number;
+  /**
+   * Whether anything has been uploaded yet — which is a different question from
+   * whether the balance is zero, and the one the empty state should ask.
+   * Somebody whose approved receipt credited nothing was being told to upload
+   * their first ticket while looking at their second.
+   */
+  hasReceipts: boolean;
+}) {
   const { campaign, locale, t, base } = useTickets();
   const store = useStoreState();
   const prizes = campaign.prizes;
@@ -77,7 +91,7 @@ function PointsCard({ points, earned }: { points: number; earned: number }) {
         </p>
       )}
 
-      {points === 0 && (
+      {!hasReceipts && (
         <p className="tk-foot" style={{ marginTop: 8 }}>{t("ptsEmpty")}</p>
       )}
 
@@ -125,7 +139,7 @@ function PointsCard({ points, earned }: { points: number; earned: number }) {
           rate: campaign.pointsPerDollar,
         })}
       </p>
-      {points === 0 && (
+      {!hasReceipts && (
         <Link href={`${base}subir/`} className="tk-btn sm" style={{ marginTop: 12 }}>
           {t("pnEmptyCta")} →
         </Link>
@@ -369,7 +383,11 @@ export default function PanelPage() {
         </div>
       </div>
 
-      <PointsCard points={me.points} earned={me.pointsEarned} />
+      <PointsCard
+        points={me.points}
+        earned={me.pointsEarned}
+        hasReceipts={me.receipts.length > 0}
+      />
 
       {/* The distance to the next prize in this week's Drop. Silent on campaigns
           with no store, which is why it sits outside the card above. */}
