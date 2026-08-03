@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { resolveParticipant, resolveStaff } from "@/lib/tickets/access";
-import { acceptsReceipts, getCampaign, isVisible } from "@/lib/tickets/campaigns";
+import { resolveParticipant } from "@/lib/tickets/access";
+import { acceptsReceipts, getCampaign, isVisible, mayRehearse } from "@/lib/tickets/campaigns";
 import { MAX_RECEIPT_BYTES, RECEIPTS_BUCKET } from "@/lib/tickets/config";
 import { sendReceiptReceived } from "@/lib/tickets/email";
 import { receiptSubmitSchema } from "@/lib/tickets/schema";
@@ -28,13 +28,9 @@ export async function POST(
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
   if (!acceptsReceipts(campaign)) {
-    // Rehearsal mode: staff may submit against a draft campaign so the whole
-    // flow can be walked before launch. Draft only — a paused campaign is
-    // closed for everyone, staff included: pausing is an operational brake.
-    const rehearsal =
-      campaign.status === "draft" &&
-      (await resolveStaff(campaign.id)).kind === "ok";
-    if (!rehearsal) {
+    // Not live: only a rehearsal against a draft can still write. See
+    // `mayRehearse` for who that is and why a paused campaign is not included.
+    if (!(await mayRehearse(campaign))) {
       return NextResponse.json({ error: "campaign_closed" }, { status: 409 });
     }
   }

@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { resolveParticipant, resolveStaff } from "@/lib/tickets/access";
-import { getCampaign, isVisible } from "@/lib/tickets/campaigns";
+import { resolveParticipant } from "@/lib/tickets/access";
+import { getCampaign, isVisible, mayRehearse } from "@/lib/tickets/campaigns";
 import { profileSchemaFor } from "@/lib/tickets/schema";
 import { POINTS_SPEND_KINDS } from "@/lib/tickets/config";
 import type { ReceiptRow, RewardRow } from "@/lib/tickets/schema";
@@ -22,12 +22,9 @@ export async function GET(
   const ctx = await resolveParticipant(campaign.id);
   if (!ctx) return NextResponse.json({ error: "not_signed_in" }, { status: 401 });
 
-  // Rehearsal mode: a draft campaign accepts receipts from campaign staff, so
-  // the client can walk the whole flow before anything is published. Only
-  // looked up while drafting — live campaigns never need the extra query.
-  const canRehearse =
-    campaign.status === "draft" &&
-    (await resolveStaff(campaign.id)).kind === "ok";
+  // Who may submit against an unpublished campaign. Same predicate the receipts
+  // route enforces, so this screen cannot offer an upload the write would refuse.
+  const canRehearse = await mayRehearse(campaign);
 
   if (!ctx.participant) {
     return NextResponse.json({

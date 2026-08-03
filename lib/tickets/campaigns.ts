@@ -3,6 +3,7 @@
 // the fields an API route chooses to expose.
 
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { resolveStaff } from "./access";
 import {
   parseCampaignConfig,
   weekStart,
@@ -63,6 +64,32 @@ export const getCampaign = async (slug: string): Promise<Campaign | null> => {
  * accepts submissions.
  */
 export const acceptsReceipts = (campaign: Campaign) => campaign.status === "live";
+
+/**
+ * Whether this caller may submit a receipt to a campaign that is NOT live.
+ *
+ * One function because the rule was written twice — in `/me/` to decide what the
+ * upload screen shows, and in `/receipts/` to decide whether the write lands.
+ * Two copies of an authorisation rule is one copy away from the screen and the
+ * server disagreeing, and the direction that bites is the screen saying yes.
+ *
+ * Draft only, and that is the load-bearing part. A `paused` or `closed` campaign
+ * is shut for everyone including staff, because pausing is an operational brake
+ * rather than a permission question; a `live` one never reaches here, since
+ * `acceptsReceipts` answers first. So the widest this can ever open is a
+ * campaign nobody has been given the QR for.
+ *
+ * Who counts, within draft, is `config.rehearsal` — see `Rehearsal`. `staff`
+ * asks the campaign's seats, which costs a `campaign_admins` row per test
+ * account; `anyone` accepts any signed-in participant, which is what a campaign
+ * still being built wants. The caller still has to be signed in and have a
+ * profile: this decides who may rehearse, not who may skip registering.
+ */
+export const mayRehearse = async (campaign: Campaign): Promise<boolean> => {
+  if (campaign.status !== "draft") return false;
+  if (campaign.config.rehearsal === "anyone") return true;
+  return (await resolveStaff(campaign.id)).kind === "ok";
+};
 
 export const isVisible = (campaign: Campaign) =>
   campaign.status === "live" || campaign.status === "draft" || campaign.status === "paused";

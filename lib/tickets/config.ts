@@ -19,6 +19,29 @@ export type CampaignStatus = "draft" | "live" | "paused" | "closed";
 
 export type PayoutProvider = "manual" | "tremendous";
 
+/**
+ * Who may submit a receipt while a campaign is still a draft.
+ *
+ *  · `staff`  — only seats on the campaign. The safe default, and what a client
+ *               preview wants: the team walks the flow, nobody else can.
+ *  · `anyone` — any signed-in participant with a profile. For the stretch when
+ *               the campaign is being built and every throwaway test account
+ *               would otherwise need a row in `campaign_admins` first.
+ *
+ * What this key cannot do is the point of it being a key at all. It is only ever
+ * consulted for `draft`, so:
+ *   · a `live` campaign is unaffected — `acceptsReceipts` answers first;
+ *   · a `paused` or `closed` campaign stays shut for everyone, staff included,
+ *     because pausing is an operational brake and not a permission question;
+ *   · the moment a campaign is published this value stops meaning anything.
+ *
+ * The guard it relaxes is real: an unpublished campaign has no dates, no
+ * published rules and, in a threshold campaign, a fund that a receipt would
+ * reserve money from. Opening it to anyone is a decision per campaign, taken
+ * while nobody has the QR yet — not a line removed from the module.
+ */
+export type Rehearsal = "staff" | "anyone";
+
 export interface Brand {
   name: string;
   color: string;
@@ -55,6 +78,8 @@ export interface CampaignConfig {
   pointsPerDollar: number;
   /** Which fields "completa tu perfil" asks for. See `ProfileFields`. */
   profileFields: ProfileFields;
+  /** Who may submit receipts while the campaign is a draft. See `Rehearsal`. */
+  rehearsal: Rehearsal;
   /**
    * Accumulation prizes: reached by points threshold, no chance anywhere.
    * This is the legal line that keeps the campaign out of lottery territory —
@@ -164,6 +189,9 @@ const DEFAULTS: CampaignConfig = {
   brands: [],
   pointsPerDollar: 10,
   profileFields: DEFAULT_PROFILE_FIELDS,
+  // Staff-only unless a campaign says otherwise: the permissive value has to be
+  // asked for, never inherited by a campaign nobody edited.
+  rehearsal: "staff",
   prizes: [],
 };
 
@@ -241,6 +269,10 @@ export const parseCampaignConfig = (raw: unknown): CampaignConfig => {
     brands: asBrands(c.brands),
     pointsPerDollar: asInt(c.points_per_dollar, DEFAULTS.pointsPerDollar),
     profileFields: asProfileFields(c.profile_fields),
+    // An unrecognised value falls back to "staff". A typo in this key must fail
+    // closed — the direction where a mistake costs a slower rehearsal instead of
+    // an open door.
+    rehearsal: c.rehearsal === "anyone" ? "anyone" : DEFAULTS.rehearsal,
     prizes: asPrizes(c.prizes),
   };
 };
