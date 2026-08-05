@@ -173,6 +173,16 @@ export function ReviewPanel({
 
   const [extraction, setExtraction] = useState<AdminExtraction | null>(item.extraction);
   const [rereading, setRereading] = useState(false);
+  /**
+   * De qué lectura se sembró el formulario, si de alguna.
+   *
+   * Se compara por `created_at` y no por un booleano porque una relectura
+   * produce una fila nueva: sin esto, el ticket que el revisor acaba de mandar
+   * a releer volvería con datos frescos que nadie pondría en las cajas.
+   */
+  const [seededFrom, setSeededFrom] = useState<string | null>(
+    item.extraction?.status === "ok" && item.extraction ? item.extraction.created_at : null,
+  );
 
   /**
    * El autofill solo siembra lo que nadie escribió todavía.
@@ -230,8 +240,58 @@ export function ReviewPanel({
     };
   }, [slug, receipt.id]);
 
+  /**
+   * ¿El formulario sigue tal como se montó?
+   *
+   * Decide si una lectura que llega tarde puede sembrarlo. Un solo carácter
+   * tecleado por el revisor lo vuelve suyo, y a partir de ahí nada automático
+   * tiene permiso de tocarlo.
+   */
+  const pristine =
+    storeName === "" &&
+    purchaseDate === "" &&
+    total === "" &&
+    lines.every((l) => l.text === "" && l.amount === "");
+
+  /**
+   * La lectura llega tarde, y el formulario nunca se entera.
+   *
+   * El padre indexa este componente por id de ticket, así que cambiar de
+   * reclamo lo remonta y los inicializadores de arriba corren con datos
+   * frescos. Lo que NO lo remonta es el refresco de la consola cada treinta
+   * segundos: mismo id, misma llave, mismo estado. Un revisor que abre un
+   * ticket recién llegado lo abre entre cinco y quince segundos antes de que su
+   * lectura exista, y sin esto se quedaba mirando un formulario vacío que ya
+   * nunca se iba a llenar — con la lectura ahí al lado, en la pantalla.
+   *
+   * Solo siembra si nadie escribió nada. La regla es la misma de siempre: la
+   * captura humana gana, y aquí ni siquiera hace falta que sea correcta, basta
+   * con que sea suya.
+   */
+  const incoming =
+    ocr.autofill && !decided && item.extraction?.status === "ok" ? item.extraction : null;
+
+  if (incoming && incoming.created_at !== seededFrom && pristine) {
+    // Ajuste de estado durante el render, no un efecto: es el patrón que React
+    // documenta para "los props cambiaron y el estado derivado tiene que
+    // seguirlos". Se re-renderiza antes de pintar, así que nadie ve el
+    // formulario vacío parpadear antes de llenarse — que es justo lo que un
+    // efecto sí habría dejado ver.
+    setSeededFrom(incoming.created_at);
+    setExtraction(incoming);
+    setStoreName(storeFromExtraction(incoming));
+    setPurchaseDate(incoming.purchase_date ?? "");
+    setTotal(incoming.total_printed ?? "");
+    const seeded = linesFromExtraction(incoming, matchable, eligibility);
+    if (seeded.length > 0) setLines([...seeded, newLine(seeded.length)]);
+  }
+
   /** Vuelca la lectura sobre el formulario, pisando lo que haya. */
   const applyExtraction = (source: AdminExtraction) => {
+    // Se marca como sembrada aunque el revisor haya apretado el botón a mano:
+    // si después vacía las cajas, el formulario queda pristine otra vez y sin
+    // esto la siembra automática volvería a llenar lo que acaba de limpiar.
+    setSeededFrom(source.created_at);
     setStoreName(storeFromExtraction(source));
     setPurchaseDate(source.purchase_date ?? "");
     setTotal(source.total_printed ?? "");
