@@ -534,6 +534,7 @@ export const rewardHoldsFunds = (status: RewardStatus) => status !== "canceled";
 
 export const MAX_RECEIPT_BYTES = 10 * 1024 * 1024;
 
+/** What the server tolerates once an image has arrived. */
 export const ACCEPTED_IMAGE_TYPES = [
   "image/jpeg",
   "image/png",
@@ -541,5 +542,21 @@ export const ACCEPTED_IMAGE_TYPES = [
   "image/heic",
   "image/heif",
 ] as const;
+
+/**
+ * What the file picker asks for, deliberately narrower than the above.
+ *
+ * HEIC is what an iPhone stores by default, and leaving it out of `accept` is
+ * what makes iOS hand over a converted JPEG instead of the original — the
+ * conversion happens in the phone, for free, at the one moment somebody is
+ * already waiting for a file dialog. Listing HEIC gets the raw file, which the
+ * reader cannot decode and which then needs a human to type the whole ticket.
+ *
+ * The server still accepts HEIC, on purpose: an image that arrives anyway is
+ * evidence somebody sent in good faith, and refusing it at the door would cost
+ * them their claim over a container format. Narrow at the picker, generous at
+ * the gate.
+ */
+export const PICKER_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
 export const RECEIPTS_BUCKET = "receipts";

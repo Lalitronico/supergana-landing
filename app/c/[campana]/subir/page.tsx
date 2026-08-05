@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/browser";
 import {
   ACCEPTED_IMAGE_TYPES,
+  PICKER_IMAGE_TYPES,
   MAX_RECEIPT_BYTES,
   RECEIPTS_BUCKET,
 } from "@/lib/tickets/config";
@@ -255,26 +256,33 @@ export default function UploadPage() {
         <div className="tk-hint">{preview ? (file?.name ?? "") : t("capEmpty")}</div>
       </div>
 
-      <PrivacyPill />
+      {/*
+        Sin `capture`, y esa ausencia es el arreglo.
+        `capture="environment"` no es una preferencia por la cámara: en Android
+        y en iOS le quita al picker la opción de galería, y manda directo al
+        visor. Quien fotografió su ticket al salir de la tienda y entra a
+        subirlo más tarde se encontraba con que la única salida era volver a
+        fotografiar un papel que ya no trae encima.
 
-      <div className="tk-card flat tk-checklist">
-        {[t("capQ1"), t("capQ2"), t("capQ3")].map((line) => (
-          <div className="item" key={line}>
-            <span className="dot">✓</span>
-            {line}
-          </div>
-        ))}
-      </div>
-
+        El picker del sistema ofrece la cámara igual; lo que cambia es que
+        también ofrece lo que ya está guardado.
+      */}
       <input
         ref={fileInput}
         type="file"
-        accept={ACCEPTED_IMAGE_TYPES.join(",")}
-        capture="environment"
+        accept={PICKER_IMAGE_TYPES.join(",")}
         hidden
         onChange={pick}
       />
 
+      {/*
+        El botón va aquí, pegado al recuadro, y no debajo de la lista de
+        verificación. Es la única acción de esta pantalla: quedaba después de la
+        píldora de privacidad y de tres renglones más, o sea fuera de la
+        pantalla en un teléfono. La lista sigue siendo útil —dice qué tiene que
+        verse en la foto— pero es consejo, y el consejo no se pone delante de la
+        puerta.
+      */}
       {file ? (
         <>
           <button
@@ -311,6 +319,17 @@ export default function UploadPage() {
           {t("capPick")}
         </button>
       )}
+
+      <PrivacyPill />
+
+      <div className="tk-card flat tk-checklist">
+        {[t("capQ1"), t("capQ2"), t("capQ3")].map((line) => (
+          <div className="item" key={line}>
+            <span className="dot">✓</span>
+            {line}
+          </div>
+        ))}
+      </div>
 
       <p className="tk-foot" style={{ textAlign: "center" }}>{t("capNote")}</p>
       <p className="tk-foot">
