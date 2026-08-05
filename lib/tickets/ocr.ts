@@ -422,7 +422,7 @@ export async function runAndStoreExtraction({
   contentType: string;
   timezone: string;
   model?: string;
-}): Promise<void> {
+}): Promise<ExtractionResult | null> {
   let result: ExtractionResult;
   try {
     result = await extractReceipt({ bytes, contentType, timezone, model });
@@ -430,7 +430,7 @@ export async function runAndStoreExtraction({
     // extractReceipt promete no lanzar; esto es el cinturón por si esa promesa
     // se rompe en un refactor futuro.
     console.error("[tickets ocr] extract threw", receiptId, e);
-    return;
+    return null;
   }
 
   const { error } = await db.from("receipt_extractions").insert({
@@ -462,7 +462,13 @@ export async function runAndStoreExtraction({
     // 42P01 = la tabla no existe: la migración 0025 no ha corrido en este
     // proyecto. Es el estado normal entre un deploy y una migración, y no es
     // motivo para ensuciar los logs con un stack.
-    if (error.code === "42P01") return;
-    console.error("[tickets ocr] insert failed", receiptId, error);
+    if (error.code !== "42P01") {
+      console.error("[tickets ocr] insert failed", receiptId, error);
+    }
   }
+
+  // Se devuelve aunque el insert haya fallado: quien llama puede decidir con
+  // esto en la mano, y perder la fila de auditoría es peor que perder la
+  // decisión pero no es razón para perder las dos.
+  return result;
 }

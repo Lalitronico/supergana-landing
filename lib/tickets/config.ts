@@ -135,15 +135,32 @@ export const DEFAULT_OCR_MODEL = "qwen3.8-max";
  *                 shows it beside the empty form. That is the shadow stage: it
  *                 measures how often the model and the reviewer agree, which is
  *                 the only honest basis for ever trusting it more.
+ *  · `autoApprove` — a clean receipt is credited with nobody in the loop. See
+ *                 the field's own note, and `autoreview.ts` for the gate.
  *
- * There is deliberately no `auto_approve` key yet. It belongs to a stage that
- * has not earned its evidence, and a config key that exists is a config key
- * somebody turns on.
+ * The three are a chain, not three switches: `autofill` and `autoApprove` both
+ * die with `enabled`, and each has to be asked for by name. A campaign inherits
+ * none of them.
  */
 export interface OcrConfig {
   enabled: boolean;
   model: string;
   autofill: boolean;
+  /**
+   * Approve a receipt with no human in the loop when everything checks out.
+   *
+   * Everything means: the reading succeeded, the model raised no observation at
+   * all, the store is one the campaign lists, the date is real and not in the
+   * future, and at least one line matched the catalogue. Anything short of that
+   * queues. The gate lives in `autoreview.ts` and refuses to arm at all on a
+   * campaign with no `stores`, because "the store matches" against an empty
+   * list is a door painted on a wall.
+   *
+   * There is no automatic rejection and there is no key that would enable one.
+   * Approving wrongly costs money and is correctable; rejecting wrongly is a
+   * machine telling somebody who did their part no.
+   */
+  autoApprove: boolean;
 }
 
 export interface Prize {
@@ -254,7 +271,7 @@ const DEFAULTS: CampaignConfig = {
   prizes: [],
   // Fails closed, like `rehearsal`: reading a tenant's receipts with a third
   // party has to be asked for, never inherited.
-  ocr: { enabled: false, model: DEFAULT_OCR_MODEL, autofill: false },
+  ocr: { enabled: false, model: DEFAULT_OCR_MODEL, autofill: false, autoApprove: false },
   // Fails closed: the permissive mode has to be asked for. A campaign that
   // silently started counting every line naming the brand would be a campaign
   // paying for products it never promoted.
@@ -268,6 +285,9 @@ const asOcr = (value: unknown): OcrConfig => {
     model: typeof o.model === "string" && o.model.trim() ? o.model.trim() : DEFAULT_OCR_MODEL,
     // Autofill without reading is nonsense, so it cannot outlive `enabled`.
     autofill: o.enabled === true && o.autofill === true,
+    // Same chain, one link further: nothing decides on its own in a campaign
+    // that is not even reading. Both flags have to be asked for by name.
+    autoApprove: o.enabled === true && o.auto_approve === true,
   };
 };
 

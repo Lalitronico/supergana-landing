@@ -4,11 +4,24 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { resolveParticipant } from "@/lib/tickets/access";
 import { acceptsReceipts, getCampaign, isVisible, mayRehearse } from "@/lib/tickets/campaigns";
 import { MAX_RECEIPT_BYTES, RECEIPTS_BUCKET } from "@/lib/tickets/config";
+import { settleAutomatically } from "@/lib/tickets/autoreview";
 import { sendReceiptReceived } from "@/lib/tickets/email";
 import { runAndStoreExtraction } from "@/lib/tickets/ocr";
 import { receiptSubmitSchema } from "@/lib/tickets/schema";
 
 export const runtime = "nodejs";
+
+/**
+ * El trabajo de `after` gasta del presupuesto de ESTA ruta, no de uno aparte.
+ *
+ * La respuesta al participante sale en menos de un segundo, pero después
+ * empieza una lectura que tarda entre 8 y 15 segundos y, si la campaña aprueba
+ * sola, un par de viajes más a la base. Contra el default eso iba raspando: una
+ * lectura de 9.7 s ya se midió en producción. Si el presupuesto se acaba a
+ * medias, el recibo queda guardado —eso pasó antes de responder— y lo que se
+ * pierde es la lectura, que es justo lo que vino a ahorrar trabajo.
+ */
+export const maxDuration = 60;
 
 /**
  * Registers a receipt the browser has already uploaded to Supabase Storage.
@@ -143,7 +156,7 @@ export async function POST(
    */
   if (campaign.config.ocr.enabled) {
     after(async () => {
-      await runAndStoreExtraction({
+      const extraction = await runAndStoreExtraction({
         db,
         receiptId: receipt.id,
         campaignId: campaign.id,
@@ -151,6 +164,21 @@ export async function POST(
         contentType: parsed.data.contentType,
         timezone: campaign.config.timezone,
         model: campaign.config.ocr.model,
+      });
+      if (!extraction) return;
+
+      await settleAutomatically({
+        db,
+        campaign,
+        receiptId: receipt.id,
+        extraction,
+        recipient: {
+          to: participant.email,
+          firstName: participant.first_name,
+          locale: participant.locale,
+          campaignName: campaign.name,
+          campaignSlug: campaign.slug,
+        },
       });
     });
   }
