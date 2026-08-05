@@ -349,9 +349,14 @@
 .tka-form label { display: flex; flex-direction: column; gap: 5px; font-size: 11.5px; font-weight: 700; color: var(--a-ink-mute); }
 .tka-form label.wide { grid-column: 1 / -1; }
 
+/* Enumerated by type rather than by `input`, so a checkbox never inherits the
+   box. Which means every new type has to be added here on purpose: the sign-in
+   password field arrived borderless and padless, a label floating over a gap
+   that did not look like somewhere you could type. */
 :is(.tka, .tka-gate) input[type="text"],
 :is(.tka, .tka-gate) input[type="date"],
 :is(.tka, .tka-gate) input[type="email"],
+:is(.tka, .tka-gate) input[type="password"],
 :is(.tka, .tka-gate) select,
 :is(.tka, .tka-gate) textarea {
   font-family: var(--a-body);

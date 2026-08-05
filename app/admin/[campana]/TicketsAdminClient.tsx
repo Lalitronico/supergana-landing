@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { CSSProperties } from "react";
 import { authThrottleKind, supabaseBrowser } from "@/lib/supabase/browser";
 import { formatUsdCents, mechanicOf } from "@/lib/tickets/config";
 import { canPayout, canReview } from "@/lib/tickets/roles";
@@ -84,6 +85,22 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
     setData(next.data);
   }, [fetchSnapshot]);
 
+  /**
+   * The background variant of `load`, and the difference is what it refuses to
+   * do: a flaky tick must never replace a working console with the error
+   * screen. Somebody mid-review losing the queue because one poll timed out is
+   * a worse outcome than a snapshot that is thirty seconds stale.
+   *
+   * Auth changes still land. Being signed out is a fact, not a hiccup, and the
+   * gate has to say so — now that it can be answered with a password.
+   */
+  const refresh = useCallback(async () => {
+    const next = await fetchSnapshot();
+    if (next.gate === "error") return;
+    setGate(next.gate);
+    setData(next.data);
+  }, [fetchSnapshot]);
+
   useEffect(() => {
     let alive = true;
     fetchSnapshot().then((next) => {
@@ -95,6 +112,43 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
       alive = false;
     };
   }, [fetchSnapshot]);
+
+  /**
+   * The console notices on its own, the way the participant's panel does.
+   *
+   * Until now the only way to learn that a ticket had arrived was to press
+   * "Actualizar", so a reviewer watching the queue watched a screen that had
+   * decided to stop being true. Thirty seconds is slow enough to be free
+   * against a queue this size and fast enough that nobody sits on a stale
+   * count.
+   *
+   * Hidden tabs do not poll — a laptop with the console open in a background
+   * window should not keep the snapshot warm for nobody — and returning to the
+   * tab reads immediately rather than waiting out the interval.
+   *
+   * Safe under an open review: ReviewPanel is keyed by the receipt id and keeps
+   * its own draft state, so a refresh under a half-filled form leaves the form
+   * alone.
+   */
+  useEffect(() => {
+    if (gate !== "ready") return;
+    let inFlight = false;
+    const tick = async () => {
+      if (document.visibilityState !== "visible" || inFlight) return;
+      inFlight = true;
+      try {
+        await refresh();
+      } finally {
+        inFlight = false;
+      }
+    };
+    const timer = setInterval(tick, 30_000);
+    document.addEventListener("visibilitychange", tick);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", tick);
+    };
+  }, [gate, refresh]);
 
   useEffect(() => {
     if (!toast) return;
@@ -166,10 +220,25 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
             {item.count !== undefined && <span className="count">{item.count}</span>}
           </button>
         ))}
+        {/* The way out, next to the name of whoever is in. It used to exist only
+            on the forbidden screen, which meant the sign-out button appeared
+            exactly when you could no longer do anything and never when you
+            could — so changing accounts meant clearing cookies by hand. */}
         <div className="foot">
           Sesión: {staff.email} · rol {staff.role}.
           <br />
           Toda decisión queda en bitácora con revisor, fecha y motivo.
+          <button
+            type="button"
+            className="tka-btn ghost sm"
+            style={{ marginTop: 10 }}
+            onClick={async () => {
+              await supabaseBrowser().auth.signOut();
+              window.location.reload();
+            }}
+          >
+            Cerrar sesión
+          </button>
         </div>
       </aside>
 
@@ -257,20 +326,90 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
 // Gates
 // ---------------------------------------------------------------------------
 
+const FIELD: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 6,
+  fontSize: 12,
+  fontWeight: 700,
+};
+
+/** The quiet way between modes. Not a button anybody should mistake for the CTA. */
+const LINK: CSSProperties = {
+  background: "none",
+  border: 0,
+  padding: 0,
+  font: "inherit",
+  fontSize: 11.5,
+  fontWeight: 600,
+  color: "#6B665B",
+  textDecoration: "underline",
+  cursor: "pointer",
+  textAlign: "left",
+};
+
+type GateMode = "password" | "otp-email" | "otp-code";
+
+/**
+ * Getting into the console.
+ *
+ * Password first, code as the fallback — the same order the participant app
+ * has always used (app/c/[campana]/entrar/page.tsx). This screen used to offer
+ * the code and nothing else, which put the only entrance behind the one channel
+ * this project cannot rely on: the built-in sender caps at two mails an hour
+ * across the whole project, and the link inside them lands on the Site URL,
+ * still pointing at localhost. An operator whose mail did not arrive had no
+ * second door.
+ *
+ * "Ya tengo un código" exists because the previous shape had no field for a
+ * code you already held. Codes get minted out of band — scripts/tickets-otp.mjs
+ * prints one without sending mail — and the only button on the screen asked for
+ * a fresh one, which invalidates the code in your hand. Two failure modes, one
+ * missing link.
+ *
+ * The console still never mints accounts: `shouldCreateUser: false` on the OTP,
+ * and no sign-up anywhere. A reviewer is added deliberately, by inserting a
+ * campaign_admins row.
+ */
 function SignInGate({ onSignedIn }: { onSignedIn: () => void }) {
+  const [mode, setMode] = useState<GateMode>("password");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
-  const [step, setStep] = useState<"email" | "code">("email");
+  /** Set only when a code actually went out, so the code step can name where. */
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const send = async () => {
+  const address = () => email.trim().toLowerCase();
+  const validEmail = () => /^\S+@\S+\.\S+$/.test(email.trim());
+
+  const go = (next: GateMode) => {
+    setMode(next);
+    setError(null);
+  };
+
+  const signIn = async () => {
+    if (!validEmail()) return setError("Revisa el correo.");
     setBusy(true);
     setError(null);
-    // shouldCreateUser: false — the console must not mint accounts. A reviewer
-    // is added deliberately, by inserting a campaign_admins row.
+    const { error: authError } = await supabaseBrowser().auth.signInWithPassword({
+      email: address(),
+      password,
+    });
+    setBusy(false);
+    // Wrong password and unknown account collapse into one message on purpose:
+    // telling them apart confirms which addresses have console accounts.
+    if (authError) return setError("Correo o contraseña incorrectos.");
+    onSignedIn();
+  };
+
+  const send = async () => {
+    if (!validEmail()) return setError("Revisa el correo.");
+    setBusy(true);
+    setError(null);
     const { error: authError } = await supabaseBrowser().auth.signInWithOtp({
-      email: email.trim().toLowerCase(),
+      email: address(),
       options: {
         shouldCreateUser: false,
         emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(window.location.pathname)}`,
@@ -290,19 +429,26 @@ function SignInGate({ onSignedIn }: { onSignedIn: () => void }) {
         throttle === "cooldown"
           ? "Pediste códigos muy seguido. Espera un minuto y vuelve a intentar."
           : throttle === "project"
-            ? "El proyecto agotó su cuota de correos de esta hora. Es configuración, no tu cuenta: hay que revisar el SMTP."
-            : "No pudimos enviar el código. Revisa el email e intenta de nuevo.",
+            ? "El proyecto agotó su cuota de correos de esta hora. Es configuración, no tu cuenta: entra con tu contraseña o pide que revisen el SMTP."
+            : "No pudimos enviar el código. Revisa el correo e intenta de nuevo.",
       );
     }
-    setStep("code");
+    setSentTo(address());
+    setCode("");
+    go("otp-code");
   };
 
   const verify = async () => {
+    if (!validEmail()) return setError("Escribe el correo de tu cuenta.");
+    const token = code.replace(/\D/g, "");
+    // The OTP length is a project setting (6 to 10 digits), not a constant.
+    // This project issues 8; hardcoding 6 would reject every real code.
+    if (token.length < 6 || token.length > 10) return setError("El código está incompleto.");
     setBusy(true);
     setError(null);
     const { error: authError } = await supabaseBrowser().auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      token: code.replace(/\D/g, ""),
+      email: address(),
+      token,
       type: "email",
     });
     setBusy(false);
@@ -310,36 +456,84 @@ function SignInGate({ onSignedIn }: { onSignedIn: () => void }) {
     onSignedIn();
   };
 
+  const emailField = (onEnter: () => void) => (
+    <label style={FIELD}>
+      Correo de tu cuenta
+      <input
+        type="email"
+        autoComplete="username"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        autoFocus={mode !== "otp-code"}
+        onKeyDown={(e) => e.key === "Enter" && onEnter()}
+      />
+    </label>
+  );
+
   return (
     <div className="tka-gate">
       <div className="box">
         <h1>Consola de operación</h1>
         {error && <p style={{ color: "#E63946", fontSize: 13 }}>{error}</p>}
-        {step === "email" ? (
+
+        {mode === "password" && (
           <>
-            <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12, fontWeight: 700 }}>
-              Email de tu cuenta
+            {emailField(() => void signIn())}
+            <label style={FIELD}>
+              Contraseña
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoFocus
-                onKeyDown={(e) => e.key === "Enter" && void send()}
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && void signIn()}
               />
             </label>
+            <button
+              className="tka-btn"
+              disabled={busy || !email || !password}
+              onClick={() => void signIn()}
+            >
+              {busy ? "Entrando…" : "Entrar"}
+            </button>
+            <button type="button" style={LINK} onClick={() => go("otp-email")}>
+              Entrar con un código por correo
+            </button>
+            <button type="button" style={LINK} onClick={() => go("otp-code")}>
+              Ya tengo un código
+            </button>
+          </>
+        )}
+
+        {mode === "otp-email" && (
+          <>
+            {emailField(() => void send())}
             <button className="tka-btn" disabled={busy || !email} onClick={() => void send()}>
               {busy ? "Enviando…" : "Enviar código"}
             </button>
+            <button type="button" style={LINK} onClick={() => go("password")}>
+              Mejor con contraseña
+            </button>
           </>
-        ) : (
+        )}
+
+        {mode === "otp-code" && (
           <>
-            <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12, fontWeight: 700 }}>
-              Código enviado a {email}
+            {/* Named only when this screen sent it. Arriving here with a code
+                minted elsewhere, the address is still unknown and verifyOtp
+                needs it — so the field stays rather than a sentence that would
+                have to guess. */}
+            {sentTo ? (
+              <p style={{ fontSize: 12, fontWeight: 700 }}>Código enviado a {sentTo}</p>
+            ) : (
+              emailField(() => void verify())
+            )}
+            <label style={FIELD}>
+              Código
               <input
                 type="text"
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                // La longitud del OTP es configuración del proyecto (6 a 10).
                 maxLength={10}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
@@ -347,11 +541,19 @@ function SignInGate({ onSignedIn }: { onSignedIn: () => void }) {
                 onKeyDown={(e) => e.key === "Enter" && void verify()}
               />
             </label>
-            <button className="tka-btn" disabled={busy || code.length < 6} onClick={() => void verify()}>
+            <button
+              className="tka-btn"
+              disabled={busy || code.length < 6}
+              onClick={() => void verify()}
+            >
               {busy ? "Verificando…" : "Entrar"}
+            </button>
+            <button type="button" style={LINK} onClick={() => go("password")}>
+              Mejor con contraseña
             </button>
           </>
         )}
+
         <p style={{ fontSize: 11.5, color: "#6B665B", lineHeight: 1.5 }}>
           El acceso se otorga por campaña. Si tu cuenta no está en la lista de
           revisores, pide que te agreguen antes de entrar.
