@@ -130,6 +130,29 @@ export function decideAutomatically({
 
   // ---- Lo que hace imposible decidir, y se le puede pedir al participante ---
 
+  /**
+   * "Esto no es un ticket" va antes que "no se puede leer", porque el modelo
+   * marca las dos a la vez y el mensaje que sale de aquí es todo el producto de
+   * esta rama.
+   *
+   * Pasó de verdad el primer día: alguien subió la foto de unos cartones de
+   * huevo en un anaquel y el sistema respondió "tómale otra foto con buena luz".
+   * Quien lee eso vuelve a fotografiar los huevos, mejor iluminados. El
+   * problema nunca fue la luz.
+   *
+   * Redactado sin acusar: el modelo se equivoca en las dos direcciones, y si
+   * este `not_a_receipt` es un falso positivo sobre un ticket raro, "no
+   * reconocimos" pide una revisión mientras que "eso no es un ticket" acusa a
+   * alguien que sí fue a comprar.
+   */
+  if (extraction.issues.includes("not_a_receipt")) {
+    return {
+      action: "needs_new_image",
+      reason:
+        "No reconocimos un ticket de compra en esa foto. Revisa que sea la foto del ticket y vuelve a subirla.",
+    };
+  }
+
   // `legible: false` es el modelo diciendo que no pudo leer lo esencial, y no
   // tiene sentido discutirle: si no se lee, no se aprueba y no se rechaza, se
   // pide otra foto.
