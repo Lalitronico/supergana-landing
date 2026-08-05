@@ -8,6 +8,7 @@ import { canPayout, canReview } from "@/lib/tickets/roles";
 import { PAYOUT_TRANSITIONS } from "@/lib/tickets/payouts";
 import { formatMxPhone } from "@/lib/tickets/phone";
 import type { CampaignMechanic, ProfileFields, RewardStatus } from "@/lib/tickets/config";
+import type { EligibilityMode } from "@/lib/tickets/matching";
 import type { AdminData, AdminProduct, QueueItem } from "./types";
 import { ReviewPanel } from "./ReviewPanel";
 import { StoreView } from "./StoreView";
@@ -285,6 +286,8 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
               pointsPerDollar={campaign.config.pointsPerDollar}
               stores={campaign.config.stores}
               timezone={campaign.config.timezone}
+              eligibility={campaign.config.eligibility}
+              ocr={campaign.config.ocr}
               profileFields={campaign.config.profileFields}
               onDone={async (message, bad) => {
                 notify(message, bad);
@@ -774,6 +777,8 @@ function QueueView({
   pointsPerDollar,
   stores,
   timezone,
+  eligibility,
+  ocr,
   profileFields,
   onDone,
 }: {
@@ -792,6 +797,10 @@ function QueueView({
   stores: string[];
   /** The plaza, so the date box cannot offer a day that has not happened there. */
   timezone: string;
+  /** Whether a line counts by exact SKU or by naming the brand. */
+  eligibility: EligibilityMode;
+  /** Whether this campaign reads receipts, and whether the reading pre-fills. */
+  ocr: { enabled: boolean; autofill: boolean };
   /** Decides which identifying column is worth a place in the queue table. */
   profileFields: ProfileFields;
   onDone: (message: string, bad?: boolean) => void | Promise<void>;
@@ -908,6 +917,8 @@ function QueueView({
           pointsPerDollar={pointsPerDollar}
           stores={stores}
           timezone={timezone}
+          eligibility={eligibility}
+          ocr={ocr}
           onDone={onDone}
         />
       )}

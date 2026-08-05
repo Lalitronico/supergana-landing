@@ -6,6 +6,7 @@
 // with the ones hardcoded in `tickets_approve_receipt` (migration 0006), which
 // is the authority whenever money is involved.
 
+import type { EligibilityMode } from "./matching";
 import type { OrgTheme } from "./theme";
 
 export type Locale = "es" | "en";
@@ -98,6 +99,51 @@ export interface CampaignConfig {
    * a prize in this list may never be raffled among top scorers.
    */
   prizes: Prize[];
+  /** Automatic receipt reading. See `OcrConfig`. */
+  ocr: OcrConfig;
+  /**
+   * What makes a printed line count. See `EligibilityMode` in `matching.ts`.
+   *
+   * `sku` is the default and the safer of the two: a line only counts when the
+   * catalogue recognises the exact product. `brand` counts any line naming the
+   * brand, which is right when everything the brand sells counts and the points
+   * come from the amount spent rather than from which SKU it was.
+   *
+   * The distinction is not theoretical. Del Río in Ciudad Juárez prints
+   * `AGUA PURIFICADA "ALASKA NATURAL"` with no presentation at all, so no
+   * size-bearing alias can ever match it — and since Carrera Alaska pays 10
+   * points per peso regardless of presentation, identifying the SKU would be
+   * inventing a fact in order to throw it away.
+   */
+  eligibility: EligibilityMode;
+}
+
+/** The model this platform reads receipts with, unless a campaign names another. */
+export const DEFAULT_OCR_MODEL = "qwen3.8-max";
+
+/**
+ * Automatic receipt reading, per campaign.
+ *
+ * Off by default and it has to stay that way. Turning it on sends the tenant's
+ * receipt images to a third-party processor, and a receipt carries location,
+ * date and shopping habits — that is a decision a client takes with their
+ * privacy notice in hand, not a line a deploy switches on for everybody.
+ *
+ *  · `enabled`  — read receipts at all. Everything else is moot without it.
+ *  · `autofill` — the console pre-fills its form from the reading. With this
+ *                 off the reading is still taken and stored, and the console
+ *                 shows it beside the empty form. That is the shadow stage: it
+ *                 measures how often the model and the reviewer agree, which is
+ *                 the only honest basis for ever trusting it more.
+ *
+ * There is deliberately no `auto_approve` key yet. It belongs to a stage that
+ * has not earned its evidence, and a config key that exists is a config key
+ * somebody turns on.
+ */
+export interface OcrConfig {
+  enabled: boolean;
+  model: string;
+  autofill: boolean;
 }
 
 export interface Prize {
@@ -206,6 +252,23 @@ const DEFAULTS: CampaignConfig = {
   rehearsal: "staff",
   stores: [],
   prizes: [],
+  // Fails closed, like `rehearsal`: reading a tenant's receipts with a third
+  // party has to be asked for, never inherited.
+  ocr: { enabled: false, model: DEFAULT_OCR_MODEL, autofill: false },
+  // Fails closed: the permissive mode has to be asked for. A campaign that
+  // silently started counting every line naming the brand would be a campaign
+  // paying for products it never promoted.
+  eligibility: "sku",
+};
+
+const asOcr = (value: unknown): OcrConfig => {
+  const o = (value ?? {}) as Record<string, unknown>;
+  return {
+    enabled: o.enabled === true,
+    model: typeof o.model === "string" && o.model.trim() ? o.model.trim() : DEFAULT_OCR_MODEL,
+    // Autofill without reading is nonsense, so it cannot outlive `enabled`.
+    autofill: o.enabled === true && o.autofill === true,
+  };
 };
 
 const asInt = (value: unknown, fallback: number): number => {
@@ -288,6 +351,8 @@ export const parseCampaignConfig = (raw: unknown): CampaignConfig => {
     rehearsal: c.rehearsal === "anyone" ? "anyone" : DEFAULTS.rehearsal,
     stores: asStringArray(c.stores).map((s) => s.trim()).filter(Boolean),
     prizes: asPrizes(c.prizes),
+    ocr: asOcr(c.ocr),
+    eligibility: c.eligibility === "brand" ? "brand" : DEFAULTS.eligibility,
   };
 };
 

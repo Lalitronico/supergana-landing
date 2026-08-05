@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, after, type NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { resolveParticipant } from "@/lib/tickets/access";
 import { acceptsReceipts, getCampaign, isVisible, mayRehearse } from "@/lib/tickets/campaigns";
 import { MAX_RECEIPT_BYTES, RECEIPTS_BUCKET } from "@/lib/tickets/config";
 import { sendReceiptReceived } from "@/lib/tickets/email";
+import { runAndStoreExtraction } from "@/lib/tickets/ocr";
 import { receiptSubmitSchema } from "@/lib/tickets/schema";
 
 export const runtime = "nodejs";
@@ -121,6 +122,37 @@ export async function POST(
     }
     console.error("[tickets receipts] insert failed", insertError);
     return NextResponse.json({ error: "db_error" }, { status: 500 });
+  }
+
+  /**
+   * Lectura automática del ticket, después de responder.
+   *
+   * `after` y no un `.catch()` suelto: en serverless la función se congela en
+   * cuanto sale la respuesta, y una promesa que nadie está esperando se muere a
+   * media llamada. `after` es la primitiva que mantiene viva la ejecución hasta
+   * que el trabajo diferido termina.
+   *
+   * Después de responder porque el participante no tiene por qué esperar entre
+   * diez y treinta segundos mirando una foto de su ticket. Para cuando un
+   * revisor abra la consola —el SLA son 48 horas— la lectura lleva ahí un buen
+   * rato. Si falla, no pasa nada que no pasara ayer: la cola sigue siendo
+   * manual, que es como funcionó siempre.
+   *
+   * Se reusan los bytes que ya se descargaron para el hash. Volver a bajar el
+   * objeto sería pagar dos veces por el mismo archivo.
+   */
+  if (campaign.config.ocr.enabled) {
+    after(async () => {
+      await runAndStoreExtraction({
+        db,
+        receiptId: receipt.id,
+        campaignId: campaign.id,
+        bytes,
+        contentType: parsed.data.contentType,
+        timezone: campaign.config.timezone,
+        model: campaign.config.ocr.model,
+      });
+    });
   }
 
   // Fire-and-forget: a bounced confirmation must not lose the receipt.
