@@ -126,9 +126,14 @@ export function TicketsShell({
   const session = useMemo<Session>(() => ({ status, me, reload }), [status, me, reload]);
 
   // Only campaigns that have a shelf, and only once somebody is standing at it.
+  // The balance goes in so the shelf follows it: the snapshot carries its own
+  // copy of the points, and that copy is what decides whether a prize shows a
+  // Canjear button. Read once per page load, it stayed at whatever the balance
+  // was when the app opened.
   const storeState = useStore(
     campaign.slug,
     campaign.mechanic === "accumulation" && status === "ready",
+    me?.points ?? null,
   );
   const store = useMemo<Store>(
     () => ({
