@@ -41,6 +41,7 @@ export const en: LandingCopy = {
       { href: "#casos", label: "Cases" },
     ],
     cta: "Book a demo",
+    ctaShort: "Demo",
     languageLabel: "Site language",
   },
 
