@@ -22,6 +22,10 @@ export function VerifyForm({ slug, openWeek }: { slug: string; openWeek: number 
   const { ensure } = useDeviceSession();
 
   const phone = normalizeMxPhone(search.get("t") ?? "");
+  // Present only on a rehearsal deployment, where no WhatsApp account exists to
+  // deliver anything. The server decides that and cannot decide it in
+  // production; see lib/pickem/otp.ts.
+  const [rehearsalCode, setRehearsalCode] = useState<string | null>(search.get("ensayo"));
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
@@ -36,7 +40,11 @@ export function VerifyForm({ slug, openWeek }: { slug: string; openWeek: number 
       body: JSON.stringify(body),
     });
     const json = await res.json().catch(() => ({}));
-    return { ok: res.ok, json } as { ok: boolean; json: { error?: string } };
+    if (typeof json?.rehearsalCode === "string") setRehearsalCode(json.rehearsalCode);
+    return { ok: res.ok, json } as {
+      ok: boolean;
+      json: { error?: string; rehearsalCode?: string };
+    };
   };
 
   // Somebody who lands here without a number in the URL cleared it, or opened
@@ -97,6 +105,31 @@ export function VerifyForm({ slug, openWeek }: { slug: string; openWeek: number 
 
   return (
     <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* Labelled as loudly as it can be. Somebody demoing this has to be able
+          to say "esto no pasa en producción" without it sounding like an
+          excuse, and somebody who stumbles onto it has to understand at a
+          glance that no WhatsApp is coming. */}
+      {rehearsalCode ? (
+        <div className="sg-card" style={{ background: "var(--sg-yellow)" }}>
+          <div className="sg-eyebrow">Modo ensayo · no se envió WhatsApp</div>
+          <div
+            style={{
+              fontFamily: "var(--sg-mono)",
+              fontSize: 30,
+              fontWeight: 700,
+              letterSpacing: "0.3em",
+              marginTop: 4,
+            }}
+          >
+            {rehearsalCode}
+          </div>
+          <p className="sg-foot" style={{ marginTop: 6, marginBottom: 0 }}>
+            Este programa todavía no tiene cuenta de WhatsApp, así que el código se
+            muestra aquí. En producción llega al teléfono y nunca aparece en pantalla.
+          </p>
+        </div>
+      ) : null}
+
       <div className="sg-field">
         <label htmlFor="code">Código de 4 dígitos</label>
         <input

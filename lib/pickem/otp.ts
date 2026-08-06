@@ -62,26 +62,38 @@ export interface SendResult {
 
 export interface CodeSender {
   readonly name: string;
+  /**
+   * True when this sender cannot actually deliver anything, so the screen has
+   * to show the code instead. Only ever true outside production — see
+   * `codeSender`. The route reads this rather than sniffing the environment
+   * itself, so there is one place that decides.
+   */
+  readonly revealsCode: boolean;
   send(phoneE164: string, code: string): Promise<SendResult>;
 }
 
 /**
- * Development sender: writes the code to the server log.
+ * Rehearsal sender: delivers nothing and says so.
  *
- * It logs rather than returning the code, and that distinction is the whole
- * point. The demo showed the code on screen because it had no integration, and
- * a screen that can show you the code is a screen that can show it to anybody
- * who guesses a phone number. This one is visible to whoever can read the
- * server's output, which in production is nobody with a browser — and the
- * production sender is chosen by `codeSender()` below, not by a flag somebody
- * could flip.
+ * There is no WhatsApp account yet — Meta business verification takes days and
+ * had not been started when this was written — so on a rehearsal deployment the
+ * code has nowhere to go. Rather than fail registration, this hands the code
+ * back for the screen to display under an explicit label.
+ *
+ * That IS the thing every comment in this file says must not happen, so read
+ * why it is allowed here and nowhere else: `codeSender` will not build one of
+ * these in production, and it takes TWO independent conditions to reach it —
+ * an env var somebody sets deliberately, AND a deployment environment that is
+ * not production. A flag alone cannot do it. When the Meta account exists this
+ * class stops being reachable at all, because credentials win.
  */
-class LogSender implements CodeSender {
-  readonly name = "log";
-  async send(phoneE164: string, code: string): Promise<SendResult> {
-    console.warn(
-      `[pickem] OTP para ${phoneE164}: ${code} — emisor de desarrollo, no envía WhatsApp`,
-    );
+class RehearsalSender implements CodeSender {
+  readonly name = "rehearsal";
+  readonly revealsCode = true;
+  // Takes no code, deliberately. It goes to the screen, and writing it to a log
+  // as well would be a second copy in a place nobody is watching.
+  async send(phoneE164: string): Promise<SendResult> {
+    console.warn(`[pickem] modo ensayo — código para ${phoneE164} mostrado en pantalla`);
     return { ok: true };
   }
 }
@@ -98,6 +110,7 @@ class LogSender implements CodeSender {
  */
 class MetaSender implements CodeSender {
   readonly name = "meta";
+  readonly revealsCode = false;
 
   constructor(
     private readonly token: string,
@@ -157,12 +170,22 @@ class MetaSender implements CodeSender {
 /**
  * Which sender is in play.
  *
- * Chosen by whether the credentials exist, not by NODE_ENV: a production deploy
- * that is missing them must not silently fall back to writing codes into a log
- * nobody reads while telling players their message is on its way. It refuses
- * instead, and the route turns that into "no pudimos enviar el código".
+ * Credentials win, always. A production deploy that is missing them must not
+ * silently fall back to something that cannot deliver while telling players
+ * their message is on its way — it refuses, and the route turns that into "no
+ * pudimos enviar el código".
  *
- * The log sender is only reachable in development.
+ * The rehearsal sender needs all three of these to be true:
+ *
+ *   1. No WhatsApp credentials, so nothing real is being displaced.
+ *   2. `PICKEM_REHEARSAL_OTP=1`, which somebody has to set on purpose.
+ *   3. The deployment is not production — either a local dev server, or a
+ *      Vercel environment that reports itself as preview or development.
+ *
+ * Condition 3 is the one that matters, because it is not ours to fake: Vercel
+ * sets VERCEL_ENV, and on the production deployment it says "production" no
+ * matter what else is configured. So the flag being left on by accident cannot
+ * put codes on screen where real players are.
  */
 export const codeSender = (): CodeSender | null => {
   const token = process.env.WHATSAPP_TOKEN;
@@ -173,6 +196,14 @@ export const codeSender = (): CodeSender | null => {
   if (token && phoneNumberId && template) {
     return new MetaSender(token, phoneNumberId, template, language);
   }
-  if (process.env.NODE_ENV !== "production") return new LogSender();
+
+  const isProductionDeploy =
+    process.env.VERCEL_ENV === "production" ||
+    (!process.env.VERCEL_ENV && process.env.NODE_ENV === "production");
+
+  if (isProductionDeploy) return null;
+  if (process.env.NODE_ENV !== "production" || process.env.PICKEM_REHEARSAL_OTP === "1") {
+    return new RehearsalSender();
+  }
   return null;
 };

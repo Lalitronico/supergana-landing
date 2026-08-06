@@ -75,7 +75,16 @@ export function RegisterForm({ slug }: { slug: string }) {
       // The number travels in the URL so a reload of the code screen does not
       // lose it. It is the player's own number on their own device, and the
       // alternative is asking them to type it again.
-      router.push(`/p/${slug}/verificar/?t=${encodeURIComponent(e164!)}`);
+      //
+      // `rehearsalCode` only exists on a deployment with no WhatsApp account
+      // and no way to deliver anything; the server decides that, and it cannot
+      // decide it in production. Carrying it forward lets the next screen say
+      // so out loud instead of asking for a code that will never arrive.
+      const rehearsal = typeof body?.rehearsalCode === "string" ? body.rehearsalCode : null;
+      router.push(
+        `/p/${slug}/verificar/?t=${encodeURIComponent(e164!)}` +
+          (rehearsal ? `&ensayo=${encodeURIComponent(rehearsal)}` : ""),
+      );
     } catch {
       setError("No hay conexión. Inténtalo otra vez.");
       setSending(false);

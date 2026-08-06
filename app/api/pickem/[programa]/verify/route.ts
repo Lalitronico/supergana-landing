@@ -207,7 +207,17 @@ const start = async (
 
   // Deliberately says nothing about whether the number was already registered.
   // "This number is taken" turns the form into a way to find out who plays.
-  return NextResponse.json({ ok: true, sent: true });
+  //
+  // `rehearsalCode` is the one exception to "the code never leaves the server",
+  // and it is the sender that decides — not this route, and not the browser.
+  // See `codeSender`: it cannot build a revealing sender on a production
+  // deployment, and Vercel's own VERCEL_ENV is what makes that true rather than
+  // a flag we control.
+  return NextResponse.json({
+    ok: true,
+    sent: true,
+    ...(sender.revealsCode ? { rehearsalCode: code } : {}),
+  });
 };
 
 // ---------------------------------------------------------------------------
