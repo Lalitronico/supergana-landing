@@ -36,6 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# supabase cli link state — holds the pooler connection string for the linked
+# project, which is a credential and not a repo artifact
+/supabase/.temp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

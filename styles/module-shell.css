@@ -1,0 +1,359 @@
+/* The Supergana app shell: what every participant-facing module looks like.
+ *
+ * Scoped under `.sg-app` so it can never leak into the landing page, the same
+ * discipline `.tk-app` and `.quiniela-game` already follow.
+ *
+ * WHY THIS FILE EXISTS, given that tickets.css already draws all of this.
+ *
+ * It draws it for one module. When the pick'em needed the same phone frame, the
+ * same cartoon card and the same yellow button, the choice was to copy six
+ * hundred lines or to name the thing both modules share. Copying is how two
+ * products that are supposed to be one product start disagreeing about what a
+ * button looks like — and the platform is what is being sold, so the parts that
+ * are the platform have to live somewhere with a name.
+ *
+ * tickets.css has NOT been migrated onto this yet, on purpose: Carrera Alaska
+ * is live and its client meeting is days away, and restyling a running campaign
+ * to prove a point about structure is a bad trade. It migrates after that, by
+ * deleting from `.tk-app` everything that is already here and adding `sg-app`
+ * to its shell. Until then the tokens are duplicated in the two files, and that
+ * is a debt with a due date rather than a decision.
+ *
+ * The token VALUES are not invented here either — they match app/globals.css,
+ * which is where the landing gets them. One vocabulary, three surfaces.
+ */
+
+.sg-app {
+  --sg-cream: #faf7f0;
+  --sg-cream-deep: #f1ecdf;
+  --sg-ink: #0a0a0a;
+  --sg-ink-soft: #3d3a33;
+  --sg-ink-mute: #6b665b;
+  --sg-yellow: #ffd93d;
+  --sg-yellow-deep: #f5c211;
+  --sg-red: #ff4757;
+  --sg-blue: #1e90ff;
+  --sg-green: #2ecc71;
+
+  /* The tenant's identity colour, and the only pair `organizations.theme` may
+     repaint (lib/tickets/theme.ts). Action stays Supergana yellow: the buttons
+     are the product's vocabulary, and a tenant repainting them would be a
+     tenant forking the product.
+
+     Two values rather than one, because they answer different questions.
+     --sg-brand is for fills and display type, where 3:1 is the bar; anything at
+     body size reads --sg-brand-ink, which has to clear 4.5:1. Chapa's copper
+     #d0765e is 2.6:1 on cream — it fails even the large-text bar for small
+     text, which is exactly why the darker tone is a separate value the tenant
+     supplies rather than something derived by darkening until it looks fine. */
+  --sg-brand: #1e90ff;
+  --sg-brand-ink: #0b5cad;
+  --sg-brand-soft: color-mix(in srgb, var(--sg-brand) 14%, #ffffff);
+
+  --sg-display: var(--font-bricolage), system-ui, sans-serif;
+  --sg-body: var(--font-inter), Inter, "Segoe UI", system-ui, sans-serif;
+  --sg-mono: ui-monospace, "Cascadia Mono", Consolas, monospace;
+
+  --sg-bw: 3px;
+  --sg-radius: 14px;
+  --sg-shadow-sm: 3px 3px 0 0 var(--sg-ink);
+  --sg-shadow: 4px 4px 0 0 var(--sg-ink);
+  --sg-shadow-lg: 7px 7px 0 0 var(--sg-ink);
+
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  background: var(--sg-cream-deep);
+  background-image: radial-gradient(rgba(10, 10, 10, 0.045) 1px, transparent 1px);
+  background-size: 22px 22px;
+  font-family: var(--sg-body);
+  color: var(--sg-ink);
+}
+
+/* `hidden` is a display:none with no specificity, so any class that sets
+   `display` beats it. Without this, a control the code marked hidden stays on
+   screen — which already happened once in the demo and cost an afternoon to
+   find, because the bug is invisible in the markup. */
+.sg-app [hidden] {
+  display: none !important;
+}
+
+/* ---- the frame ---------------------------------------------------------- */
+
+.sg-phone {
+  /* min(), not `width: 400px; max-width: 100%`. A centred grid item does not
+     always get capped by max-width, and the demo's frame spilled past the
+     viewport at 390px because of it. */
+  width: min(400px, 100%);
+  height: 820px;
+  max-height: calc(100dvh - 48px);
+  background: var(--sg-cream);
+  border: var(--sg-bw) solid var(--sg-ink);
+  border-radius: 34px;
+  box-shadow: 10px 10px 0 0 var(--sg-ink);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* On a phone the frame IS the device: no border, no shadow, full bleed. */
+@media (max-width: 860px) {
+  .sg-app {
+    padding: 0;
+    align-items: stretch;
+    background: var(--sg-cream);
+    background-image: none;
+    /* Fixed to the viewport rather than tall: iOS rubber-bands the body when a
+       drag starts outside the scrollable middle, and 100dvh re-measures as
+       Safari's toolbars collapse. Together they walked the bottom nav off the
+       bottom of the screen. */
+    position: fixed;
+    inset: 0;
+    min-height: 0;
+  }
+
+  .sg-phone {
+    width: 100%;
+    height: 100%;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+
+/* ---- chrome ------------------------------------------------------------- */
+
+.sg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: var(--sg-bw) solid var(--sg-ink);
+  background: var(--sg-cream);
+  flex-shrink: 0;
+}
+
+.sg-powered {
+  font-family: var(--sg-display);
+  font-weight: 700;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sg-ink-mute);
+  line-height: 1.3;
+}
+
+/* The one scrolling region. Everything above and below it is fixed, which is
+   what keeps the dock welded to the bottom on iOS. */
+.sg-screen {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sg-pad {
+  padding: 18px 16px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---- the dock ----------------------------------------------------------- */
+
+/* Opaque, not a gradient. A translucent dock lets the row underneath show
+   through its own text and reads as a rendering glitch rather than as depth. */
+.sg-dock {
+  flex-shrink: 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top: var(--sg-bw) solid var(--sg-ink);
+  background: var(--sg-cream);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ---- primitives --------------------------------------------------------- */
+
+.sg-h {
+  font-family: var(--sg-display);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+  text-wrap: balance;
+  margin: 0;
+}
+
+.sg-display {
+  font-family: var(--sg-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+  font-size: 34px;
+  margin: 0;
+}
+
+.sg-eyebrow {
+  font-family: var(--sg-display);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--sg-ink-mute);
+}
+
+.sg-body {
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--sg-ink-soft);
+}
+
+.sg-foot {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--sg-ink-mute);
+}
+
+.sg-card {
+  background: #fff;
+  border: var(--sg-bw) solid var(--sg-ink);
+  border-radius: 16px;
+  box-shadow: var(--sg-shadow);
+  padding: 14px;
+}
+
+.sg-card.ink {
+  background: var(--sg-ink);
+  color: var(--sg-cream);
+}
+
+.sg-btn {
+  font-family: var(--sg-display);
+  font-weight: 800;
+  font-size: 16px;
+  padding: 14px 18px;
+  border: var(--sg-bw) solid var(--sg-ink);
+  border-radius: var(--sg-radius);
+  background: var(--sg-yellow);
+  color: var(--sg-ink);
+  box-shadow: var(--sg-shadow);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  text-align: center;
+  width: 100%;
+  display: block;
+  text-decoration: none;
+}
+
+.sg-btn:hover:not(:disabled) {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 0 var(--sg-ink);
+}
+
+.sg-btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 0 var(--sg-ink);
+}
+
+.sg-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.sg-btn.ghost { background: #fff; }
+.sg-btn.ink { background: var(--sg-ink); color: var(--sg-cream); }
+.sg-btn.sm { font-size: 13.5px; padding: 10px 14px; border-radius: 11px; }
+
+.sg-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--sg-display);
+  font-weight: 700;
+  font-size: 12px;
+  border: 2.5px solid var(--sg-ink);
+  border-radius: 999px;
+  padding: 5px 11px;
+  background: #fff;
+}
+
+.sg-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--sg-display);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border: 2.5px solid var(--sg-ink);
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: #fff;
+}
+
+.sg-pill.ok { background: var(--sg-green); }
+.sg-pill.wait { background: var(--sg-yellow); }
+.sg-pill.bad { background: var(--sg-red); color: #fff; }
+.sg-pill.info { background: var(--sg-blue); color: #fff; }
+
+.sg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sg-field > label {
+  font-family: var(--sg-display);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sg-ink-mute);
+}
+
+.sg-field input,
+.sg-field select {
+  font-family: var(--sg-body);
+  font-size: 16px; /* 16px or iOS zooms the page on focus. */
+  padding: 12px 13px;
+  border: 2.5px solid var(--sg-ink);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--sg-ink);
+  width: 100%;
+}
+
+.sg-field input:focus-visible,
+.sg-field select:focus-visible {
+  outline: none;
+  box-shadow: var(--sg-shadow-sm);
+}
+
+.sg-error {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #b4232f; /* 5.6:1 on white — --sg-red is a fill, not body copy. */
+}
+
+/* ---- art ---------------------------------------------------------------- */
+
+/* Illustrations live in flex cells beside the text, never absolutely
+   positioned. A character placed with `position: absolute` in the demo landed
+   on top of a match row and hid the tiebreak label; a cell cannot overlap. */
+.sg-art {
+  flex-shrink: 0;
+  display: block;
+}
+
+.sg-art img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
