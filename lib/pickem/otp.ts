@@ -112,12 +112,21 @@ class MetaSender implements CodeSender {
   readonly name = "meta";
   readonly revealsCode = false;
 
-  constructor(
-    private readonly token: string,
-    private readonly phoneNumberId: string,
-    private readonly template: string,
-    private readonly language: string,
-  ) {}
+  // Plain fields rather than constructor parameter properties: those need a
+  // real TypeScript transform, and `node --test --experimental-strip-types`
+  // only strips. Keeping this module loadable by the test runner is worth four
+  // lines, because what it tests is when a verification code may reach a screen.
+  private readonly token: string;
+  private readonly phoneNumberId: string;
+  private readonly template: string;
+  private readonly language: string;
+
+  constructor(token: string, phoneNumberId: string, template: string, language: string) {
+    this.token = token;
+    this.phoneNumberId = phoneNumberId;
+    this.template = template;
+    this.language = language;
+  }
 
   async send(phoneE164: string, code: string): Promise<SendResult> {
     try {
