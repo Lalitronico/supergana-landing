@@ -36,12 +36,32 @@ export function Navbar({
     // is a fifth element in a bar that already ran to the 1060px cap on a
     // laptop, and the alternative was hiding it exactly where it is most
     // useful.
-    <nav className="fixed left-1/2 top-4 z-100 flex max-w-[min(1060px,calc(100vw-32px))] -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border-[3px] border-cream bg-ink py-2.5 pl-5 pr-3 shadow-[0_12px_34px_rgba(10,10,10,0.26)] sm:gap-[18px]">
-      <Link href="#top" className="font-display text-[22px] text-cream">
+    //
+    // Below 480px every metric here shrinks. The bar is `fixed`, so it is
+    // shrink-to-fit: `max-w` clips it but nothing inside it wraps or shrinks,
+    // and the desktop sizes add up to 401px of content — wider than the pill
+    // can ever be on a phone, so the button was being cut off at the screen
+    // edge on every handset, a 430px viewport included. Type, padding and the
+    // outer margin all come down, and the button drops to `ctaShort`; the
+    // compact set fits from 320px up. 480px is the switch point because the
+    // full-size bar clears its own content at ~437px, and the extra headroom
+    // absorbs the font metrics of devices we cannot measure here.
+    <nav className="fixed left-1/2 top-4 z-100 flex max-w-[min(1060px,calc(100vw-24px))] -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full border-[3px] border-cream bg-ink py-2.5 pl-4 pr-2 shadow-[0_12px_34px_rgba(10,10,10,0.26)] min-[480px]:max-w-[min(1060px,calc(100vw-32px))] min-[480px]:pl-5 min-[480px]:pr-3 sm:gap-[18px]">
+      <Link
+        href="#top"
+        className="font-display text-[19px] text-cream min-[480px]:text-[22px]"
+      >
         Supergana<span className="text-red">.</span>
       </Link>
 
-      <div className="hidden items-center gap-1 md:flex">
+      {/* 880px, not `md`. The four section links are 385px wide and the rest
+          of the bar is 440px; turning them on at 768px put 825px of content in
+          a pill that can only be 736px wide there, so an iPad in portrait got
+          the same clipped button as a phone. 857px is where the full bar first
+          clears its own content — 880 rounds it off. Between 480 and 880 the
+          links stay hidden and the sections are reached by scrolling, as they
+          already were on every phone. */}
+      <div className="hidden items-center gap-1 min-[880px]:flex">
         {copy.links.map((link) => (
           <Link
             key={link.href}
@@ -61,9 +81,14 @@ export function Navbar({
           inside a bar this small. */}
       <Link
         href="#demo"
-        className="rounded-full bg-yellow px-5 py-2.5 text-[15px] font-extrabold text-ink transition-colors hover:bg-yellow-hover"
+        className="rounded-full bg-yellow px-4 py-2.5 text-[14px] font-extrabold text-ink transition-colors hover:bg-yellow-hover min-[480px]:px-5 min-[480px]:text-[15px]"
       >
-        {copy.cta}
+        {/* Two spans rather than one string swapped in JS: the bar renders on
+            the server, so a JS swap would ship the wrong label until hydration
+            and flash on every phone. The hidden one is `display:none`, which
+            assistive tech skips, so only the visible label is announced. */}
+        <span className="min-[480px]:hidden">{copy.ctaShort}</span>
+        <span className="hidden min-[480px]:inline">{copy.cta}</span>
       </Link>
     </nav>
   );
@@ -100,7 +125,7 @@ function LocaleSwitch({ current, label }: { current: Locale; label: string }) {
             // it keeps both halves identically sized, and `aria-current`
             // carries the state for assistive tech.
             aria-current={active ? "true" : undefined}
-            className={`rounded-full px-2.5 py-1 text-[13px] font-extrabold transition-colors ${
+            className={`rounded-full px-2 py-1 text-[12px] font-extrabold transition-colors min-[480px]:px-2.5 min-[480px]:text-[13px] ${
               active
                 ? "bg-yellow text-ink"
                 : "text-cream/70 hover:bg-cream/15 hover:text-cream"

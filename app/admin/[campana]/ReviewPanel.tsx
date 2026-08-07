@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { formatUsdCents, isFuturePurchaseDate, parseUsdToCents, todayInTz } from "@/lib/tickets/config";
+import { formatUsdCents, isFuturePurchaseDate, todayInTz } from "@/lib/tickets/config";
 import type { CampaignMechanic } from "@/lib/tickets/config";
+import { matchLine, parseAmountToCents, toMatchable } from "@/lib/tickets/matching";
+import type { EligibilityMode } from "@/lib/tickets/matching";
 import { formatMxPhone } from "@/lib/tickets/phone";
-import type { AdminProduct, QueueItem } from "./types";
+import type { AdminExtraction, AdminProduct, QueueItem } from "./types";
+import type { MatchableProduct } from "@/lib/tickets/matching";
 
 const money = (cents: number) => formatUsdCents(cents, "en");
 
@@ -42,6 +45,16 @@ interface Line {
   key: string;
   text: string;
   amount: string;
+  /**
+   * Si esta línea suma al elegible.
+   *
+   * Antes esto se leía de `productId != null`, lo cual daba por hecho que contar
+   * y saber-qué-producto-es son la misma pregunta. No lo son: donde el POS no
+   * imprime la presentación (Del Río, Cd. Juárez) una línea de agua Alaska
+   * cuenta y no hay SKU que ponerle. Separar los dos campos es lo que permite
+   * abonar sin inventar un producto.
+   */
+  eligible: boolean;
   productId: string | null;
   aliasMatched: string | null;
 }
@@ -50,66 +63,71 @@ const newLine = (index: number): Line => ({
   key: `l${index}-${Math.random().toString(36).slice(2, 8)}`,
   text: "",
   amount: "",
+  eligible: false,
   productId: null,
   aliasMatched: null,
 });
 
+/** Valor del select para "cuenta, pero no sabemos qué presentación es". */
+const BRAND_ONLY = "__brand__";
+
+// Lo que el modelo puede reportar de una foto, en el idioma del revisor.
+const ISSUE_MESSAGE: Record<string, string> = {
+  cut_off: "La foto corta parte del ticket",
+  blurry: "La foto está borrosa",
+  screen_photo: "Parece la foto de una pantalla, no del papel",
+  handwritten: "Hay texto escrito a mano",
+  no_total: "No se ve el total",
+  no_date: "No se ve la fecha",
+  not_a_receipt: "Esto no parece un ticket de compra",
+  suspicious_text: "El ticket trae texto que intenta dar instrucciones — revísalo con cuidado",
+};
+
 /**
- * Matches a printed line against the catalogue.
+ * La caja de "tienda" a partir de lo leído.
  *
- * Aliases first and longest first: `CAMARONAZO 32OZ` must win over a
- * hypothetical `CAMARONAZO`, otherwise the more specific SKU never gets picked.
- *
- * Then the product's own name, which is the part that was missing. Matching only
- * aliases meant a campaign whose dictionary had not been harvested from real
- * receipts yet could match nothing at all — and since the eligible amount is the
- * sum of matched lines only, every approval credited zero. Carrera Alaska had
- * seven real products, zero aliases, and approved a receipt for no points.
- *
- * An alias is a retailer's particular spelling of a product; the product's own
- * name is the general case. Having the general case means a campaign is workable
- * on day one and the dictionary becomes an improvement rather than a
- * prerequisite.
- *
- * Diacritics are folded on both sides: receipt printers print GARRAFON, the
- * catalogue says Garrafón, and refusing to see through that is refusing to
- * match anything in a Mexican campaign.
+ * La sucursal gana sobre la razón social: el modelo lee
+ * `ALMACENES DIST. DE LA FRONTERA SA DE CV.` y `DEL RIO (0010)`, y la lista de
+ * tiendas de la campaña dice "Del Río". Nadie llama a esa tienda por su razón
+ * social, y el candado anti-duplicado es (tienda + fecha + total): mientras más
+ * cerca esté de como la nombra la campaña, mejor cierra.
  */
-const normalize = (value: string) =>
-  value
-    .normalize("NFD")
-    // The combining-marks block, written as escapes: the literal characters are
-    // invisible in an editor and the next person to touch this line would not
-    // know what they were deleting.
-    .replace(/[\u0300-\u036f]/g, "")
-    .toUpperCase()
-    .replace(/\s+/g, " ")
-    .trim();
+const storeFromExtraction = (extraction: AdminExtraction): string =>
+  (extraction.store_branch ?? extraction.store_name ?? "").trim();
 
-function matchAlias(text: string, products: AdminProduct[]) {
-  const line = normalize(text);
-  if (line.length < 3) return null;
+/**
+ * Las líneas leídas, convertidas a filas del formulario y ya matcheadas contra
+ * el catálogo.
+ *
+ * El match se calcula aquí y no se guarda en la extracción a propósito: el
+ * catálogo cambia —un alias nuevo hoy— y una lectura de la semana pasada tiene
+ * que beneficiarse del diccionario de hoy.
+ */
+const linesFromExtraction = (
+  extraction: AdminExtraction,
+  matchable: MatchableProduct[],
+  mode: EligibilityMode,
+): Line[] =>
+  extraction.lines.map((line, index) => {
+    const found = matchLine(line.text, matchable, mode);
+    return {
+      key: `x${index}-${line.text.slice(0, 8)}`,
+      text: line.text,
+      // El importe se muestra como el modelo lo copió del papel. Normalizarlo a
+      // "10.50" escondería un "$10.50" mal leído justo donde el revisor tiene
+      // que poder compararlo contra la foto.
+      amount: line.amountPrinted ?? "",
+      eligible: found !== null,
+      productId: found?.productId ?? null,
+      aliasMatched: found?.alias ?? (found?.matchedBy === "brand" ? found.label : null),
+    };
+  });
 
-  const candidates = [
-    ...products.flatMap((p) =>
-      p.product_aliases.map((a) => ({ product: p, label: a.alias_text, fromAlias: true })),
-    ),
-    // The catalogue's own words. Brand and name together first, so "Alaska
-    // Garrafón 19 L" beats a bare "Garrafón 19 L" when both could match.
-    ...products.map((p) => ({ product: p, label: `${p.brand} ${p.name}`, fromAlias: false })),
-    ...products.map((p) => ({ product: p, label: p.name, fromAlias: false })),
-  ].sort((a, b) => normalize(b.label).length - normalize(a.label).length);
-
-  for (const candidate of candidates) {
-    const label = normalize(candidate.label);
-    if (label.length >= 3 && line.includes(label)) {
-      // Only a real alias is reported as one; a name match must not look like a
-      // dictionary entry in the audit trail.
-      return { productId: candidate.product.id, alias: candidate.fromAlias ? candidate.label : null };
-    }
-  }
-  return null;
-}
+// El matcher y el parser de importes viven ahora en lib/tickets/matching.ts.
+// Estaban aqui mientras el unico que leia un ticket era un humano tecleando en
+// este formulario; con la lectura automatica hay un segundo lector en el
+// servidor, y dos implementaciones que se separan es como esta pantalla promete
+// 515 puntos y la base escribe 510.
 
 export function ReviewPanel({
   slug,
@@ -122,6 +140,8 @@ export function ReviewPanel({
   pointsPerDollar,
   stores,
   timezone,
+  eligibility,
+  ocr,
   onDone,
 }: {
   slug: string;
@@ -137,19 +157,68 @@ export function ReviewPanel({
   stores: string[];
   /** The plaza. Decides what "today" means for the purchase date. */
   timezone: string;
+  /** Whether a line counts by exact SKU or by naming the brand. */
+  eligibility: EligibilityMode;
+  /** Whether this campaign reads receipts, and whether the reading pre-fills. */
+  ocr: { enabled: boolean; autofill: boolean };
   onDone: (message: string, bad?: boolean) => void | Promise<void>;
 }) {
   const { receipt, participant, flags } = item;
   const decided = receipt.status === "approved" || receipt.status === "rejected";
 
+  // El catálogo en la forma que entiende el matcher compartido. Arriba de los
+  // estados porque los inicializadores del autofill lo necesitan.
+  const matchable = useMemo(() => products.map(toMatchable), [products]);
+  const brands = useMemo(() => [...new Set(products.map((p) => p.brand))], [products]);
+
+  const [extraction, setExtraction] = useState<AdminExtraction | null>(item.extraction);
+  const [rereading, setRereading] = useState(false);
+  /**
+   * De qué lectura se sembró el formulario, si de alguna.
+   *
+   * Se compara por `created_at` y no por un booleano porque una relectura
+   * produce una fila nueva: sin esto, el ticket que el revisor acaba de mandar
+   * a releer volvería con datos frescos que nadie pondría en las cajas.
+   */
+  const [seededFrom, setSeededFrom] = useState<string | null>(
+    item.extraction?.status === "ok" && item.extraction ? item.extraction.created_at : null,
+  );
+
+  /**
+   * El autofill solo siembra lo que nadie escribió todavía.
+   *
+   * `receipt.store_name` gana siempre que exista: si un revisor ya capturó este
+   * ticket —o volvió después de un needs_new_image— su captura es el dato bueno
+   * y una lectura del modelo no tiene por qué pisarla.
+   *
+   * Inicializadores perezosos y no un `useEffect`: el padre monta este
+   * componente con `key={receipt.id}`, así que cambiar de ticket lo remonta y
+   * estos valores se recalculan solos. Un efecto que "sincroniza" haría lo
+   * mismo con un parpadeo de por medio y una carrera contra lo que el revisor
+   * ya empezó a teclear.
+   */
+  const seed = ocr.autofill && !decided ? item.extraction : null;
+  const seedOk = seed?.status === "ok" ? seed : null;
+
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
-  const [storeName, setStoreName] = useState(receipt.store_name ?? "");
-  const [purchaseDate, setPurchaseDate] = useState(receipt.purchase_date ?? "");
-  const [total, setTotal] = useState(
-    receipt.total_cents != null ? (receipt.total_cents / 100).toFixed(2) : "",
+  const [storeName, setStoreName] = useState(
+    () => receipt.store_name ?? (seedOk ? storeFromExtraction(seedOk) : ""),
   );
-  const [lines, setLines] = useState<Line[]>([newLine(0), newLine(1), newLine(2)]);
+  const [purchaseDate, setPurchaseDate] = useState(
+    () => receipt.purchase_date ?? seedOk?.purchase_date ?? "",
+  );
+  const [total, setTotal] = useState(() =>
+    receipt.total_cents != null
+      ? (receipt.total_cents / 100).toFixed(2)
+      : (seedOk?.total_printed ?? ""),
+  );
+  const [lines, setLines] = useState<Line[]>(() => {
+    const seeded = seedOk ? linesFromExtraction(seedOk, matchable, eligibility) : [];
+    // Siempre queda una fila vacía al final: un ticket con productos que el
+    // modelo no vio se captura sin tener que buscar el botón de agregar.
+    return seeded.length > 0 ? [...seeded, newLine(seeded.length)] : [newLine(0), newLine(1), newLine(2)];
+  });
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -171,15 +240,105 @@ export function ReviewPanel({
     };
   }, [slug, receipt.id]);
 
+  /**
+   * ¿El formulario sigue tal como se montó?
+   *
+   * Decide si una lectura que llega tarde puede sembrarlo. Un solo carácter
+   * tecleado por el revisor lo vuelve suyo, y a partir de ahí nada automático
+   * tiene permiso de tocarlo.
+   */
+  const pristine =
+    storeName === "" &&
+    purchaseDate === "" &&
+    total === "" &&
+    lines.every((l) => l.text === "" && l.amount === "");
+
+  /**
+   * La lectura llega tarde, y el formulario nunca se entera.
+   *
+   * El padre indexa este componente por id de ticket, así que cambiar de
+   * reclamo lo remonta y los inicializadores de arriba corren con datos
+   * frescos. Lo que NO lo remonta es el refresco de la consola cada treinta
+   * segundos: mismo id, misma llave, mismo estado. Un revisor que abre un
+   * ticket recién llegado lo abre entre cinco y quince segundos antes de que su
+   * lectura exista, y sin esto se quedaba mirando un formulario vacío que ya
+   * nunca se iba a llenar — con la lectura ahí al lado, en la pantalla.
+   *
+   * Solo siembra si nadie escribió nada. La regla es la misma de siempre: la
+   * captura humana gana, y aquí ni siquiera hace falta que sea correcta, basta
+   * con que sea suya.
+   */
+  const incoming =
+    ocr.autofill && !decided && item.extraction?.status === "ok" ? item.extraction : null;
+
+  if (incoming && incoming.created_at !== seededFrom && pristine) {
+    // Ajuste de estado durante el render, no un efecto: es el patrón que React
+    // documenta para "los props cambiaron y el estado derivado tiene que
+    // seguirlos". Se re-renderiza antes de pintar, así que nadie ve el
+    // formulario vacío parpadear antes de llenarse — que es justo lo que un
+    // efecto sí habría dejado ver.
+    setSeededFrom(incoming.created_at);
+    setExtraction(incoming);
+    setStoreName(storeFromExtraction(incoming));
+    setPurchaseDate(incoming.purchase_date ?? "");
+    setTotal(incoming.total_printed ?? "");
+    const seeded = linesFromExtraction(incoming, matchable, eligibility);
+    if (seeded.length > 0) setLines([...seeded, newLine(seeded.length)]);
+  }
+
+  /** Vuelca la lectura sobre el formulario, pisando lo que haya. */
+  const applyExtraction = (source: AdminExtraction) => {
+    // Se marca como sembrada aunque el revisor haya apretado el botón a mano:
+    // si después vacía las cajas, el formulario queda pristine otra vez y sin
+    // esto la siembra automática volvería a llenar lo que acaba de limpiar.
+    setSeededFrom(source.created_at);
+    setStoreName(storeFromExtraction(source));
+    setPurchaseDate(source.purchase_date ?? "");
+    setTotal(source.total_printed ?? "");
+    const seeded = linesFromExtraction(source, matchable, eligibility);
+    setLines([...seeded, newLine(seeded.length)]);
+    setError(null);
+  };
+
+  const reread = async () => {
+    setRereading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/tickets/${slug}/admin/extract/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ receiptId: receipt.id }),
+      });
+      const body = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        extraction?: AdminExtraction | null;
+      };
+      if (!res.ok || !body.extraction) {
+        setError(
+          body.error === "ocr_disabled"
+            ? "Esta campaña tiene la lectura automática apagada."
+            : "No se pudo releer el ticket. Captúralo a mano.",
+        );
+        return;
+      }
+      setExtraction(body.extraction);
+      if (body.extraction.status === "ok") applyExtraction(body.extraction);
+    } catch {
+      setError("Error de red al releer.");
+    } finally {
+      setRereading(false);
+    }
+  };
+
   const eligibleCents = useMemo(
     () =>
       lines.reduce(
-        (sum, line) => (line.productId ? sum + (parseUsdToCents(line.amount) ?? 0) : sum),
+        (sum, line) => (line.eligible ? sum + (parseAmountToCents(line.amount) ?? 0) : sum),
         0,
       ),
     [lines],
   );
-  const totalCents = parseUsdToCents(total);
+  const totalCents = parseAmountToCents(total);
 
   /**
    * Examples taken from this campaign, not from the one the console was built
@@ -210,9 +369,15 @@ export function ReviewPanel({
         // Re-match only when the text changed and the reviewer hasn't overridden
         // the product by hand.
         if (patch.text !== undefined) {
-          const found = matchAlias(patch.text, products);
+          const found = matchLine(patch.text, matchable, eligibility);
+          next.eligible = found !== null;
           next.productId = found?.productId ?? null;
-          next.aliasMatched = found?.alias ?? null;
+          // Un match por marca deja la marca en `alias_matched`. Sin eso, en la
+          // bitácora "contó por marca" y "no contó" se ven idénticos —  los dos
+          // con product_id en null— y se pierde la única señal que distingue
+          // una línea abonada de una descartada.
+          next.aliasMatched =
+            found?.alias ?? (found?.matchedBy === "brand" ? found.label : null);
         }
         return next;
       }),
@@ -310,7 +475,7 @@ export function ReviewPanel({
             productId: line.productId,
             aliasMatched: line.aliasMatched,
             lineText: line.text.trim(),
-            amountCents: parseUsdToCents(line.amount) ?? 0,
+            amountCents: parseAmountToCents(line.amount) ?? 0,
           })),
       },
       // What actually happened, not what usually happens: an approval since
@@ -384,6 +549,121 @@ export function ReviewPanel({
               </div>
             ))}
           </div>
+
+          {ocr.enabled && (
+            <>
+              <h3 style={{ marginTop: 16 }}>Lectura automática</h3>
+              {!extraction ? (
+                <p className="tka-note">
+                  Este ticket no tiene lectura. Puede ser anterior a que se
+                  encendiera, o haberse quedado en el camino.
+                </p>
+              ) : extraction.status !== "ok" ? (
+                <p className="tka-note">
+                  {extraction.status === "skipped"
+                    ? `No se leyó (${extraction.error ?? "formato no soportado"}). Captúralo a mano.`
+                    : `La lectura falló (${extraction.error ?? "sin detalle"}). Captúralo a mano.`}
+                </p>
+              ) : (
+                <>
+                  <div className="tka-flags">
+                    {extraction.issues.length === 0 ? (
+                      <div className="tka-flag">
+                        <span className="sig ok">✓</span>
+                        Ticket legible, sin observaciones
+                      </div>
+                    ) : (
+                      extraction.issues.map((issue) => (
+                        <div className="tka-flag" key={issue}>
+                          <span
+                            className={`sig ${issue === "suspicious_text" || issue === "not_a_receipt" ? "bad" : "warn"}`}
+                          >
+                            !
+                          </span>
+                          {ISSUE_MESSAGE[issue] ?? issue}
+                        </div>
+                      ))
+                    )}
+                    {/* La discrepancia que importa: el modelo leyó un total y el
+                        revisor tiene otro en la caja. Solo se dice cuando los
+                        dos existen y difieren — una caja vacía no es un
+                        desacuerdo, es un formulario a medio llenar. */}
+                    {extraction.total_cents != null &&
+                      totalCents !== null &&
+                      totalCents !== extraction.total_cents && (
+                        <div className="tka-flag">
+                          <span className="sig warn">!</span>
+                          El total capturado ({money(totalCents)}) no coincide con el leído
+                          ({money(extraction.total_cents)}). Revisa la foto.
+                        </div>
+                      )}
+                  </div>
+
+                  <dl className="tka-kv" style={{ marginTop: 10 }}>
+                    <dt>Comercio</dt>
+                    <dd>{extraction.store_name ?? "—"}</dd>
+                    {extraction.store_branch && (
+                      <>
+                        <dt>Sucursal</dt>
+                        <dd>{extraction.store_branch}</dd>
+                      </>
+                    )}
+                    <dt>Fecha impresa</dt>
+                    <dd className="tka-mono">
+                      {extraction.purchase_date_raw ?? "—"}
+                      {extraction.purchase_date ? ` → ${extraction.purchase_date}` : ""}
+                      {extraction.purchase_time ? ` · ${extraction.purchase_time}` : ""}
+                    </dd>
+                    <dt>Total impreso</dt>
+                    <dd className="tka-mono">{extraction.total_printed ?? "—"}</dd>
+                    <dt>Renglones</dt>
+                    <dd>{extraction.lines.length}</dd>
+                  </dl>
+                </>
+              )}
+
+              {!decided && (
+                <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                  {extraction?.status === "ok" && (
+                    <button
+                      type="button"
+                      className="tka-btn ghost sm"
+                      disabled={busy || rereading}
+                      onClick={() => applyExtraction(extraction)}
+                    >
+                      Volcar al formulario
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="tka-btn ghost sm"
+                    disabled={!canReview || busy || rereading}
+                    onClick={() => void reread()}
+                  >
+                    {rereading ? "Leyendo…" : "Releer ticket"}
+                  </button>
+                </div>
+              )}
+
+              <p className="tka-note" style={{ marginTop: 8 }}>
+                {/* Que quede escrito en la pantalla donde se decide, y no solo
+                    en un comentario del código: lo de arriba es una lectura,
+                    no una decisión. */}
+                Lo leído es una sugerencia. Lo que se aprueba es lo que quede en el
+                formulario, y el elegible siempre sale de las líneas que coinciden
+                con el catálogo.
+                {extraction?.status === "ok" && extraction.latency_ms != null && (
+                  <>
+                    {" "}
+                    <span className="tka-mono">
+                      {extraction.model} · {(extraction.latency_ms / 1000).toFixed(1)}s ·{" "}
+                      {(extraction.input_tokens ?? 0) + (extraction.output_tokens ?? 0)} tokens
+                    </span>
+                  </>
+                )}
+              </p>
+            </>
+          )}
         </div>
 
         <div>
@@ -501,19 +781,39 @@ export function ReviewPanel({
                       placeholder="4.79"
                     />
                     <select
-                      value={line.productId ?? ""}
+                      value={
+                        line.productId ?? (line.eligible ? BRAND_ONLY : "")
+                      }
                       onChange={(e) =>
                         setLines((prev) =>
-                          prev.map((l) =>
-                            l.key === line.key
-                              ? { ...l, productId: e.target.value || null, aliasMatched: null }
-                              : l,
-                          ),
+                          prev.map((l) => {
+                            if (l.key !== line.key) return l;
+                            const value = e.target.value;
+                            return {
+                              ...l,
+                              eligible: value !== "",
+                              // BRAND_ONLY cuenta sin SKU: el producto se queda
+                              // en null a propósito, para no guardar una
+                              // presentación que nadie leyó.
+                              productId: value === "" || value === BRAND_ONLY ? null : value,
+                              aliasMatched:
+                                value === BRAND_ONLY ? (brands[0] ?? null) : null,
+                            };
+                          }),
                         )
                       }
                       style={{ fontSize: 12 }}
                     >
                       <option value="">No elegible</option>
+                      {/* Solo donde la campaña cuenta por marca. En una campaña
+                          por SKU esta opción sería una puerta para abonar sin
+                          reconocer el producto, que es justo lo que ese modo
+                          quiere impedir. */}
+                      {eligibility === "brand" && (
+                        <option value={BRAND_ONLY}>
+                          {(brands[0] ?? "Marca")} — presentación no impresa
+                        </option>
+                      )}
                       {products.map((product) => (
                         <option key={product.id} value={product.id}>
                           {product.brand} {product.name}

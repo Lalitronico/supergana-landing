@@ -6,6 +6,7 @@
 // with the ones hardcoded in `tickets_approve_receipt` (migration 0006), which
 // is the authority whenever money is involved.
 
+import type { EligibilityMode } from "./matching";
 import type { OrgTheme } from "./theme";
 
 export type Locale = "es" | "en";
@@ -98,6 +99,68 @@ export interface CampaignConfig {
    * a prize in this list may never be raffled among top scorers.
    */
   prizes: Prize[];
+  /** Automatic receipt reading. See `OcrConfig`. */
+  ocr: OcrConfig;
+  /**
+   * What makes a printed line count. See `EligibilityMode` in `matching.ts`.
+   *
+   * `sku` is the default and the safer of the two: a line only counts when the
+   * catalogue recognises the exact product. `brand` counts any line naming the
+   * brand, which is right when everything the brand sells counts and the points
+   * come from the amount spent rather than from which SKU it was.
+   *
+   * The distinction is not theoretical. Del Río in Ciudad Juárez prints
+   * `AGUA PURIFICADA "ALASKA NATURAL"` with no presentation at all, so no
+   * size-bearing alias can ever match it — and since Carrera Alaska pays 10
+   * points per peso regardless of presentation, identifying the SKU would be
+   * inventing a fact in order to throw it away.
+   */
+  eligibility: EligibilityMode;
+}
+
+/** The model this platform reads receipts with, unless a campaign names another. */
+export const DEFAULT_OCR_MODEL = "qwen3.8-max";
+
+/**
+ * Automatic receipt reading, per campaign.
+ *
+ * Off by default and it has to stay that way. Turning it on sends the tenant's
+ * receipt images to a third-party processor, and a receipt carries location,
+ * date and shopping habits — that is a decision a client takes with their
+ * privacy notice in hand, not a line a deploy switches on for everybody.
+ *
+ *  · `enabled`  — read receipts at all. Everything else is moot without it.
+ *  · `autofill` — the console pre-fills its form from the reading. With this
+ *                 off the reading is still taken and stored, and the console
+ *                 shows it beside the empty form. That is the shadow stage: it
+ *                 measures how often the model and the reviewer agree, which is
+ *                 the only honest basis for ever trusting it more.
+ *  · `autoApprove` — a clean receipt is credited with nobody in the loop. See
+ *                 the field's own note, and `autoreview.ts` for the gate.
+ *
+ * The three are a chain, not three switches: `autofill` and `autoApprove` both
+ * die with `enabled`, and each has to be asked for by name. A campaign inherits
+ * none of them.
+ */
+export interface OcrConfig {
+  enabled: boolean;
+  model: string;
+  autofill: boolean;
+  /**
+   * Approve a receipt with no human in the loop when everything checks out.
+   *
+   * Everything means: the reading succeeded, the model raised no observation at
+   * all, the store is one the campaign lists, the date is real and not in the
+   * future, and at least one line matched the catalogue. Anything short of that
+   * queues. The gate lives in `autoreview.ts` and refuses to arm at all on a
+   * campaign with no `stores`, because "the store matches" against an empty
+   * list is a door painted on a wall.
+   *
+   * There is no automatic rejection and there is no key that would enable one.
+   * Approving wrongly costs money and is correctable; rejecting wrongly is a
+   * machine telling somebody who did their part no.
+   */
+  autoApprove: boolean;
 }
 
 export interface Prize {
@@ -206,6 +269,26 @@ const DEFAULTS: CampaignConfig = {
   rehearsal: "staff",
   stores: [],
   prizes: [],
+  // Fails closed, like `rehearsal`: reading a tenant's receipts with a third
+  // party has to be asked for, never inherited.
+  ocr: { enabled: false, model: DEFAULT_OCR_MODEL, autofill: false, autoApprove: false },
+  // Fails closed: the permissive mode has to be asked for. A campaign that
+  // silently started counting every line naming the brand would be a campaign
+  // paying for products it never promoted.
+  eligibility: "sku",
+};
+
+const asOcr = (value: unknown): OcrConfig => {
+  const o = (value ?? {}) as Record<string, unknown>;
+  return {
+    enabled: o.enabled === true,
+    model: typeof o.model === "string" && o.model.trim() ? o.model.trim() : DEFAULT_OCR_MODEL,
+    // Autofill without reading is nonsense, so it cannot outlive `enabled`.
+    autofill: o.enabled === true && o.autofill === true,
+    // Same chain, one link further: nothing decides on its own in a campaign
+    // that is not even reading. Both flags have to be asked for by name.
+    autoApprove: o.enabled === true && o.auto_approve === true,
+  };
 };
 
 const asInt = (value: unknown, fallback: number): number => {
@@ -288,6 +371,8 @@ export const parseCampaignConfig = (raw: unknown): CampaignConfig => {
     rehearsal: c.rehearsal === "anyone" ? "anyone" : DEFAULTS.rehearsal,
     stores: asStringArray(c.stores).map((s) => s.trim()).filter(Boolean),
     prizes: asPrizes(c.prizes),
+    ocr: asOcr(c.ocr),
+    eligibility: c.eligibility === "brand" ? "brand" : DEFAULTS.eligibility,
   };
 };
 
@@ -469,6 +554,7 @@ export const rewardHoldsFunds = (status: RewardStatus) => status !== "canceled";
 
 export const MAX_RECEIPT_BYTES = 10 * 1024 * 1024;
 
+/** What the server tolerates once an image has arrived. */
 export const ACCEPTED_IMAGE_TYPES = [
   "image/jpeg",
   "image/png",
@@ -476,5 +562,21 @@ export const ACCEPTED_IMAGE_TYPES = [
   "image/heic",
   "image/heif",
 ] as const;
+
+/**
+ * What the file picker asks for, deliberately narrower than the above.
+ *
+ * HEIC is what an iPhone stores by default, and leaving it out of `accept` is
+ * what makes iOS hand over a converted JPEG instead of the original — the
+ * conversion happens in the phone, for free, at the one moment somebody is
+ * already waiting for a file dialog. Listing HEIC gets the raw file, which the
+ * reader cannot decode and which then needs a human to type the whole ticket.
+ *
+ * The server still accepts HEIC, on purpose: an image that arrives anyway is
+ * evidence somebody sent in good faith, and refusing it at the door would cost
+ * them their claim over a container format. Narrow at the picker, generous at
+ * the gate.
+ */
+export const PICKER_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
 
 export const RECEIPTS_BUCKET = "receipts";

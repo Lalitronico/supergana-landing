@@ -44,10 +44,45 @@ export interface AdminParticipant {
   createdAt: string;
 }
 
+/**
+ * Lo que el modelo leyó del ticket. Sugerencia, nunca acta.
+ *
+ * `null` es un estado normal y frecuente: la campaña puede tener la lectura
+ * apagada, la migración puede no haber corrido, o el ticket puede ser anterior
+ * a que existiera todo esto. La consola tiene que trabajar igual sin ella.
+ */
+export interface AdminExtraction {
+  receipt_id: string;
+  status: "pending" | "ok" | "failed" | "skipped";
+  model: string;
+  store_name: string | null;
+  store_branch: string | null;
+  purchase_date: string | null;
+  /** La fecha como se imprime. dd/mm vs mm/dd es ambiguo; esta es la cruda. */
+  purchase_date_raw: string | null;
+  purchase_time: string | null;
+  total_cents: number | null;
+  total_printed: string | null;
+  lines: {
+    text: string;
+    amountPrinted: string | null;
+    amountCents: number | null;
+    quantity: number | null;
+  }[];
+  legible: boolean | null;
+  issues: string[];
+  error: string | null;
+  latency_ms: number | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  created_at: string;
+}
+
 export interface QueueItem {
   receipt: AdminReceipt;
   participant: AdminParticipant | null;
   flags: RiskFlag[];
+  extraction: AdminExtraction | null;
 }
 
 export interface AdminReward {

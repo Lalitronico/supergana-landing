@@ -22,6 +22,33 @@ interface ParticipantLite {
   created_at: string;
 }
 
+/** Una lectura del modelo, sin `raw`. Espeja `AdminExtraction` en types.ts. */
+interface ExtractionLite {
+  receipt_id: string;
+  status: "pending" | "ok" | "failed" | "skipped";
+  model: string;
+  store_name: string | null;
+  store_branch: string | null;
+  purchase_date: string | null;
+  purchase_date_raw: string | null;
+  purchase_time: string | null;
+  total_cents: number | null;
+  total_printed: string | null;
+  lines: {
+    text: string;
+    amountPrinted: string | null;
+    amountCents: number | null;
+    quantity: number | null;
+  }[];
+  legible: boolean | null;
+  issues: string[];
+  error: string | null;
+  latency_ms: number | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  created_at: string;
+}
+
 interface ReceiptLite {
   id: string;
   participant_id: string;
@@ -61,7 +88,7 @@ export async function GET(
   const staff = access.staff;
 
   const db = supabaseAdmin();
-  const [participantsQ, receiptsQ, rewardsQ, productsQ, consentsQ, quota] =
+  const [participantsQ, receiptsQ, rewardsQ, productsQ, consentsQ, quota, extractionsQ] =
     await Promise.all([
       // `*` rather than a column list, unlike every other read here: `phone`
       // arrives with migration 0015 and an explicit list naming it would take
@@ -94,6 +121,20 @@ export async function GET(
         .eq("kind", "marketing")
         .order("accepted_at", { ascending: false }),
       getQuotaState(campaign),
+      // `raw` se queda fuera a propósito: es la respuesta completa del modelo,
+      // guardada para poder re-parsear sin volver a pagar, y no tiene nada que
+      // hacer viajando a un navegador en cada carga de la consola.
+      //
+      // Se traen todas y se elige la más reciente por ticket en memoria, como
+      // el resto de esta ruta. Es defendible al volumen del piloto; el día que
+      // deje de serlo, la señal será esta consulta y no otra cosa.
+      db
+        .from("receipt_extractions")
+        .select(
+          "receipt_id, status, model, store_name, store_branch, purchase_date, purchase_date_raw, purchase_time, total_cents, total_printed, lines, legible, issues, error, latency_ms, input_tokens, output_tokens, created_at",
+        )
+        .eq("campaign_id", campaign.id)
+        .order("created_at", { ascending: false }),
     ]);
 
   const firstError =
@@ -108,6 +149,26 @@ export async function GET(
   const rewards = rewardsQ.data ?? [];
 
   const byId = new Map(participants.map((p) => [p.id, p]));
+
+  /**
+   * La lectura más reciente de cada ticket.
+   *
+   * El error de esta consulta NO entra en `firstError`, y no es un descuido: la
+   * lectura automática es un extra sobre una cola que funcionó siempre a mano.
+   * Un proyecto donde la migración 0025 todavía no corrió, o una tabla caída,
+   * tiene que dar una consola sin sugerencias — nunca una consola que no abre.
+   */
+  if (extractionsQ.error) {
+    console.error("[tickets admin] extractions unavailable", extractionsQ.error);
+  }
+  const extractionByReceipt = new Map<string, ExtractionLite>();
+  for (const row of (extractionsQ.data ?? []) as ExtractionLite[]) {
+    // Vienen ordenadas por created_at desc: la primera que se ve de cada ticket
+    // es la última que se hizo.
+    if (!extractionByReceipt.has(row.receipt_id)) {
+      extractionByReceipt.set(row.receipt_id, row);
+    }
+  }
 
   // Pre-aggregate what the flags need, so the queue stays O(receipts).
   const rewardedParticipants = new Set(
@@ -211,6 +272,7 @@ export async function GET(
           }
         : null,
       flags: flagsFor(r, p),
+      extraction: extractionByReceipt.get(r.id) ?? null,
     };
   };
 

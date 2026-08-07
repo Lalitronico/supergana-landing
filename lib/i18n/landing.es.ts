@@ -40,6 +40,12 @@ export const es = {
       { href: "#casos", label: "Casos" },
     ],
     cta: "Agenda tu demo",
+    /**
+     * Phone-width version of `cta`. Below 480px the bar carries the logo, the
+     * ES/EN switch and the button on one line, and the full sentence does not
+     * fit at any readable type size — see the comment in `Navbar`.
+     */
+    ctaShort: "Demo",
     /** Labels the ES/EN switch for screen readers. */
     languageLabel: "Idioma del sitio",
   },
