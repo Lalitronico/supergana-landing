@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { memo, useCallback, useMemo, useState } from "react";
 import type { Game, Mechanics } from "@/lib/pickem/schema";
 import { formatKickoff, qualifiesEarly } from "@/lib/pickem/schedule";
 import { teamOf } from "@/lib/pickem/teams";
+import { TeamMark } from "../../TeamMark";
 
 /**
  * Making picks. The most-used interaction in the product.
@@ -56,9 +58,7 @@ const MatchRow = memo(function MatchRow({
       aria-pressed={pick === which}
       aria-label={`Elegir ${team.name}`}
     >
-      <span className="pk-mark" style={{ "--team": team.color } as React.CSSProperties} aria-hidden="true">
-        {abbr}
-      </span>
+      <TeamMark abbr={abbr} />
       <span style={{ minWidth: 0 }}>
         <span className="pk-side-name">{team.name}</span>
         <span className="pk-side-city" style={{ display: "block" }}>{team.city}</span>
@@ -285,6 +285,14 @@ export function PicksBoard({
         <p className="sg-foot" style={{ margin: 0, textAlign: "center" }}>
           Los puedes cambiar hasta el primer kickoff.
         </p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <Link className="sg-btn ghost sm" href={`/p/${slug}/ranking/`}>
+            Ranking
+          </Link>
+          <Link className="sg-btn ghost sm" href={`/p/${slug}/premios/`}>
+            Premios
+          </Link>
+        </div>
       </div>
     </>
   );

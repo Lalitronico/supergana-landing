@@ -1,25 +1,30 @@
-// The 32 clubs: how each one is named, and the colour that identifies it.
+// The 32 clubs: how each one is named, the colour that identifies it, and its
+// crest.
 //
-// NO LOGOS. The league's shield and every club crest are registered
-// trademarks, and the programme launches without a licence for them. The demo
-// embedded all 32 from ESPN's CDN, which was fine for a private artifact shown
-// to one client and is not fine for a page on the open internet.
+// CRESTS: on 2026-08-08 the product owner decided the programme ships with the
+// official club crests. The trademark exposure was raised twice and the call
+// was made with it on the table; this file records the decision, it does not
+// re-argue it. The art lives in public/nfl/<abbr>.png — 32 PNGs at 160×160
+// with transparency, served from our own origin rather than hotlinked from
+// ESPN's CDN the way the demo did it.
 //
-// What replaces them is a light tile carrying the three-letter abbreviation,
-// with the club's colour in an underline. It reads well and creates no
-// exposure. If a licence is ever obtained, `crest` is where the art goes and
-// nothing else has to change — which is why the fallback was built first
-// rather than as a contingency.
+// The colour + abbreviation tile that used to be the only rendering is NOT
+// gone. It is the fallback now: `crest` is null for any club this table does
+// not know, and TeamMark falls back to the tile whenever it is. That path
+// stays alive because a schedule ingested from an external API will eventually
+// carry a code nobody added here, and a relocation or expansion club will
+// arrive months before anyone finds art for it.
 //
-// The tile stays LIGHT regardless of the club. A navy crest on navy (Cowboys)
-// or a purple one on purple (Ravens) vanishes into its own background, and on
-// the dark surfaces of the system it disappears entirely. The colour belongs
-// in the underline, not behind the mark.
+// The tile stays LIGHT regardless of the club, crest or not. A navy crest on
+// navy (Cowboys) or a purple one on purple (Ravens) vanishes into its own
+// background, and on the dark surfaces of the system it disappears entirely.
+// The colour belongs in the underline, not behind the mark.
 //
 // Abbreviations are ESPN's, because ESPN is where the schedule comes from and
 // a second vocabulary would need a translation table that could disagree.
 // WASHINGTON IS "WSH" THERE, NOT "WAS" — the one club whose own abbreviation
-// and ESPN's do not match.
+// and ESPN's do not match. The crest files follow the same vocabulary
+// (public/nfl/wsh.png), so the filename never needs a translation either.
 
 export interface Team {
   /** Club name, as a fan says it. */
@@ -28,9 +33,20 @@ export interface Team {
   city: string;
   /** Primary colour. Used in the tile's underline, never as a background. */
   color: string;
+  /**
+   * Public path to the club's crest, or null when there is none and the
+   * colour + abbreviation tile has to carry the mark on its own.
+   */
+  crest: string | null;
 }
 
-export const TEAMS: Record<string, Team> = {
+/**
+ * Name, city and colour. The crest path is derived below rather than written
+ * out 32 times: one PNG per entry is exactly the invariant, and repeating
+ * `crest: "/nfl/ari.png"` on every line is 32 chances to typo a filename into
+ * a 404 that nothing would catch.
+ */
+const CLUBS: Record<string, Omit<Team, "crest">> = {
   ARI: { name: "Cardinals", city: "Arizona", color: "#97233F" },
   ATL: { name: "Falcons", city: "Atlanta", color: "#A71930" },
   BAL: { name: "Ravens", city: "Baltimore", color: "#241773" },
@@ -66,10 +82,21 @@ export const TEAMS: Record<string, Team> = {
 };
 
 /**
+ * Where a club's crest lives, by its ESPN abbreviation. Lowercased because
+ * that is how the files are named, and case-sensitive filesystems (Vercel's
+ * build container, unlike Windows) would 404 on `/nfl/ARI.png`.
+ */
+export const crestPath = (abbr: string): string => `/nfl/${abbr.toLowerCase()}.png`;
+
+export const TEAMS: Record<string, Team> = Object.fromEntries(
+  Object.entries(CLUBS).map(([abbr, club]) => [abbr, { ...club, crest: crestPath(abbr) }]),
+);
+
+/**
  * A club the table does not know still renders, as its own abbreviation in
- * grey. The alternative is a blank tile or a crash on a relocation or an
- * expansion team, and a schedule ingested from an external API will eventually
- * carry a code nobody added here.
+ * grey and with no crest. The alternative is a blank tile or a crash on a
+ * relocation or an expansion team, and a schedule ingested from an external
+ * API will eventually carry a code nobody added here.
  */
 export const teamOf = (abbr: string): Team =>
-  TEAMS[abbr] ?? { name: abbr, city: "", color: "#6b665b" };
+  TEAMS[abbr] ?? { name: abbr, city: "", color: "#6b665b", crest: null };
