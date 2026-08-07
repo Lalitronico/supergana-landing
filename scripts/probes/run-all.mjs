@@ -23,6 +23,8 @@ const PROBES = [
   ["tenant", "aislamiento entre marcas"],
   ["storage", "políticas del bucket privado"],
   ["concurrency", "integridad del dinero en carreras reales"],
+  ["pickem-legal", "el consumo no mueve el ranking"],
+  ["pickem-streak", "las dos implementaciones de la racha coinciden"],
 ];
 
 const run = (name) =>

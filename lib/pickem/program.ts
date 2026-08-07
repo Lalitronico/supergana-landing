@@ -4,6 +4,7 @@
 // anon and authenticated by RLS, so the tenant's config never reaches a browser
 // except through the fields a page or route chooses to render.
 
+import { unstable_cache } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { parseOrgTheme } from "@/lib/tickets/theme";
 import { buildWeek, lockOf } from "./schedule";
@@ -198,15 +199,29 @@ const weekIsSettled = async (campaignId: string, week: number): Promise<boolean>
  * earned by spending out of the ranking. A convenient `select` here would be a
  * second implementation of the rule that keeps this a contest.
  */
-export const getLeaderboard = async (
+export const getLeaderboard = (
   program: Program,
   scope: "week" | "season",
   week: number | null,
   limit = 50,
+): Promise<LeaderboardRow[]> => readLeaderboard(program.slug, scope, week, limit);
+
+/**
+ * The uncached read, by slug rather than by programme.
+ *
+ * Split out because `unstable_cache` keys on the arguments it is given and a
+ * whole `Program` object — theme, mechanics, venues — is a cache key that
+ * changes whenever the tenant edits their colours. A slug does not.
+ */
+const readLeaderboard = async (
+  slug: string,
+  scope: "week" | "season",
+  week: number | null,
+  limit: number,
 ): Promise<LeaderboardRow[]> => {
   const db = supabaseAdmin();
   const { data, error } = await db.rpc("pickem_leaderboard", {
-    p_campaign_slug: program.slug,
+    p_campaign_slug: slug,
     p_week: week,
     p_scope: scope,
     p_limit: limit,
@@ -226,6 +241,103 @@ export const getLeaderboard = async (
       participantId: r.participant_id,
     }),
   );
+};
+
+/** How many rows the ranking screen shows before it stops being a list. */
+export const LEADERBOARD_TOP = 50;
+
+/**
+ * How many rows are read so that a position can be stated at all.
+ *
+ * 08-DECISIONES-ABIERTAS §9: the demo showed "lugar 2 de 13" while the model
+ * projects 450 players, and "lugar 2 de 13" with 450 playing is a lie. A real
+ * position needs the real padrón, so the read is the whole table and the screen
+ * shows the first `LEADERBOARD_TOP` of it. 5,000 is roughly ten times the
+ * projected padrón — high enough that nobody falls off the end of their own
+ * ranking, low enough that a misconfigured programme cannot pull a million rows
+ * into a page render.
+ */
+const LEADERBOARD_MAX = 5000;
+
+/**
+ * The cache tags a settle should drop.
+ *
+ * 07-OPERACION-SEMANAL: "El leaderboard se consulta mucho el martes. Cachear la
+ * respuesta de la RPC por jornada; se invalida al cerrar." The second half is
+ * not wired yet — `pickem_settle_week` has no route calling it — so whoever
+ * builds the staff panel and the Tuesday cron calls `revalidateTag` with these
+ * after settling. Until then the 60-second window below is what bounds the
+ * staleness, and a minute is well inside the gap between the cron closing the
+ * week and anybody reading the table.
+ */
+export const leaderboardTags = (slug: string, week?: number | null): string[] =>
+  week === undefined || week === null
+    ? [`pickem-leaderboard:${slug}`]
+    : [`pickem-leaderboard:${slug}`, `pickem-leaderboard:${slug}:w${week}`];
+
+/**
+ * The cached read.
+ *
+ * WHY `unstable_cache` AND NOT `use cache`. Next 16 replaced it with the
+ * directive, and the directive needs `cacheComponents: true` in next.config.ts
+ * — a flag that changes how every route in the repo renders, including the
+ * tickets module and the campaign pages, which is not a switch a ranking screen
+ * gets to throw. `unstable_cache` works with the configuration this repo
+ * actually has, is the documented path for a project that has not opted into
+ * Cache Components, and is confined to this one function. If the repo adopts
+ * Cache Components later this becomes a `use cache` with a `cacheLife`, and the
+ * call sites do not change.
+ *
+ * The key holds the slug, the scope and the week, so two tenants and two
+ * jornadas never share an entry. Nothing about the reader is in it, which is
+ * the point: the table is the same for everybody, and the one row that depends
+ * on who is asking is found in it afterwards, uncached.
+ */
+const cachedBoard = (slug: string, scope: "week" | "season", week: number | null) =>
+  unstable_cache(
+    () => readLeaderboard(slug, scope, week, LEADERBOARD_MAX),
+    ["pickem-leaderboard", slug, scope, String(week ?? "season")],
+    { revalidate: 60, tags: leaderboardTags(slug, week) },
+  );
+
+export interface Standings {
+  /** What the screen lists. */
+  top: LeaderboardRow[];
+  /** Everybody in the padrón for this scope — the denominator of "lugar X de Y". */
+  total: number;
+  /**
+   * The reader's own row, with its REAL position, whether or not it is in
+   * `top`. Null when they are not playing, or not in this table yet.
+   */
+  mine: LeaderboardRow | null;
+  /** Whether `mine` is already visible in `top`, so it is not drawn twice. */
+  mineInTop: boolean;
+}
+
+/**
+ * The ranking as a screen needs it: a top, a total, and your own row.
+ *
+ * With 450 players projected, almost nobody is in the top 50 — so a ranking
+ * that stops at 50 tells the majority of the padrón nothing about themselves,
+ * which is the fastest way to make somebody stop opening it. The position is
+ * the product; being 231st is still being somewhere.
+ */
+export const getStandings = async (
+  program: Program,
+  scope: "week" | "season",
+  week: number | null,
+  participantId: string | null,
+): Promise<Standings> => {
+  const all = await cachedBoard(program.slug, scope, scope === "week" ? week : null)();
+  const top = all.slice(0, LEADERBOARD_TOP);
+  const mine = participantId ? (all.find((r) => r.participantId === participantId) ?? null) : null;
+
+  return {
+    top,
+    total: all.length,
+    mine,
+    mineInTop: mine !== null && top.some((r) => r.participantId === mine.participantId),
+  };
 };
 
 // ---------------------------------------------------------------------------

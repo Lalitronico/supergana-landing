@@ -57,15 +57,32 @@ export function PickemHeader({
         </span>
       </Link>
 
-      {/* A draft programme renders so the client can walk through it before
-          launch, and it says so. Without the label, a preview and the live
-          thing are indistinguishable — which is how somebody demos a programme
-          to a room and cannot tell them whether it is really open. */}
-      {status !== "live" ? (
-        <span className="sg-pill wait" style={{ flexShrink: 0 }}>
-          {status === "draft" ? "Vista previa" : status === "paused" ? "En pausa" : "Cerrado"}
-        </span>
-      ) : null}
+      <span style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+        {/* The published rules, from every screen.
+            08-DECISIONES-ABIERTAS §6 makes written, in-product rules a launch
+            blocker for a programme with real prizes. The bar is the only
+            navigation the module shows on every screen, so it is the only place
+            the link is always one tap away — including from the prize screen,
+            where the question that sends somebody looking for the rules
+            actually gets asked. */}
+        <Link
+          className="sg-pill"
+          href={`/p/${programSlug}/reglas/`}
+          style={{ textDecoration: "none", color: "inherit" }}
+        >
+          Reglas
+        </Link>
+
+        {/* A draft programme renders so the client can walk through it before
+            launch, and it says so. Without the label, a preview and the live
+            thing are indistinguishable — which is how somebody demos a programme
+            to a room and cannot tell them whether it is really open. */}
+        {status !== "live" ? (
+          <span className="sg-pill wait">
+            {status === "draft" ? "Vista previa" : status === "paused" ? "En pausa" : "Cerrado"}
+          </span>
+        ) : null}
+      </span>
     </header>
   );
 }

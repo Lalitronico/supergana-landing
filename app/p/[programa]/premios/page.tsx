@@ -165,9 +165,38 @@ export default async function PremiosPage({
             )}
           </div>
 
+          {/* "Letrero + los tres chips de sucursal", exactly as 06-MARCA asks.
+              The chips alone said where; the sign says whose counter it is,
+              which is the sentence that matters when somebody walks in holding
+              a code.
+
+              `.chapa-sign` is the primitive that makes it possible: the mark is
+              copper with white subtitle, drawn for a dark background, and on
+              cream that subtitle disappears. Recolouring somebody's logo is not
+              ours to do, so it gets its own dark plate — and the plate turns it
+              into a sign hanging on a restaurant wall instead of a logo pasted
+              on top.
+
+              The wordmark path is the same tenant-asset shortcut the landing
+              takes (page.tsx:40), guarded by the same key. It wants a
+              `wordmark_url` in `organizations.theme` the day a second tenant
+              arrives; today the theme only carries the emblem. */}
           {program.venues.length ? (
             <div className="sg-card">
-              <div className="sg-eyebrow" style={{ marginBottom: 8 }}>Dónde se cobra</div>
+              <div className="sg-eyebrow" style={{ marginBottom: 10 }}>Dónde se cobra</div>
+              {program.theme.logoUrl ? (
+                <div style={{ marginBottom: 12 }}>
+                  <span className="chapa-sign">
+                    <Image
+                      src="/brands/chapa/chapa-wordmark-420.png"
+                      alt={program.orgName}
+                      width={420}
+                      height={126}
+                      style={{ width: 148, height: "auto" }}
+                    />
+                  </span>
+                </div>
+              ) : null}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
                 {program.venues.map((v) => (
                   <span className="sg-chip" key={v}>
@@ -175,6 +204,10 @@ export default async function PremiosPage({
                   </span>
                 ))}
               </div>
+              <p className="sg-foot" style={{ marginTop: 10, marginBottom: 0 }}>
+                Todo premio se cobra en el mostrador. Las condiciones de canje y la vigencia
+                están en las <Link href={`/p/${program.slug}/reglas/`}>reglas del programa</Link>.
+              </p>
             </div>
           ) : null}
         </div>
