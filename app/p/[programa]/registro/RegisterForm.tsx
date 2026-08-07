@@ -25,7 +25,7 @@ const ERRORS: Record<string, string> = {
   not_configured: "Todavía no podemos enviar el código. Avísale al personal de Chapa.",
   send_failed: "No pudimos enviar el WhatsApp. Revisa el número e inténtalo otra vez.",
   already_verified_other:
-    "Este dispositivo ya está registrado con otro número. Cámbialo desde tu perfil.",
+    "Este dispositivo ya tiene su jugador. Escribe un número que ya juegue aquí para entrar con él, o usa otro dispositivo para estrenar uno.",
   no_session: "No pudimos abrir tu sesión. Recarga la página.",
   db_error: "Algo falló de nuestro lado. Inténtalo otra vez.",
 };

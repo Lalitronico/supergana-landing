@@ -25,6 +25,7 @@ const PROBES = [
   ["concurrency", "integridad del dinero en carreras reales"],
   ["pickem-legal", "el consumo no mueve el ranking"],
   ["pickem-streak", "las dos implementaciones de la racha coinciden"],
+  ["pickem-identity", "un dispositivo, un jugador: verificar re-apunta el vinculo"],
 ];
 
 const run = (name) =>

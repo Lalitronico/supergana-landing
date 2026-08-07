@@ -95,9 +95,13 @@ const { data: existing } = await admin
 let participantId = existing?.id;
 
 if (participantId) {
+  // auth_user_id stays put: it names the device that CREATED the row (0021),
+  // and moving it collides with the unique key the moment that device has a
+  // participant of its own — the same 23505 the verify route used to hit.
+  // The device link below is what points this session at the player.
   await admin
     .from("participants")
-    .update({ alias: ALIAS, phone_verified_at: new Date().toISOString(), auth_user_id: user.id })
+    .update({ alias: ALIAS, phone_verified_at: new Date().toISOString() })
     .eq("id", participantId);
 } else {
   const { data, error } = await admin

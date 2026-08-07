@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Breakdown, Game } from "@/lib/pickem/schema";
 import { formatKickoff } from "@/lib/pickem/schedule";
 import { teamOf } from "@/lib/pickem/teams";
+import { TeamMark } from "../../TeamMark";
 
 /**
  * The same week, after it happened.
@@ -148,21 +149,27 @@ export function ResultsBoard({
               const hasScore = g.awayScore !== null;
               const hit = hasScore && winner !== null && mine === winner;
 
+              // `is-picked` fills the side yellow, and on the picks board that
+              // fill means one thing: I chose this. Painting the WINNER with it
+              // made a week nobody played look like a completed pick sheet —
+              // sixteen matches, one side lit in each — which is exactly what a
+              // player who had just registered reported seeing. The rehearsal
+              // makes it certain rather than likely: its open week is a 2025
+              // jornada whose kickoff is long past, so a brand new player is
+              // sent straight here rather than to the picks board.
+              //
+              // So the fill follows the reader's own pick and nothing else, and
+              // the result is said in words. A screen may not assert a decision
+              // the player did not make.
               const side = (which: "away" | "home", team: typeof away, abbr: string, score: number | null) => (
                 <div
-                  className={`pk-side${which === "home" ? " right" : ""}${winner === which ? " is-picked" : ""}`}
+                  className={`pk-side${which === "home" ? " right" : ""}${mine === which ? " is-picked" : ""}`}
                 >
-                  <span
-                    className="pk-mark"
-                    style={{ "--team": team.color } as React.CSSProperties}
-                    aria-hidden="true"
-                  >
-                    {abbr}
-                  </span>
+                  <TeamMark abbr={abbr} />
                   <span style={{ minWidth: 0 }}>
                     <span className="pk-side-name">{team.name}</span>
                     <span className="pk-side-city" style={{ display: "block" }}>
-                      {mine === which ? "TU PICK" : team.city}
+                      {mine === which ? "TU PICK" : winner === which ? "GANÓ" : team.city}
                     </span>
                   </span>
                   <span

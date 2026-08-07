@@ -14,6 +14,15 @@ export const runtime = "nodejs";
  * `start` creates or finds the player and sends a code. `confirm` checks it,
  * stamps the number verified and links the calling device to the player.
  *
+ * WHO A DEVICE IS. `participant_devices` — never `participants.auth_user_id`.
+ * 0021 built that table because a pick'em player signs in anonymously, so a
+ * second device is a second `auth.users` row for the same person, and it wrote
+ * down that the column names only the device that CREATED the row. Every reader
+ * honours that: `resolvePlayer`, `pickem_participant`, and through it every RPC
+ * a player can call. This route used to be the one writer that did not, and 0029
+ * has the whole story of what that cost. The rule now: the column is set once,
+ * at insert, and never moved.
+ *
  * WHY VERIFICATION IS NOT OPTIONAL. Without it, one person opens five accounts
  * on five numbers they do not own and multiplies their chances at eighteen
  * weeks of real prizes; and anybody can register somebody else's number and
@@ -114,12 +123,24 @@ const start = async (
     // new phone, or it may not be — and there is no way to tell from here, so
     // nothing about the row changes. The alias they just typed is ignored: it
     // is not theirs to rename until the code proves the number is.
+    //
+    // Note what is NOT checked here: whether this device already belongs to
+    // another player. It does not need to be. Proving a number does not rename
+    // or re-number anybody — it moves THIS device's link (see `confirm`), and
+    // the player it leaves keeps their row, their points and their other
+    // devices, because the points live on the number.
     participantId = existing.id;
   } else {
-    // This session may already have an unverified row from a mistyped number.
-    // Reuse it rather than insert: `unique (campaign_id, auth_user_id)` would
-    // refuse the second one, and a player who goes back to fix a digit should
-    // not hit a wall for it.
+    // A number nobody holds, so this device needs a row of its own to hang the
+    // code on. It may already have one from a mistyped digit — reuse it rather
+    // than insert, because `unique (campaign_id, auth_user_id)` allows a device
+    // exactly one row per campaign and a player who goes back to fix a digit
+    // should not hit a wall for it.
+    //
+    // Read by `auth_user_id` deliberately, and it is the ONLY question that
+    // column answers: "which row did this device create". Not "who is this
+    // device" — that is `participant_devices`, and confusing the two is what
+    // 0029 fixes.
     const { data: mine } = await db
       .from("participants")
       .select("id, phone_verified_at")
@@ -138,9 +159,17 @@ const start = async (
       }
       participantId = mine.id;
     } else if (mine) {
-      // A verified row on this session, and the number typed is a different
-      // one. Changing the number of a verified player is a profile operation
-      // with its own confirmation, not something a registration form does.
+      // This device already created a verified player, and the number typed is
+      // a brand new one that nobody holds. `unique (campaign_id, auth_user_id)`
+      // physically forbids a second row for this device, so there is nowhere to
+      // put the new player — the refusal is the schema's, not a policy.
+      //
+      // It is narrower than it looks: a number that ALREADY exists is handled
+      // above and re-points the device, so recovering an account on a shared
+      // phone still works. What cannot happen on this device is INVENTING a
+      // second account. Changing the number of a verified player is a profile
+      // operation with its own confirmation, not something a registration form
+      // does.
       return NextResponse.json({ error: "already_verified_other" }, { status: 409 });
     } else {
       const { data: created, error } = await db
@@ -266,30 +295,31 @@ const confirm = async (
     return NextResponse.json({ error: "bad_code" }, { status: 400 });
   }
 
-  // The number is proven. Three writes, and the order matters: stamp first so
-  // that a failure after this leaves a verified player who can retry the link,
-  // rather than a linked device on an unverified number that cannot play.
-  const { error: stampError } = await db
-    .from("participants")
-    .update({ phone_verified_at: new Date().toISOString(), auth_user_id: authUserId })
-    .eq("id", participant.id);
-  if (stampError) {
-    console.error("[pickem verify] stamp failed", stampError);
-    return NextResponse.json({ error: "db_error" }, { status: 500 });
-  }
-
-  // This device now holds the identity — and so do the others that proved it
-  // before. A person with a phone and a tablet is a person, not an attack, so
-  // linking here never unlinks anything.
-  const { error: linkError } = await db.from("participant_devices").upsert(
-    {
-      campaign_id: campaignId,
-      auth_user_id: authUserId,
-      participant_id: participant.id,
-      last_seen_at: new Date().toISOString(),
-    },
-    { onConflict: "campaign_id,auth_user_id" },
-  );
+  // The number is proven. Stamping it verified and pointing this device at the
+  // player are ONE fact, so they are one transaction — `pickem_link_device`
+  // (0029). This used to be two writes here, and the second one was reachable
+  // only if the first succeeded:
+  //
+  //     update participants set phone_verified_at = now(),
+  //                             auth_user_id = <this device>
+  //
+  // That second column is what broke it. `unique (campaign_id, auth_user_id)`
+  // allows a device one participant row per campaign, so as soon as this device
+  // had created a player of its own, moving the column onto a DIFFERENT player
+  // raised 23505 — and the route returned 500 without ever reaching the link.
+  // The device went on pointing at the previous player, which is what put
+  // somebody else's picks on the board of a person who had just proved their
+  // own number. The column is not ours to move: 0021 says it names the device
+  // that created the row, and `participant_devices` is who is asking.
+  //
+  // The link re-points THIS device and touches no other, so a person with a
+  // phone and a tablet keeps both — 0021's invariant, and the reason this is an
+  // upsert on (campaign_id, auth_user_id) rather than a delete and an insert.
+  const { error: linkError } = await db.rpc("pickem_link_device", {
+    p_campaign: campaignId,
+    p_auth_user: authUserId,
+    p_participant: participant.id,
+  });
   if (linkError) {
     console.error("[pickem verify] device link failed", linkError);
     return NextResponse.json({ error: "db_error" }, { status: 500 });
