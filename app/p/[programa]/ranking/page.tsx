@@ -170,13 +170,31 @@ export default async function RankingPage({
         </div>
       </div>
 
+      {/* `perfil` used to hang off exactly one link in the whole module — the
+          premios dock — so a player who never won anything could not reach their
+          own screen at all. The ranking is where somebody goes looking for
+          themselves, so it is where the link belongs. Only when there is a
+          player: offering "Mi perfil" to a passer-by who has not registered
+          leads to the empty state, and the second row already says what that
+          person should do. */}
       <div className="sg-dock">
         <Link className="sg-btn" href={`/p/${program.slug}/premios/`}>
           Ver mis premios
         </Link>
-        <Link className="sg-btn ghost sm" href={`/p/${program.slug}/jornada/${program.openWeek}/`}>
-          Ir a la jornada abierta
-        </Link>
+        {player ? (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <Link className="sg-btn ghost sm" href={`/p/${program.slug}/jornada/${program.openWeek}/`}>
+              Jornada abierta
+            </Link>
+            <Link className="sg-btn ghost sm" href={`/p/${program.slug}/perfil/`}>
+              Mi perfil
+            </Link>
+          </div>
+        ) : (
+          <Link className="sg-btn ghost sm" href={`/p/${program.slug}/jornada/${program.openWeek}/`}>
+            Ir a la jornada abierta
+          </Link>
+        )}
       </div>
     </>
   );

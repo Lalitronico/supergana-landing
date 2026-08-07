@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProgram } from "@/lib/pickem/program";
 import { VerifyForm } from "./VerifyForm";
@@ -13,6 +14,7 @@ export default async function VerificarPage({
   if (!program) notFound();
 
   return (
+    <>
     <div className="sg-screen">
       <div className="sg-pad">
         <div>
@@ -39,5 +41,11 @@ export default async function VerificarPage({
         </p>
       </div>
     </div>
+    <div className="sg-dock">
+      <Link className="sg-btn ghost sm" href={`/p/${program.slug}/registro/`}>
+        Volver
+      </Link>
+    </div>
+    </>
   );
 }
