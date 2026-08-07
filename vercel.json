@@ -3,6 +3,18 @@
     {
       "path": "/api/tickets/cron/sweep-orphans/",
       "schedule": "17 8 * * *"
+    },
+    {
+      "path": "/api/pickem/cron/schedule/",
+      "schedule": "0 12 * * 2"
+    },
+    {
+      "path": "/api/pickem/cron/scores/",
+      "schedule": "0 14 * * 2"
+    },
+    {
+      "path": "/api/pickem/cron/settle/",
+      "schedule": "0 15 * * 2"
     }
   ]
 }
