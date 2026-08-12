@@ -18,36 +18,42 @@ export default async function RegistroPage({
     <>
       <div className="sg-screen">
         <div className="sg-pad">
+          {/* "Ponte la camiseta" was the new-player greeting, and it was on
+              the only entrance the module has — so a player coming back in
+              jornada 7 was told to join a game they were already in. The
+              title now says what the screen does, and the copy says the one
+              thing that matters: the same number gets you in either way.
+
+              It stops short of saying which one you are. `start` cannot
+              tell the browser whether a number is registered — that would
+              make this form a way to find out who plays — so the promise is
+              written for both readers and kept for both.
+
+              The title shares its row with the character but wraps free (no
+              forced break), and the paragraph runs the full width underneath:
+              a narrow three-line column next to an empty corner was most of
+              this screen's dead space. */}
           <div className="pk-titlerow">
             <div>
               <span className="pk-tag">Una sola puerta</span>
-              {/* "Ponte la camiseta" was the new-player greeting, and it was on
-                  the only entrance the module has — so a player coming back in
-                  jornada 7 was told to join a game they were already in. The
-                  title now says what the screen does, and the copy says the one
-                  thing that matters: the same number gets you in either way.
-
-                  It stops short of saying which one you are. `start` cannot
-                  tell the browser whether a number is registered — that would
-                  make this form a way to find out who plays — so the promise is
-                  written for both readers and kept for both. */}
               <h1 className="sg-display" style={{ marginTop: 10 }}>
-                Entra con tu
-                <br />
-                WhatsApp
+                Entra con tu WhatsApp
               </h1>
-              <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
-                Tu número y ya. Da igual si es tu primera jornada o si llevas media
-                temporada — se entra por aquí, sin app que bajar ni contraseña que
-                recordar.
-              </p>
             </div>
+            {/* 96, not 116: at 116 the title next to him breaks into three
+                lines on a 390px phone, and the dead corner under his feet was
+                the first thing Eduardo circled. */}
             <ChapaCharacter
               dir={characterDir(program.theme.logoUrl)}
               name="oso-registro"
-              size={116}
+              size={96}
             />
           </div>
+          <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
+            Tu número y ya. Da igual si es tu primera jornada o si llevas media
+            temporada — se entra por aquí, sin app que bajar ni contraseña que
+            recordar.
+          </p>
 
           <div className="sg-foot">
             Jornada {program.openWeek} · Temporada {program.seasonYear}

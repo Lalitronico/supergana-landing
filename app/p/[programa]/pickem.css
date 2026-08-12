@@ -205,10 +205,13 @@
   color: #fff;
 }
 
+/* Everything on the plate is centred: it is a sign on a wall, and a sign whose
+   lettering huddles in one corner reads as a mistake — the approved mockups
+   centre it too. */
 .pk-plate-bottom {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 8px;
   margin-top: 7px;
   padding-top: 7px;
@@ -218,6 +221,7 @@
 .pk-plate-mark {
   display: block;
   width: min(132px, 46%);
+  margin-inline: auto;
 }
 
 .pk-plate-mark img {
@@ -229,6 +233,7 @@
 .pk-plate-text {
   min-width: 0;
   display: block;
+  text-align: center;
 }
 
 .pk-plate-name {
@@ -983,9 +988,13 @@
 
 .pk-side.is-picked .pk-side-city { color: var(--sg-ink-soft); }
 
-/* "TU PICK", stamped over the top bar. Inside the tile so nothing can clip it. */
+/* "TU PICK", stamped over the top bar. Inside the tile so nothing can clip it.
+   The stamp overlaps the crest tile on purpose (the mockups draw it that way),
+   but it must WIN that overlap: without the z-index it slid behind the crest
+   and only its round ends showed, reading as a rendering glitch. */
 .pk-side-stamp {
   position: absolute;
+  z-index: 1;
   top: 6px;
   left: 50%;
   transform: translateX(-50%);

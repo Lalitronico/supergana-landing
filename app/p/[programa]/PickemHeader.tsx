@@ -63,7 +63,12 @@ export function PickemHeader({
           )}
         </Link>
 
-        <span className="pk-bar-name">{programName}</span>
+        {/* The bar already carries the tenant's own sign, so the "by Chapa"
+            half of the name is the one part that says nothing new — and it is
+            exactly the part the ellipsis was eating ("NFL Pick'em by …").
+            Split rather than sliced per-tenant: any programme named "X by Y"
+            shows X here; a name without "by" shows whole. */}
+        <span className="pk-bar-name">{programName.split(/\s+by\s+/i)[0]}</span>
 
         <span className="pk-head-side">
           <Link className="sg-pill" href={`/p/${programSlug}/reglas/`}>
