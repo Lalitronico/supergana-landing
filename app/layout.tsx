@@ -43,6 +43,10 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
   },
   robots: { index: true, follow: true },
+  // Meta reads this tag once to prove supergana.fun belongs to the Supergana
+  // business portfolio (Security Centre → domain verification). It is inert
+  // for everything else; removing it un-verifies the domain.
+  other: { "facebook-domain-verification": "i42jhbqedqj83lvcnnl6wjs35wubg2" },
 };
 
 export default function RootLayout({
