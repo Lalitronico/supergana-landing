@@ -6,15 +6,29 @@ import { formatMxPhone, normalizeMxPhone } from "@/lib/platform/phone";
 import { useDeviceSession } from "../useDeviceSession";
 
 /**
- * Two fields, and that is the whole registration.
+ * ONE field, and that is the whole entrance.
  *
- * The deck sold it that way — "solo nombre y WhatsApp; sin descargar app y sin
- * contraseñas complicadas" — and the promise is worth keeping literally. No
- * email, because the prize is collected at the counter and an inbox buys the
- * player nothing. No branch either: the branch matters when somebody scans the
- * table QR to check in, which is where it is captured and where it feeds the
- * per-venue numbers. Asking twice for something we only use once is friction
- * charged to every player.
+ * The deck sold it as "solo nombre y WhatsApp; sin descargar app y sin
+ * contraseñas complicadas". This is less than that, and it is the same promise
+ * kept better. No email, because the prize is collected at the counter and an
+ * inbox buys the player nothing. No branch either: the branch matters when
+ * somebody scans the table QR to check in, which is where it is captured.
+ *
+ * WHY THE NICKNAME LEFT THIS SCREEN.
+ *
+ * There is no "iniciar sesión" and no "registrarse" in this module — Eduardo
+ * could not tell them apart because they do not exist. There is a number, and
+ * the number either has an account behind it or it does not. Asking for a
+ * nickname up front made the one door look like the new-player door, so a
+ * player returning in jornada 7 was made to invent a name again before being
+ * let back in.
+ *
+ * And the form CANNOT resolve that by saying "you already have one": `start`
+ * answers identically for a number that plays and one that does not, on
+ * purpose, or the form becomes a way to find out who plays. The only place the
+ * question can be answered is after the code, where it is answered — see
+ * `VerifyForm`. So the copy here promises nothing about which kind of player
+ * you are, because at this moment nobody knows.
  */
 
 /** What the server can answer, in words a person can act on. */
@@ -34,7 +48,6 @@ export function RegisterForm({ slug }: { slug: string }) {
   const router = useRouter();
   const { status, ensure } = useDeviceSession();
 
-  const [alias, setAlias] = useState("");
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -43,7 +56,7 @@ export function RegisterForm({ slug }: { slug: string }) {
   // will dial. Silently reformatting somebody's phone is how a message goes
   // nowhere; showing it back is how they catch a typo before we send.
   const e164 = normalizeMxPhone(phone);
-  const ready = alias.trim().length >= 2 && e164 !== null;
+  const ready = e164 !== null;
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -64,7 +77,10 @@ export function RegisterForm({ slug }: { slug: string }) {
       const res = await fetch(`/api/pickem/${slug}/verify/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "start", alias: alias.trim(), phone: e164 }),
+        // No alias. The server inserts a placeholder for a number nobody holds
+        // and touches nothing for a number somebody does — which is what makes
+        // this one door for both.
+        body: JSON.stringify({ action: "start", phone: e164 }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -106,21 +122,6 @@ export function RegisterForm({ slug }: { slug: string }) {
   return (
     <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div className="sg-field">
-        <label htmlFor="alias">Cómo quieres aparecer</label>
-        <input
-          id="alias"
-          value={alias}
-          onChange={(e) => setAlias(e.target.value)}
-          placeholder="Tu apodo"
-          maxLength={24}
-          autoComplete="nickname"
-        />
-        <span className="sg-foot">
-          Es el nombre que ve todo el mundo en el ranking. Lo puedes cambiar después.
-        </span>
-      </div>
-
-      <div className="sg-field">
         <label htmlFor="phone">Tu WhatsApp</label>
         <input
           id="phone"
@@ -148,6 +149,11 @@ export function RegisterForm({ slug }: { slug: string }) {
       <button className="sg-btn" type="submit" disabled={!ready || sending}>
         {sending ? "Enviando…" : "Mandarme el código"}
       </button>
+
+      <p className="sg-foot" style={{ margin: 0 }}>
+        Si ya jugaste antes con este número, entras a tu misma cuenta con tus puntos.
+        Si es tu primera vez, la creamos al confirmar el código.
+      </p>
 
       {/* Meta does not let an authentication template carry a word of our own —
           the text is fixed and Chapa cannot appear in it. So the warning goes

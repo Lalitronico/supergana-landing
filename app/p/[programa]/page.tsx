@@ -1,20 +1,34 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { isVerified, resolvePlayer } from "@/lib/pickem/access";
 import { getProgram, getWeek } from "@/lib/pickem/program";
 import { countdownTo, formatKickoff } from "@/lib/pickem/schedule";
 import { teamOf } from "@/lib/pickem/teams";
 import { ChapaCharacter } from "./ChapaCharacter";
 import { characterDir } from "./cast";
 import { Countdown } from "./Countdown";
+import { PickemPlate } from "./PickemPlate";
 import { TeamMark } from "./TeamMark";
 
 /**
  * Where the QR lands.
  *
- * Everything here renders without a session, on purpose: somebody who scans the
- * code on their table should see what the game is, when it closes and who is
- * winning before being asked for anything. Asking first is how a free game
+ * NOTHING HERE IS BEHIND A FORM. Somebody who scans the code on their table
+ * sees what the game is, when it closes and who is playing before being asked
+ * for anything: the hero, the countdown, the first three matches and where the
+ * prize is collected all render for a stranger. Asking first is how a free game
  * looks like a mailing list.
+ *
+ * The one thing that changes with a session is the CTA at the end, and reading
+ * the cookie to decide it is not "asking first" — the player already answered.
+ * A verified player is greeted by name and sent to the open jornada; anybody
+ * else is offered the entrance. Sending a returning player to `/registro/`,
+ * which is what this did, is asking somebody who is already inside to sign in
+ * again on the only screen the module has for both.
+ *
+ * `resolvePlayer` reads cookies, so this route is dynamic — which it has to be
+ * anyway: the countdown, the open week and the fixture list are all wrong the
+ * moment they are cached.
  */
 export default async function PickemLanding({
   params,
@@ -30,10 +44,24 @@ export default async function PickemLanding({
   const first = week?.games.find((g) => !g.voided) ?? null;
   const tz = program.timezone;
 
+  const player = await resolvePlayer(program.campaignId);
+  const returning = isVerified(player) ? player : null;
+
   return (
     <>
       <div className="sg-screen">
         <div className="sg-pad">
+          {/* The co-brand at full size, once, on the screen the QR lands on.
+              The bar carries a one-row version of the same plate on every other
+              screen — this is where "whose game is this" is actually asked. */}
+          <PickemPlate
+            programName={program.name}
+            orgName={program.orgName}
+            logoUrl={program.theme.logoUrl}
+            logoAlt={program.theme.logoAlt ?? program.orgName}
+            poweredBy={program.theme.poweredBy}
+          />
+
           {/* The sign, the name of the game and the character running with the
               ball: the whole idea in one frame, on the tenant's black plate.
               The art is a grid column, never an overlay — a cell cannot land on
@@ -150,18 +178,35 @@ export default async function PickemLanding({
               </div>
             </section>
           ) : null}
-        </div>
-      </div>
 
-      {/* Trailing slashes because next.config sets `trailingSlash`. Without
-          them every internal navigation costs a 308 round trip. */}
-      <div className="sg-dock">
-        <Link className="sg-btn" href={`/p/${program.slug}/registro/`}>
-          Entrar al juego
-        </Link>
-        <Link className="sg-btn ghost sm" href={`/p/${program.slug}/ranking/`}>
-          Ver el ranking
-        </Link>
+          {/* The one call to action, at the end of the pitch rather than welded
+              under it. "Ver el ranking" left with the dock: it is a tab now,
+              and a button that duplicates a tab teaches that the tabs are not
+              the way around.
+
+              Trailing slash because next.config sets `trailingSlash`. Without
+              it every internal navigation costs a 308 round trip. */}
+          {returning ? (
+            <>
+              <div className="pk-ticket accent raised pk-banner">
+                <span className="pk-mech-disc" aria-hidden="true">
+                  ★
+                </span>
+                <span>Qué onda, {returning.alias}</span>
+              </div>
+              <Link
+                className="sg-btn"
+                href={`/p/${program.slug}/jornada/${program.openWeek}/`}
+              >
+                Ir a la jornada {program.openWeek}
+              </Link>
+            </>
+          ) : (
+            <Link className="sg-btn" href={`/p/${program.slug}/registro/`}>
+              Entrar al juego
+            </Link>
+          )}
+        </div>
       </div>
     </>
   );

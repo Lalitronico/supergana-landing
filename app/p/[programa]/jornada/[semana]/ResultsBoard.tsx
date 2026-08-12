@@ -220,13 +220,16 @@ export function ResultsBoard({
               pierde puntos por él.
             </p>
           ) : null}
-        </div>
-      </div>
 
-      <div className="sg-dock">
-        <Link className="sg-btn" href={`/p/${slug}/ranking/?w=${week}`}>
-          Ver el ranking
-        </Link>
+          {/* The Ranking tab goes to the season table; this goes to THIS week's,
+              which is a different question and the one somebody who just read
+              their own week is asking. It is not a duplicate of the tab, so it
+              survived the dock — moved into the scroll, where it reads as the
+              next step rather than as a second navigation bar. */}
+          <Link className="sg-btn" href={`/p/${slug}/ranking/?w=${week}`}>
+            Ver el ranking de la jornada {week}
+          </Link>
+        </div>
       </div>
     </>
   );

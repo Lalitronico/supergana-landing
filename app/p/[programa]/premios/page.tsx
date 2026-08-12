@@ -216,15 +216,6 @@ export default async function PremiosPage({
           ) : null}
         </div>
       </div>
-
-      <div className="sg-dock">
-        <Link className="sg-btn ghost sm" href={`/p/${program.slug}/ranking/`}>
-          Volver al ranking
-        </Link>
-        <Link className="sg-btn ghost sm" href={`/p/${program.slug}/perfil/`}>
-          Mi perfil
-        </Link>
-      </div>
     </>
   );
 }

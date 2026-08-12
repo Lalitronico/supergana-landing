@@ -306,32 +306,17 @@ export default async function ReglasPage({
             configuración vigente del programa, así que cambian cuando cambia el programa.
             Cualquier cambio a las reglas se publica antes de la jornada en la que aplica.
           </p>
-        </div>
-      </div>
 
-      {/* The way out, first and named as such.
-          This screen is the one the header links from EVERY other screen, so it
-          is entered from anywhere — and a screen you can arrive at from anywhere
-          needs a return, not two more destinations. The dock it shipped with
-          offered only ranking and premios: both of them forward, neither of them
-          back, so somebody who tapped "Reglas" in the middle of picking had no
-          labelled way home and the screen read as a trap.
-
-          "Volver" going to the portada is the same mechanism `registro` uses,
-          and putting the return in the first row is what `premios` does with
-          "Volver al ranking". The two forward links stay, demoted to a row of
-          two — the grid of two `sg-btn sm` is the pair the ranking screen
-          already uses for its scope toggle. */}
-      <div className="sg-dock">
-        <Link className="sg-btn ghost sm" href={`/p/${program.slug}/`}>
-          Volver al inicio
-        </Link>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-          <Link className="sg-btn ghost sm" href={`/p/${program.slug}/ranking/`}>
-            Ranking
-          </Link>
-          <Link className="sg-btn ghost sm" href={`/p/${program.slug}/premios/`}>
-            Premios
+          {/* The way out, named as such. This screen is the one the bar links to
+              from EVERY other screen, so it is entered from anywhere — and the
+              tabs do not name it, which means nothing in the strip below is lit
+              while you are reading it. The dock it shipped with offered ranking
+              and premios: both forward, neither back, so somebody who tapped
+              "Reglas" in the middle of picking had no labelled way home and the
+              screen read as a trap. Those two are tabs now; this is the one link
+              that was never duplicated. */}
+          <Link className="sg-btn ghost sm" href={`/p/${program.slug}/`}>
+            Volver al inicio
           </Link>
         </div>
       </div>

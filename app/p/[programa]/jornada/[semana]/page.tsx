@@ -82,12 +82,14 @@ export default async function JornadaPage({
               <ChapaCharacter dir={charDir} name="lince-verificacion" size={110} />
             </div>
             {strip}
+
+            {/* The only thing this screen is for. At the end of the scroll
+                rather than in a dock: the tabs are the permanent strip now, and
+                a gate with its own bar under theirs is two bottoms. */}
+            <Link className="sg-btn" href={`/p/${program.slug}/registro/`}>
+              Entrar al juego
+            </Link>
           </div>
-        </div>
-        <div className="sg-dock">
-          <Link className="sg-btn" href={`/p/${program.slug}/registro/`}>
-            Entrar al juego
-          </Link>
         </div>
       </>
     );

@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getProgram, isVisible } from "@/lib/pickem/program";
 import { themeCssVars } from "@/lib/tickets/theme";
 import { PickemHeader } from "./PickemHeader";
+import { PickemTabs } from "./PickemTabs";
 import "@/styles/module-shell.css";
 import "./pickem.css";
 
@@ -49,13 +50,17 @@ export default async function PickemLayout({
           programSlug={program.slug}
           programName={program.name}
           orgName={program.orgName}
-          orgSlug={program.orgSlug}
           logoUrl={program.theme.logoUrl}
           logoAlt={program.theme.logoAlt ?? program.orgName}
-          poweredBy={program.theme.poweredBy}
           status={program.status}
         />
         {children}
+        {/* AFTER the children, so the flex column reads head → the child's
+            scrolling screen → whatever contextual sticky the child adds → the
+            tabs. Navigation belongs to the shell: twelve screens each writing
+            their own dock is how a module ends up saying something different
+            about where you can go on every screen. */}
+        <PickemTabs slug={program.slug} openWeek={program.openWeek} />
       </div>
     </div>
   );

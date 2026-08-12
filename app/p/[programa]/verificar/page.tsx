@@ -48,12 +48,14 @@ export default async function VerificarPage({
           Verificamos el número para que nadie más pueda jugar con el tuyo ni quedarse
           con tus puntos. Sin eso, el ranking no valdría nada.
         </p>
+
+        {/* The form already offers "Cambiar el número", which goes to the same
+            place and says why. This is the plain way out for somebody who is
+            not changing anything, at the end of the scroll. */}
+        <Link className="sg-btn ghost sm" href={`/p/${program.slug}/registro/`}>
+          Volver
+        </Link>
       </div>
-    </div>
-    <div className="sg-dock">
-      <Link className="sg-btn ghost sm" href={`/p/${program.slug}/registro/`}>
-        Volver
-      </Link>
     </div>
     </>
   );

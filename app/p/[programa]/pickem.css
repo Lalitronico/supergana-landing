@@ -42,12 +42,22 @@
   --pk-notch: 13px;
 }
 
-/* The sheet, the bar and the dock are one piece of paper. */
+/* The sheet, the bar, the tabs and any dock are one piece of paper. */
 .pk-app .sg-phone,
 .pk-app .sg-head,
-.pk-app .sg-dock {
+.pk-app .sg-dock,
+.pk-app .pk-tabs,
+.pk-app .pk-dockmini {
   background: var(--pk-paper);
 }
+
+/* NOTE for the celebration overlay: it is `position: absolute` inside
+   `.sg-phone` rather than fixed to the viewport, because on desktop the module
+   is a 400px phone drawn in the middle of a page and a fixed overlay would dim
+   the whole browser window to announce something that happened inside a card.
+   That needs `.sg-phone` to be a positioning context — and module-shell.css
+   already declares `position: relative` on it, so there is nothing to add
+   here. Written down because the absence of a rule is not self-explaining. */
 
 /* Titles are the loudest thing on every screen in the mockups — "Ponte la
    camiseta", "Arma tu quiniela", "Lo que está en juego". Raising `.sg-display`
@@ -119,27 +129,80 @@
 
 /* ---- the bar ------------------------------------------------------------ */
 
+/* ONE ROW, ~60px including its padding. The two-row plate it replaced was
+   ~128px and, with a per-screen dock of up to ~165px under it, took more than a
+   third of a 844px phone before a match was drawn. The full plate still exists
+   — on the portada, in the scroll, where it is read once. */
 .pk-head {
   display: block;
-  padding: 10px 12px;
+  padding: 8px 12px;
 }
 
-/* The same plate as `.chapa-sign`, at bar scale, carrying the whole co-brand:
-   the tenant's sign, the programme's name, our signature. */
+/* The same black plate as `.chapa-sign`, at bar scale and on a single line. */
+.pk-bar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  padding: 6px 9px 6px 11px;
+  background: var(--chapa-ink);
+  border: 2.5px solid var(--sg-ink);
+  border-radius: 14px;
+  box-shadow: var(--sg-shadow-sm);
+  color: #fff;
+}
+
+.pk-bar-mark {
+  display: block;
+  flex-shrink: 0;
+  width: 74px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.pk-bar-mark img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.pk-bar-org {
+  font-family: var(--sg-display);
+  font-weight: 800;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* The one flexible cell in the row, and the one allowed to lose characters.
+   `min-width: 0` is what lets it: without it a flex item refuses to shrink
+   below its content and pushes the pills off the right edge instead. */
+.pk-bar-name {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--sg-display);
+  font-weight: 800;
+  font-size: 10.5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.86);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The full plate, on the portada. Two rows: the tenant's sign, then the
+   programme's name and our signature. */
 .pk-plate {
   min-width: 0;
-  padding: 9px 12px 10px;
+  padding: 11px 14px 12px;
   background: var(--chapa-ink);
   border: 2.5px solid var(--sg-ink);
   border-radius: 15px;
   box-shadow: var(--sg-shadow-sm);
   color: #fff;
-}
-
-.pk-plate-top {
-  display: block;
-  text-decoration: none;
-  color: inherit;
 }
 
 .pk-plate-bottom {
@@ -206,9 +269,214 @@
 .pk-head-side .sg-pill {
   text-decoration: none;
   color: var(--sg-ink);
-  font-size: 10.5px;
-  padding: 3px 9px;
+  font-size: 10px;
+  padding: 3px 8px;
   border-width: 2px;
+  white-space: nowrap;
+}
+
+/* ---- the tabs ----------------------------------------------------------- */
+
+/* Four destinations that never move, at the bottom, the way Eduardo's mockup 01
+   draws them. This is the ONLY navigation the module has now: the twelve
+   per-screen docks it replaced each proposed a different two or three places to
+   go next, which is how a five-screen product manages to feel like it has no
+   map.
+ *
+ * ~60px plus the home indicator. `env(safe-area-inset-bottom)` is padding and
+ * not height, so on a phone without a notch it is 0 and the strip is exactly as
+ * tall as its content — the arithmetic that made the old dock 165px was mostly
+ * three stacked buttons, not the inset.
+ */
+.pk-tabs {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 7px 8px calc(7px + env(safe-area-inset-bottom));
+  border-top: var(--sg-bw) solid var(--sg-ink);
+}
+
+.pk-tab {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 2px 5px;
+  border: 2.5px solid transparent;
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--sg-ink-mute);
+  /* The tap target is the whole cell, and the cell is ~44px tall before the
+     inset — the floor below which a thumb starts missing. */
+  min-height: 44px;
+}
+
+/* The active cell is a yellow ticket with a black border, exactly like every
+   other "this one" in the module: the picked side, the open week, the player's
+   own row in the leaderboard. One vocabulary for "you are here". */
+.pk-tab.is-active {
+  background: var(--sg-yellow);
+  border-color: var(--sg-ink);
+  box-shadow: var(--sg-shadow-sm);
+  color: var(--sg-ink);
+}
+
+.pk-tab svg {
+  display: block;
+  flex-shrink: 0;
+}
+
+.pk-tab-l {
+  font-family: var(--sg-display);
+  font-weight: 800;
+  font-size: 9.5px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  line-height: 1.1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- the contextual sticky ---------------------------------------------- */
+
+/* One job, one screen: the picks board's "save". It sits between the scroll and
+   the tabs and appears only when there is something to save — see PicksBoard.
+   No safe-area padding of its own: the tabs underneath already carry it, and a
+   second inset would push it a home-indicator's height above where it belongs.
+ */
+.pk-dockmini {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 9px 14px 10px;
+  border-top: 2.5px solid var(--sg-ink);
+}
+
+.pk-dockmini .sg-btn {
+  font-size: 15px;
+  padding: 11px 16px;
+  box-shadow: var(--sg-shadow-sm);
+}
+
+/* "Cambios sin guardar" — a stub, not an alarm. It states a fact about the
+   sheet; the button next to it is what does something about it. */
+.pk-dirty {
+  align-self: center;
+  font-family: var(--sg-display);
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sg-ink);
+  background: var(--pk-accent);
+  border: 2px solid var(--sg-ink);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+/* ---- the celebration ---------------------------------------------------- */
+
+/* `absolute`, not `fixed`. On desktop the module is a 400px phone drawn in the
+   middle of a page; a fixed overlay would dim the whole browser window to
+   announce something that happened inside a card. `.sg-phone` is already
+   `position: relative` in module-shell.css, so `inset: 0` lands on the frame —
+   including over the bar and the tabs, which is the point of a modal. */
+.pk-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 18px 14px calc(18px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+
+.pk-modal-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 10, 10, 0.55);
+}
+
+.pk-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 330px;
+  background: var(--pk-paper);
+  border: var(--sg-bw) solid var(--sg-ink);
+  border-radius: 22px;
+  box-shadow: var(--sg-shadow-lg);
+  padding: 16px 18px 18px;
+  /* Room for the dino, which stands ON the top edge with a negative margin.
+     Reserved as the card's own margin rather than left to `overflow` — a grid
+     item's alignment counts its margins, so the pair is centred together and
+     the character cannot be clipped against the overlay's padding box. */
+  margin-top: 72px;
+  animation: pk-pop 180ms cubic-bezier(0.34, 1.32, 0.64, 1) both;
+}
+
+/* One short overshoot, the cartoon's own gesture. Anybody who has asked the
+   system not to animate gets the card without the bounce, not without the
+   card. */
+@keyframes pk-pop {
+  from { transform: scale(0.92) translateY(8px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pk-modal-card { animation: none; }
+}
+
+/* The dino stands ON the card's top edge, half out of it, the way the mockups
+   put the cast on top of things. It is the one place a character overlaps —
+   and it can, because nothing lives up there to be covered. */
+.pk-modal-art {
+  display: flex;
+  justify-content: flex-end;
+  margin: -68px -4px -6px 0;
+  pointer-events: none;
+}
+
+/* What happens next, as facts rather than as a paragraph. */
+.pk-next {
+  list-style: none;
+  margin: 13px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.pk-next li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--sg-ink-soft);
+}
+
+.pk-next li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 8px;
+  height: 8px;
+  border: 2.5px solid var(--sg-ink);
+  border-radius: 50%;
+  background: var(--pk-accent);
+}
+
+.pk-modal-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 15px;
 }
 
 /* ---- the ticket --------------------------------------------------------- */

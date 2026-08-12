@@ -35,9 +35,22 @@ export const runtime = "nodejs";
  * integration; that is labelled there and does not survive into this.
  */
 
+/**
+ * `alias` is OPTIONAL, and that is the whole phone-first flow.
+ *
+ * Registration used to ask for a nickname and a number on the same screen, so a
+ * player who had been playing since jornada 1 was made to invent a name again
+ * before they could get back in — and the form could not say "you already have
+ * one", because saying so would turn it into a way to find out which numbers
+ * play. One door for both, and the door is the number.
+ *
+ * The nickname is asked for AFTER the code, where knowing whether this is a new
+ * player is legitimate: the number has been proven to belong to whoever is
+ * holding the phone.
+ */
 const startSchema = z.object({
   action: z.literal("start"),
-  alias: z.string().trim().min(2).max(24),
+  alias: z.string().trim().min(2).max(24).optional(),
   phone: z.string().trim().min(6).max(24),
 });
 
@@ -47,7 +60,33 @@ const confirmSchema = z.object({
   code: z.string().trim().regex(/^\d{4}$/),
 });
 
-const bodySchema = z.discriminatedUnion("action", [startSchema, confirmSchema]);
+/** Naming yourself, once the number is yours. Carries no phone: the device's
+ *  own link says who is asking, and accepting a number here would be accepting
+ *  a claim instead of a proof. */
+const aliasSchema = z.object({
+  action: z.literal("alias"),
+  alias: z.string().trim().min(2).max(24),
+});
+
+const bodySchema = z.discriminatedUnion("action", [
+  startSchema,
+  confirmSchema,
+  aliasSchema,
+]);
+
+/**
+ * What a pick'em participant is called before they have said.
+ *
+ * 0021's trigger refuses to insert one without an alias — the leaderboard has
+ * to be able to name every row — so the phone-first flow needs something to put
+ * there between "sent the code" and "chose a nickname". It matches the fallback
+ * `resolvePlayer` already uses for a null alias, so a player who never picks a
+ * name is called the same thing everywhere.
+ *
+ * It is NOT the signal of a new player: `phone_verified_at === null` is. A
+ * returning player could perfectly well have left themselves named Jugador.
+ */
+const PLACEHOLDER_ALIAS = "Jugador";
 
 interface PendingRow {
   participant_id: string;
@@ -84,12 +123,19 @@ export async function POST(
   const parsed = bodySchema.safeParse(raw);
   if (!parsed.success) return NextResponse.json({ error: "bad_body" }, { status: 400 });
 
+  const db = supabaseAdmin();
+
+  // Naming yourself carries no number: the device's link is the identity, and
+  // it exists only because a code already came back. Handled before the phone
+  // is normalised because there is none to normalise.
+  if (parsed.data.action === "alias") {
+    return rename(db, program.campaignId, user.id, parsed.data.alias);
+  }
+
   // Normalised before anything touches the database, so the five ways a Mexican
   // number gets typed collapse to one row rather than five players.
   const phone = normalizeMxPhone(parsed.data.phone);
   if (!phone) return NextResponse.json({ error: "bad_phone" }, { status: 400 });
-
-  const db = supabaseAdmin();
 
   return parsed.data.action === "start"
     ? start(db, program.campaignId, user.id, phone, parsed.data.alias)
@@ -107,7 +153,8 @@ const start = async (
   campaignId: string,
   authUserId: string,
   phone: string,
-  alias: string,
+  /** Absent in the phone-first flow, which is every flow the UI drives now. */
+  alias: string | undefined,
 ) => {
   const { data: existing } = await db
     .from("participants")
@@ -149,9 +196,13 @@ const start = async (
       .maybeSingle<{ id: string; phone_verified_at: string | null }>();
 
     if (mine && !mine.phone_verified_at) {
+      // Only the number is being corrected. The alias is written only if one
+      // came with the request — overwriting a name with `undefined` would
+      // violate 0021's trigger, and overwriting it with the placeholder would
+      // silently un-name somebody who had already chosen.
       const { error } = await db
         .from("participants")
-        .update({ phone, alias })
+        .update(alias ? { phone, alias } : { phone })
         .eq("id", mine.id);
       if (error) {
         console.error("[pickem verify] retarget failed", error);
@@ -174,7 +225,15 @@ const start = async (
     } else {
       const { data: created, error } = await db
         .from("participants")
-        .insert({ campaign_id: campaignId, auth_user_id: authUserId, alias, phone })
+        .insert({
+          campaign_id: campaignId,
+          auth_user_id: authUserId,
+          // 0021's trigger refuses a pick'em participant with no alias, and in
+          // the phone-first flow there is no alias yet. The placeholder holds
+          // the row until the code comes back and the player names themselves.
+          alias: alias ?? PLACEHOLDER_ALIAS,
+          phone,
+        })
         .select("id")
         .single<{ id: string }>();
       if (error || !created) {
@@ -262,10 +321,10 @@ const confirm = async (
 ) => {
   const { data: participant } = await db
     .from("participants")
-    .select("id, alias")
+    .select("id, alias, phone_verified_at")
     .eq("campaign_id", campaignId)
     .eq("phone", phone)
-    .maybeSingle<{ id: string; alias: string | null }>();
+    .maybeSingle<{ id: string; alias: string | null; phone_verified_at: string | null }>();
 
   // No row for this number means no code was ever issued for it. Same answer as
   // a wrong code, so the endpoint cannot be used to test which numbers play.
@@ -294,6 +353,21 @@ const confirm = async (
       .eq("participant_id", participant.id);
     return NextResponse.json({ error: "bad_code" }, { status: 400 });
   }
+
+  /**
+   * Whether this is somebody's first time in, read BEFORE the link runs.
+   *
+   * `pickem_link_device` is what stamps `phone_verified_at`, so asking after it
+   * would always answer "returning". The row's alias is not the signal either:
+   * the phone-first flow inserts `Jugador` as a placeholder, and a returning
+   * player may have left themselves called exactly that.
+   *
+   * Answering this at all is only legitimate here. `start` may not hint that a
+   * number exists — that would turn the form into a way to find out who plays —
+   * but a code that came back proves the number belongs to whoever is holding
+   * the phone, and greeting them by name is what any account does.
+   */
+  const isNew = participant.phone_verified_at === null;
 
   // The number is proven. Stamping it verified and pointing this device at the
   // player are ONE fact, so they are one transaction — `pickem_link_device`
@@ -329,5 +403,65 @@ const confirm = async (
   // for no reason.
   await db.from("phone_verifications").delete().eq("participant_id", participant.id);
 
-  return NextResponse.json({ ok: true, verified: true, alias: participant.alias });
+  return NextResponse.json({
+    ok: true,
+    verified: true,
+    alias: participant.alias,
+    isNew,
+  });
+};
+
+// ---------------------------------------------------------------------------
+// alias
+// ---------------------------------------------------------------------------
+
+/**
+ * Naming yourself, after the number proved it is yours.
+ *
+ * WHO IS ASKING. `participant_devices`, never `participants.auth_user_id` —
+ * 0021's invariant, honoured by every reader in the module. The column on
+ * `participants` names only the device that CREATED the row, which after a
+ * phone change is not the device asking; 0029 has what confusing the two cost.
+ *
+ * WHY THERE IS NO MIGRATION. There is no RPC for this and there does not need
+ * to be one: `confirm` already updates rows through `supabaseAdmin()`, and the
+ * authorisation this needs is exactly what the device link already answers.
+ * Adding a function to the database to do one UPDATE would be ceremony.
+ *
+ * The unverified are refused. Nothing in the module may be written by a device
+ * that has not answered a code, and the leaderboard's names are no exception.
+ */
+const rename = async (
+  db: Db,
+  campaignId: string,
+  authUserId: string,
+  alias: string,
+) => {
+  const { data: link } = await db
+    .from("participant_devices")
+    .select("participant_id, participants(phone_verified_at)")
+    .eq("campaign_id", campaignId)
+    .eq("auth_user_id", authUserId)
+    .maybeSingle<{
+      participant_id: string;
+      participants: { phone_verified_at: string | null } | null;
+    }>();
+
+  if (!link?.participants) {
+    return NextResponse.json({ error: "not_a_participant" }, { status: 403 });
+  }
+  if (!link.participants.phone_verified_at) {
+    return NextResponse.json({ error: "not_verified" }, { status: 403 });
+  }
+
+  const { error } = await db
+    .from("participants")
+    .update({ alias })
+    .eq("id", link.participant_id);
+  if (error) {
+    console.error("[pickem verify] alias update failed", error);
+    return NextResponse.json({ error: "db_error" }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, alias });
 };

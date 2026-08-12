@@ -1,9 +1,30 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatMxPhone, normalizeMxPhone } from "@/lib/platform/phone";
 import { useDeviceSession } from "../useDeviceSession";
+
+/**
+ * The code, and then whichever of the two things happens next.
+ *
+ * THE FORK LIVES HERE AND NOWHERE EARLIER.
+ *
+ * Registration cannot know whether a number already plays — answering that
+ * before the code would turn the form into a directory of players — so both
+ * kinds of player go through one door and find out on the other side of it. A
+ * code that came back proves the number belongs to whoever is holding the
+ * phone, and from that instant greeting them by name is what any account does.
+ *
+ * New: the nickname, asked for once, inline. Not a route of its own — a fourth
+ * screen between "verified" and "playing" is a place to abandon, and the sheet
+ * is what the player came for. Whoever does not want to answer gets a plain way
+ * past it, and so does whoever the POST fails for.
+ *
+ * Returning: a one-beat hello and then the jornada. The greeting exists because
+ * "did it work" needs an answer, and because being recognised by name after
+ * seven weeks away is the whole promise of the number being the account.
+ */
 
 const ERRORS: Record<string, string> = {
   bad_code: "Ese código no es. Revísalo y vuelve a intentar.",
@@ -13,8 +34,15 @@ const ERRORS: Record<string, string> = {
     "Ya enviamos varios códigos a ese número. Espera una hora e inténtalo de nuevo.",
   bad_phone: "Necesitamos 10 dígitos con LADA. Ej. 656 111 2233.",
   no_session: "No pudimos abrir tu sesión. Recarga la página.",
+  not_verified: "Necesitas confirmar tu número antes de ponerte un apodo.",
+  not_a_participant: "No encontramos tu registro en este dispositivo.",
   db_error: "Algo falló de nuestro lado. Inténtalo otra vez.",
 };
+
+/** What the server calls a player who has not named themselves yet. */
+const PLACEHOLDER_ALIAS = "Jugador";
+
+type Step = "code" | "alias" | "welcome";
 
 export function VerifyForm({ slug, openWeek }: { slug: string; openWeek: number }) {
   const router = useRouter();
@@ -31,6 +59,21 @@ export function VerifyForm({ slug, openWeek }: { slug: string; openWeek: number 
   const [note, setNote] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const [step, setStep] = useState<Step>("code");
+  const [alias, setAlias] = useState("");
+  /** How the server already knows them. Only shown to somebody who returns. */
+  const [knownAlias, setKnownAlias] = useState<string | null>(null);
+
+  const board = `/p/${slug}/jornada/${openWeek}/`;
+
+  // The hello is a beat, not a screen. Long enough to read four words, short
+  // enough that nobody reaches for the button that is not there.
+  useEffect(() => {
+    if (step !== "welcome") return;
+    const t = window.setTimeout(() => router.replace(board), 1400);
+    return () => window.clearTimeout(t);
+  }, [step, router, board]);
+
   const post = async (body: Record<string, unknown>) => {
     const uid = await ensure();
     if (!uid) throw new Error("no_session");
@@ -43,7 +86,7 @@ export function VerifyForm({ slug, openWeek }: { slug: string; openWeek: number 
     if (typeof json?.rehearsalCode === "string") setRehearsalCode(json.rehearsalCode);
     return { ok: res.ok, json } as {
       ok: boolean;
-      json: { error?: string; rehearsalCode?: string };
+      json: { error?: string; rehearsalCode?: string; alias?: string | null; isNew?: boolean };
     };
   };
 
@@ -76,11 +119,49 @@ export function VerifyForm({ slug, openWeek }: { slug: string; openWeek: number 
         setBusy(false);
         return;
       }
-      // Verified. Straight into the open week — the next screen is the product,
-      // and a "listo, ya quedaste" page in between is a tap that buys nothing.
-      router.replace(`/p/${slug}/jornada/${openWeek}/`);
+      // Verified. `isNew` is the server's answer read BEFORE the link stamped
+      // the row — see the route. A brand new player names themselves here; a
+      // returning one gets a hello and the board.
+      if (json.isNew) {
+        setKnownAlias(null);
+        setStep("alias");
+        setBusy(false);
+        return;
+      }
+      const known = typeof json.alias === "string" ? json.alias.trim() : "";
+      setKnownAlias(known && known !== PLACEHOLDER_ALIAS ? known : null);
+      setStep("welcome");
+      setBusy(false);
     } catch {
       setError("No hay conexión. Inténtalo otra vez.");
+      setBusy(false);
+    }
+  };
+
+  /**
+   * The nickname, and the board either way.
+   *
+   * A failure here is not worth stranding anybody over: the number is already
+   * proven, the account already exists, and a player who cannot be renamed can
+   * still play as Jugador and fix it later. So the error is shown and the exit
+   * stays open — it is beside the button at all times, not conjured by the
+   * failure.
+   */
+  const saveAlias = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (alias.trim().length < 2 || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { ok, json } = await post({ action: "alias", alias: alias.trim() });
+      if (!ok) {
+        setError(ERRORS[json?.error ?? ""] ?? "No pudimos guardar tu apodo.");
+        setBusy(false);
+        return;
+      }
+      router.replace(board);
+    } catch {
+      setError("No hay conexión. Puedes entrar y ponerte el apodo después.");
       setBusy(false);
     }
   };
@@ -91,10 +172,9 @@ export function VerifyForm({ slug, openWeek }: { slug: string; openWeek: number 
     setError(null);
     setNote(null);
     try {
-      // No alias: the row already exists, so the server ignores it anyway. The
-      // schema still wants the field, and repeating a name the player cannot
-      // see on this screen would be a lie about what is being sent.
-      const { ok, json } = await post({ action: "start", phone, alias: "jugador" });
+      // No alias, and the schema no longer wants one: the row exists either way
+      // and a name typed on another screen is not what is being re-sent.
+      const { ok, json } = await post({ action: "start", phone });
       setNote(ok ? "Te mandamos otro código." : null);
       if (!ok) setError(ERRORS[json?.error ?? ""] ?? "No pudimos reenviar el código.");
     } catch {
@@ -103,6 +183,70 @@ export function VerifyForm({ slug, openWeek }: { slug: string; openWeek: number 
     setBusy(false);
   };
 
+  // ---- the hello, for somebody who already plays --------------------------
+  if (step === "welcome") {
+    return (
+      <div className="sg-card" style={{ background: "var(--sg-yellow)" }}>
+        <div className="sg-eyebrow">Listo</div>
+        <div className="sg-h" style={{ fontSize: 26, marginTop: 4 }}>
+          {knownAlias ? `¡Hola de nuevo, ${knownAlias}!` : "¡Hola de nuevo!"}
+        </div>
+        <p className="sg-body" style={{ margin: "6px 0 0" }}>
+          Tus puntos siguen donde los dejaste. Te llevamos a la jornada {openWeek}…
+        </p>
+      </div>
+    );
+  }
+
+  // ---- the nickname, for somebody brand new -------------------------------
+  if (step === "alias") {
+    return (
+      <form onSubmit={saveAlias} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <div className="pk-ticket accent raised pk-banner">
+          <span className="pk-mech-disc" aria-hidden="true">
+            ✓
+          </span>
+          <span>Número confirmado</span>
+        </div>
+
+        <div className="sg-field">
+          <label htmlFor="alias">Cómo quieres aparecer</label>
+          <input
+            id="alias"
+            value={alias}
+            onChange={(e) => setAlias(e.target.value)}
+            placeholder="Tu apodo"
+            maxLength={24}
+            autoComplete="nickname"
+            autoFocus
+          />
+          <span className="sg-foot">
+            Es el nombre que ve todo el mundo en el ranking. Lo puedes cambiar después.
+          </span>
+        </div>
+
+        {error ? <div className="sg-error">{error}</div> : null}
+
+        <button className="sg-btn" type="submit" disabled={alias.trim().length < 2 || busy}>
+          {busy ? "Guardando…" : "¡Listo, a jugar!"}
+        </button>
+
+        {/* Always here, not summoned by a failure. Somebody who does not want
+            to be named is not stuck, and neither is somebody the update failed
+            for: the account exists and the board is one tap away either way. */}
+        <button
+          type="button"
+          className="sg-btn ghost sm"
+          onClick={() => router.replace(board)}
+          disabled={busy}
+        >
+          Continuar como {PLACEHOLDER_ALIAS}
+        </button>
+      </form>
+    );
+  }
+
+  // ---- the code -----------------------------------------------------------
   return (
     <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {/* Labelled as loudly as it can be. Somebody demoing this has to be able

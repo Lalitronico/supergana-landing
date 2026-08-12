@@ -61,12 +61,11 @@ export default async function PerfilPage({
                 size={112}
               />
             </div>
+
+            <Link className="sg-btn" href={`/p/${program.slug}/registro/`}>
+              Entrar al juego
+            </Link>
           </div>
-        </div>
-        <div className="sg-dock">
-          <Link className="sg-btn" href={`/p/${program.slug}/registro/`}>
-            Entrar al juego
-          </Link>
         </div>
       </>
     );
@@ -198,15 +197,6 @@ export default async function PerfilPage({
             entras con el mismo WhatsApp y los recuperas.
           </p>
         </div>
-      </div>
-
-      <div className="sg-dock">
-        <Link className="sg-btn" href={`/p/${program.slug}/premios/`}>
-          Ver mis premios
-        </Link>
-        <Link className="sg-btn ghost sm" href={`/p/${program.slug}/jornada/${program.openWeek}/`}>
-          Ir a la jornada abierta
-        </Link>
       </div>
     </>
   );
