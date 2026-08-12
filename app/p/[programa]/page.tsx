@@ -1,9 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProgram, getWeek } from "@/lib/pickem/program";
 import { countdownTo, formatKickoff } from "@/lib/pickem/schedule";
 import { teamOf } from "@/lib/pickem/teams";
+import { ChapaCharacter } from "./ChapaCharacter";
+import { characterDir } from "./cast";
 import { Countdown } from "./Countdown";
 import { TeamMark } from "./TeamMark";
 
@@ -33,41 +34,28 @@ export default async function PickemLanding({
     <>
       <div className="sg-screen">
         <div className="sg-pad">
+          {/* The sign, the name of the game and the character running with the
+              ball: the whole idea in one frame, on the tenant's black plate.
+              The art is a grid column, never an overlay — a cell cannot land on
+              the headline at any width. */}
           <section className="pk-hero">
             <div>
-              {program.theme.logoUrl ? (
-                <Image
-                  src="/brands/chapa/chapa-wordmark-420.png"
-                  alt={program.orgName}
-                  width={420}
-                  height={126}
-                  priority
-                  style={{ width: 186, height: "auto", margin: "2px auto 16px", display: "block" }}
-                />
-              ) : null}
-
-              <div className="sg-eyebrow" style={{ color: "var(--sg-yellow)" }}>
-                Temporada NFL {program.seasonYear} · {program.totalWeeks} jornadas
-              </div>
               <h1 className="pk-hero-title">Pick&rsquo;em</h1>
+              <span className="pk-hero-stub">
+                Temporada {program.seasonYear} · {program.totalWeeks} jornadas
+              </span>
               <p className="pk-hero-copy">
                 Pronostica cada jornada de la temporada. Cada acierto suma al acumulado.
                 Los premios se cobran en la mesa.
               </p>
             </div>
 
-            {/* The whole idea in one frame: a Supergana character eating at
-                Chapa, phone in hand, football on the table. */}
-            <div className="pk-hero-art">
-              <Image
-                src="/brands/chapa/lince-en-chapa.png"
-                alt=""
-                width={900}
-                height={900}
-                priority
-                style={{ width: "100%", height: "auto", display: "block" }}
-              />
-            </div>
+            <ChapaCharacter
+              dir={characterDir(program.theme.logoUrl)}
+              name="bandana-portada"
+              size={150}
+              className="pk-hero-art"
+            />
           </section>
 
           {week?.lockAt && first ? (
@@ -94,39 +82,41 @@ export default async function PickemLanding({
 
           {week ? (
             <section>
-              <div className="sg-eyebrow" style={{ marginBottom: 8 }}>
-                Jornada {week.week} · {week.games.filter((g) => !g.voided).length} partidos
+              <div style={{ marginBottom: 10 }}>
+                <span className="pk-tag">
+                  Jornada {week.week} · {week.games.filter((g) => !g.voided).length} partidos
+                </span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {week.games.slice(0, 3).map((g) => {
+                {week.games.slice(0, 3).map((g, i) => {
                   const away = teamOf(g.away);
                   const home = teamOf(g.home);
+                  const side = (team: typeof away, abbr: string) => (
+                    <div
+                      className="pk-side"
+                      style={{ "--team": team.color } as React.CSSProperties}
+                    >
+                      <TeamMark abbr={abbr} />
+                      <span className="pk-side-name">{team.name}</span>
+                      <span className="pk-side-city">{team.city}</span>
+                    </div>
+                  );
                   return (
                     <div className="pk-match" key={g.id}>
                       <div className="pk-match-head">
-                        <span>{formatKickoff(g.kickoffAt, tz)}</span>
-                        <span>{g.venueNote || g.network || "Cadena por definir"}</span>
+                        <span className="pk-match-no">Reto {String(i + 1).padStart(2, "0")}</span>
+                        <span className="pk-match-when">
+                          {formatKickoff(g.kickoffAt, tz)}
+                          {g.venueNote || g.network ? ` · ${g.venueNote || g.network}` : ""}
+                        </span>
+                        <span className="pk-match-pts">+{program.mechanics.hit} pts</span>
                       </div>
                       <div className="pk-match-body">
-                        <div className="pk-side">
-                          <TeamMark abbr={g.away} />
-                          <span style={{ minWidth: 0 }}>
-                            <span className="pk-side-name">{away.name}</span>
-                            <span className="pk-side-city" style={{ display: "block" }}>
-                              {away.city}
-                            </span>
-                          </span>
+                        {side(away, g.away)}
+                        <div className="pk-at">
+                          <span className="pk-vs">VS</span>
                         </div>
-                        <div className="pk-at">@</div>
-                        <div className="pk-side right">
-                          <TeamMark abbr={g.home} />
-                          <span style={{ minWidth: 0 }}>
-                            <span className="pk-side-name">{home.name}</span>
-                            <span className="pk-side-city" style={{ display: "block" }}>
-                              {home.city}
-                            </span>
-                          </span>
-                        </div>
+                        {side(home, g.home)}
                       </div>
                     </div>
                   );

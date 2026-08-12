@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProgram } from "@/lib/pickem/program";
+import { ChapaCharacter } from "../ChapaCharacter";
+import { characterDir } from "../cast";
 import { VerifyForm } from "./VerifyForm";
 
 export default async function VerificarPage({
@@ -17,16 +19,23 @@ export default async function VerificarPage({
     <>
     <div className="sg-screen">
       <div className="sg-pad">
-        <div>
-          <div className="sg-eyebrow">Último paso</div>
-          <h1 className="sg-display" style={{ marginTop: 6 }}>
-            Confirma
-            <br />
-            tu número
-          </h1>
-          <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
-            Es una sola vez en toda la temporada. Las otras 17 jornadas entras directo.
-          </p>
+        <div className="pk-titlerow">
+          <div>
+            <span className="pk-tag">Segunda jugada</span>
+            <h1 className="sg-display" style={{ marginTop: 10 }}>
+              Confirma
+              <br />
+              tu número
+            </h1>
+            <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
+              Una sola vez por temporada. Después entras directo.
+            </p>
+          </div>
+          <ChapaCharacter
+            dir={characterDir(program.theme.logoUrl)}
+            name="lince-verificacion"
+            size={112}
+          />
         </div>
 
         {/* useSearchParams needs a Suspense boundary or the whole route opts out

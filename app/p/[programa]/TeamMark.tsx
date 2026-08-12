@@ -14,8 +14,8 @@ import { teamOf } from "@/lib/pickem/teams";
  * did before. Nothing about the tile, its size or its underline changed, so
  * both renderings sit at the same weight in a row of matches.
  *
- * The tile is 34px (see `.pk-mark` in pickem.css) and the art is 160px, which
- * carries it past 4x DPR. `next/image` is the repo's component for static
+ * The tile is 42px (see `.pk-mark` in pickem.css) and the art is 160px, which
+ * carries it past 3x DPR. `next/image` is the repo's component for static
  * assets under public/ and `images.unoptimized` is on, so this emits a plain
  * <img> with no loader in the way.
  *
@@ -40,7 +40,7 @@ export function TeamMark({ abbr }: { abbr: string }) {
           style={{
             width: "100%",
             height: "100%",
-            padding: "1px 1px 5px",
+            padding: "3px 3px 7px",
             boxSizing: "border-box",
             objectFit: "contain",
           }}

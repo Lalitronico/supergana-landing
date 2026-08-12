@@ -29,25 +29,30 @@ export function WeekStrip({
   const weeks = Array.from({ length: total }, (_, i) => i + 1);
 
   return (
-    <nav aria-label="Jornadas de la temporada" className="pk-strip">
-      {weeks.map((w) => {
-        const settled = w < openWeek;
-        const open = w === openWeek;
-        const state = settled ? "is-settled" : open ? "is-open" : "is-upcoming";
-        const promo = promoWeeks.includes(w) ? " is-promo" : "";
-        return (
-          <Link
-            key={w}
-            href={`/p/${slug}/jornada/${w}/`}
-            className={`pk-strip-cell ${state}${promo}`}
-            aria-current={w === current ? "page" : undefined}
-            aria-label={`Jornada ${w}${promo ? ", doble" : ""}`}
-            style={w === current ? { outline: "3px solid var(--sg-ink)", outlineOffset: 2 } : undefined}
-          >
-            {w}
-          </Link>
-        );
-      })}
+    // The strip sits inside a ticket: eighteen loose cells between two cards
+    // read as debris, and the torn frame is what makes them one object — which
+    // is how the approved mockups draw it on every screen that carries it.
+    <nav aria-label="Jornadas de la temporada" className="pk-ticket pk-stripwrap">
+      <div className="pk-strip">
+        {weeks.map((w) => {
+          const settled = w < openWeek;
+          const open = w === openWeek;
+          const state = settled ? "is-settled" : open ? "is-open" : "is-upcoming";
+          const promo = promoWeeks.includes(w) ? " is-promo" : "";
+          const here = w === current ? " is-current" : "";
+          return (
+            <Link
+              key={w}
+              href={`/p/${slug}/jornada/${w}/`}
+              className={`pk-strip-cell ${state}${promo}${here}`}
+              aria-current={w === current ? "page" : undefined}
+              aria-label={`Jornada ${w}${promo ? ", doble" : ""}`}
+            >
+              J{w}
+            </Link>
+          );
+        })}
+      </div>
     </nav>
   );
 }

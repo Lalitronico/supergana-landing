@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPrizes, getProgram } from "@/lib/pickem/program";
+import { ChapaCharacter } from "../ChapaCharacter";
+import { characterDir } from "../cast";
 
 /**
  * The published rules, reachable from inside the product.
@@ -70,42 +72,52 @@ export default async function ReglasPage({
         ? "la que indique cada premio en tu pantalla"
         : null;
 
-  const scoring: { name: string; sub: string; val: string }[] = [
+  // The glyph is decoration and is marked as such: the rule is the name, the
+  // sub and the value, and a reader who gets none of the three from an icon
+  // has lost nothing.
+  const scoring: { name: string; sub: string; val: string; icon: string }[] = [
     {
+      icon: "◎",
       name: "Acierto",
       sub: "Por cada partido cuyo ganador atinas",
       val: `+${m.hit}`,
     },
     {
+      icon: "03",
       name: "Desempate",
       sub: `Predices los puntos totales del último partido de la jornada. Cuenta si quedas dentro de ±${m.tiebreakMargin}`,
       val: `+${m.tiebreak}`,
     },
     {
+      icon: "⏱",
       name: "Madrugador",
       sub: `Envías tus picks al menos ${m.earlyHours} horas antes del cierre. Se mide con tu primer envío: cambiar un pick después no te lo quita`,
       val: `+${m.early}`,
     },
     {
+      icon: "▲",
       name: "Racha de 3 a 5 jornadas",
       sub: "Jornadas seguidas con picks enviados, contando la actual",
       val: `+${m.streak3}`,
     },
     {
+      icon: "▲",
       name: "Racha de 6 o más",
       sub: "Sustituye al bono de 3; no se suman entre sí",
       val: `+${m.streak6}`,
     },
     {
+      icon: "⚑",
       name: "Check-in en sucursal",
       sub: "Escaneas el QR de la mesa el día de los partidos. Es gratis y no requiere consumo",
       val: `×${checkinX}`,
     },
     {
+      icon: "×2",
       name: "Jornada doble",
       sub: program.promoWeeks.length
-        ? `Jornadas marcadas por Chapa: ${program.promoWeeks.map((w) => `J${w}`).join(", ")}`
-        : "Chapa todavía no marca ninguna jornada doble de la temporada",
+        ? `Jornadas marcadas por ${program.orgName}: ${program.promoWeeks.map((w) => `J${w}`).join(", ")}`
+        : `${program.orgName} todavía no marca ninguna jornada doble de la temporada`,
       val: `×${promoX}`,
     },
   ];
@@ -114,17 +126,24 @@ export default async function ReglasPage({
     <>
       <div className="sg-screen">
         <div className="sg-pad">
-          <div>
-            <div className="sg-eyebrow">Reglas oficiales</div>
-            <h1 className="sg-display" style={{ marginTop: 6 }}>
-              Cómo
-              <br />
-              se juega
-            </h1>
-            <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
-              Temporada NFL {program.seasonYear} · {program.totalWeeks} jornadas de temporada
-              regular.
-            </p>
+          <div className="pk-titlerow">
+            <div>
+              <span className="pk-tag">Reglas oficiales</span>
+              <h1 className="sg-display" style={{ marginTop: 10 }}>
+                Cómo
+                <br />
+                se juega
+              </h1>
+              <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
+                Temporada NFL {program.seasonYear} · {program.totalWeeks} jornadas de
+                temporada regular.
+              </p>
+            </div>
+            <ChapaCharacter
+              dir={characterDir(program.theme.logoUrl)}
+              name="dino-reglas"
+              size={112}
+            />
           </div>
 
           {/* Said before anything else, not in a footer. This screen is the
@@ -150,16 +169,28 @@ export default async function ReglasPage({
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {scoring.map((s) => (
-                <div className="pk-mech" key={s.name}>
+                <div className="pk-ticket pk-mech" key={s.name}>
+                  <span className="pk-mech-disc" aria-hidden="true">
+                    {s.icon}
+                  </span>
                   <span className="pk-mech-text">
                     <span className="pk-mech-name">{s.name}</span>
                     <span className="pk-mech-sub" style={{ display: "block" }}>
                       {s.sub}
                     </span>
                   </span>
+                  <span className="pk-perf" />
                   <span className="pk-mech-val">{s.val}</span>
                 </div>
               ))}
+            </div>
+
+            {/* The one sentence somebody has to leave this screen with. */}
+            <div
+              className="pk-ticket accent raised pk-banner"
+              style={{ marginTop: 12, justifyContent: "center" }}
+            >
+              Los picks cierran al kickoff
             </div>
             <p className="sg-foot" style={{ marginTop: 8, marginBottom: 0 }}>
               Los multiplicadores se suman entre sí, no se multiplican: check-in y jornada

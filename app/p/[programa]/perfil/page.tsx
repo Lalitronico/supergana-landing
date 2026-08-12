@@ -10,6 +10,8 @@ import {
 } from "@/lib/pickem/access";
 import { getProgram } from "@/lib/pickem/program";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { ChapaCharacter } from "../ChapaCharacter";
+import { characterDir } from "../cast";
 
 /**
  * The screen a player comes back to in week 7.
@@ -41,16 +43,23 @@ export default async function PerfilPage({
       <>
         <div className="sg-screen">
           <div className="sg-pad">
-            <div>
-              <div className="sg-eyebrow">Perfil</div>
-              <h1 className="sg-display" style={{ marginTop: 6 }}>
-                Todavía
-                <br />
-                no juegas
-              </h1>
-              <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
-                Regístrate con tu WhatsApp y tus puntos empiezan a acumularse.
-              </p>
+            <div className="pk-titlerow">
+              <div>
+                <span className="pk-tag">Mi perfil</span>
+                <h1 className="sg-display" style={{ marginTop: 10 }}>
+                  Todavía
+                  <br />
+                  no juegas
+                </h1>
+                <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
+                  Regístrate con tu WhatsApp y tus puntos empiezan a acumularse.
+                </p>
+              </div>
+              <ChapaCharacter
+                dir={characterDir(program.theme.logoUrl)}
+                name="goblin-perfil"
+                size={112}
+              />
             </div>
           </div>
         </div>
@@ -88,14 +97,31 @@ export default async function PerfilPage({
     <>
       <div className="sg-screen">
         <div className="sg-pad">
-          <div>
-            <div className="sg-eyebrow">Mi perfil</div>
-            <h1 className="sg-display" style={{ marginTop: 6 }}>
-              {player.alias}
-            </h1>
-            <p className="sg-body" style={{ marginTop: 6, marginBottom: 0 }}>
-              {maskPhone(row?.phone ?? null)}
-            </p>
+          <div className="pk-titlerow">
+            <div>
+              <span className="pk-tag">Mi perfil</span>
+              <h1 className="sg-display" style={{ marginTop: 10 }}>
+                {player.alias}
+              </h1>
+              <p className="sg-body" style={{ marginTop: 6, marginBottom: 0 }}>
+                {maskPhone(row?.phone ?? null)}
+              </p>
+            </div>
+            <ChapaCharacter
+              dir={characterDir(program.theme.logoUrl)}
+              name="goblin-perfil"
+              size={112}
+            />
+          </div>
+
+          {/* The membership card. It says nothing the screen does not already
+              say — it is there because a player who has come back in week 7 is
+              owed something that looks like belonging. */}
+          <div className="pk-ticket accent raised pk-banner">
+            <span className="pk-mech-disc" aria-hidden="true">
+              ★
+            </span>
+            <span>Jugador de {program.orgName}</span>
           </div>
 
           {!isVerified(player) ? (
@@ -130,59 +156,41 @@ export default async function PerfilPage({
               a different and more discouraging thing than not having played. */}
           <div>
             <div className="sg-eyebrow" style={{ marginBottom: 8 }}>Jornada por jornada</div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(6, 1fr)",
-                gap: 7,
-              }}
-            >
-              {grid.map((c) => (
-                <Link
-                  key={c.week}
-                  href={`/p/${program.slug}/jornada/${c.week}/`}
-                  className="sg-card"
-                  style={{
-                    padding: "8px 4px",
-                    textAlign: "center",
-                    textDecoration: "none",
-                    color: "inherit",
-                    boxShadow: "none",
-                    borderWidth: 2.5,
-                    background: c.points !== null ? "var(--sg-yellow)" : "#fff",
-                    opacity: c.played || c.points !== null ? 1 : 0.55,
-                  }}
-                >
-                  <div className="pk-cd-l" style={{ marginTop: 0 }}>J{c.week}</div>
-                  <div
-                    style={{
-                      fontFamily: "var(--sg-display)",
-                      fontWeight: 800,
-                      fontSize: 15,
-                      fontVariantNumeric: "tabular-nums",
-                    }}
+            <div className="pk-ticket pk-stripwrap">
+              <div className="pk-grid">
+                {grid.map((c) => (
+                  <Link
+                    key={c.week}
+                    href={`/p/${program.slug}/jornada/${c.week}/`}
+                    className={`pk-grid-cell${
+                      c.points !== null ? " is-scored" : c.played ? " is-played" : ""
+                    }`}
                   >
-                    {c.points !== null ? c.points : "–"}
-                  </div>
-                </Link>
-              ))}
+                    <div className="pk-cd-l" style={{ marginTop: 0 }}>J{c.week}</div>
+                    <div className="pk-grid-n">{c.points !== null ? c.points : "–"}</div>
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="sg-card">
-            <div className="sg-eyebrow" style={{ marginBottom: 6 }}>Mis premios</div>
-            {awards.length === 0 ? (
-              <p className="sg-body" style={{ margin: 0 }}>
-                Todavía no tienes premios por canjear. Quedan{" "}
-                {Math.max(0, program.totalWeeks - program.openWeek + 1)} jornadas.
-              </p>
-            ) : (
-              <p className="sg-body" style={{ margin: 0 }}>
-                {claimable > 0
-                  ? `Tienes ${claimable} premio${claimable === 1 ? "" : "s"} por cobrar en sucursal.`
-                  : `${awards.length} premio${awards.length === 1 ? "" : "s"} en tu historial.`}
-              </p>
-            )}
+          <div className="pk-ticket pk-mech">
+            <span className="pk-mech-disc" aria-hidden="true">
+              ★
+            </span>
+            <div className="pk-mech-text">
+              <div className="pk-mech-name">Mis premios</div>
+              <div className="pk-mech-sub">
+                {awards.length === 0
+                  ? `Todavía no tienes premios por canjear. Quedan ${Math.max(
+                      0,
+                      program.totalWeeks - program.openWeek + 1,
+                    )} jornadas.`
+                  : claimable > 0
+                    ? `Tienes ${claimable} premio${claimable === 1 ? "" : "s"} por cobrar en sucursal.`
+                    : `${awards.length} premio${awards.length === 1 ? "" : "s"} en tu historial.`}
+              </div>
+            </div>
           </div>
 
           <p className="sg-foot" style={{ margin: 0 }}>

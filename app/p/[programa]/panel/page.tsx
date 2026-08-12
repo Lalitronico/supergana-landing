@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProgram } from "@/lib/pickem/program";
 import { HashSession } from "@/app/auth/HashSession";
+import { characterDir } from "../cast";
 import { PanelClient } from "./PanelClient";
 import "./panel.css";
 
@@ -43,7 +44,11 @@ export default async function PickemPanelPage({
   return (
     <>
       <HashSession />
-      <PanelClient slug={program.slug} />
+      <PanelClient
+        slug={program.slug}
+        programName={program.name}
+        charDir={characterDir(program.theme.logoUrl)}
+      />
     </>
   );
 }

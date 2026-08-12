@@ -115,16 +115,31 @@ export const parseOrgTheme = (raw: unknown): OrgTheme => {
 // ---------------------------------------------------------------------------
 
 /**
- * The theme's whole reach over the stylesheet: two custom properties.
+ * The theme's whole reach over the stylesheet: one colour pair, emitted under
+ * both names the platform answers to.
  *
- * `tickets.css` declares defaults for both on `.tk-app`, so an absent key means
- * "use the system's" without any component knowing whether a theme exists. The
- * tint used behind badges is derived in CSS with color-mix rather than asked of
- * the tenant — one fewer value to get wrong per client.
+ * `--tk-*` is what tickets.css reads; `--sg-*` is what module-shell.css declares
+ * and what every module written after it reads. They are the SAME pair — the two
+ * prefixes are an artefact of tickets.css predating the shared shell, not two
+ * different decisions — so this function emits both rather than making each
+ * module guess which vocabulary its tenant was configured in. Emitting only
+ * `--tk-*` is why the pick'em rendered the platform's default blue for a tenant
+ * whose theme row had said copper since 0024.
+ *
+ * Both files declare defaults for the pair on their own root, so an absent key
+ * means "use the system's" without any component knowing whether a theme exists.
+ * The tint used behind badges is derived in CSS with color-mix rather than asked
+ * of the tenant — one fewer value to get wrong per client.
  */
 export const themeCssVars = (theme: OrgTheme): Record<string, string> => {
   const vars: Record<string, string> = {};
-  if (theme.brand) vars["--tk-brand"] = theme.brand;
-  if (theme.brandInk) vars["--tk-brand-ink"] = theme.brandInk;
+  if (theme.brand) {
+    vars["--tk-brand"] = theme.brand;
+    vars["--sg-brand"] = theme.brand;
+  }
+  if (theme.brandInk) {
+    vars["--tk-brand-ink"] = theme.brandInk;
+    vars["--sg-brand-ink"] = theme.brandInk;
+  }
   return vars;
 };

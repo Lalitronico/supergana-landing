@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { getAwards, resolvePlayer } from "@/lib/pickem/access";
 import { getPrizes, getProgram } from "@/lib/pickem/program";
 import { formatDay } from "@/lib/pickem/schedule";
+import { ChapaCharacter } from "../ChapaCharacter";
+import { characterDir } from "../cast";
 
 /**
  * What is at stake, and what has been won.
@@ -35,22 +37,18 @@ export default async function PremiosPage({
     <>
       <div className="sg-screen">
         <div className="sg-pad">
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div className="sg-eyebrow">Premios</div>
-              <h1 className="sg-display" style={{ marginTop: 6 }}>
+          <div className="pk-titlerow">
+            <div>
+              <span className="pk-tag">Premios</span>
+              <h1 className="sg-display" style={{ marginTop: 10 }}>
                 {claimable.length ? "Ganaste" : "Lo que está en juego"}
               </h1>
             </div>
-            <div className="sg-art" style={{ width: 92 }}>
-              <Image
-                src="/brands/chapa/balon-mascota.png"
-                alt=""
-                width={400}
-                height={400}
-                style={{ width: "100%", height: "auto" }}
-              />
-            </div>
+            <ChapaCharacter
+              dir={characterDir(program.theme.logoUrl)}
+              name="oso-premios"
+              size={116}
+            />
           </div>
 
           {/* Won, and not yet collected. First, because it is the only thing on
@@ -144,21 +142,27 @@ export default async function PremiosPage({
                 </p>
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {/* A prize is a torn stub. The weekly ones are the tenant's
+                    colour and the season one stays cream, so the two tiers are
+                    told apart by the paper rather than by reading the label. */}
                 {[...weekly, ...season].map((p) => (
-                  <div className="sg-card" key={p.id}>
-                    <div className="sg-eyebrow">
-                      {p.scope === "week" ? "Cada jornada" : "Gran premio de temporada"} ·
-                      lugar {p.place}
+                  <div
+                    className={`pk-ticket pk-prize${p.scope === "week" ? " accent" : ""}`}
+                    key={p.id}
+                  >
+                    <div style={{ minWidth: 0 }}>
+                      <div className="sg-eyebrow" style={{ color: "var(--sg-ink-soft)" }}>
+                        {p.scope === "week" ? "Cada jornada" : "Gran premio de temporada"} ·
+                        lugar {p.place}
+                      </div>
+                      <div className="pk-prize-name">{p.name}</div>
+                      {p.detail ? <p className="pk-prize-detail">{p.detail}</p> : null}
                     </div>
-                    <div className="sg-h" style={{ fontSize: 17, marginTop: 3 }}>
-                      {p.name}
-                    </div>
-                    {p.detail ? (
-                      <p className="sg-body" style={{ marginTop: 3, marginBottom: 0 }}>
-                        {p.detail}
-                      </p>
-                    ) : null}
+                    <div className="pk-perf" />
+                    <span className="pk-mech-disc" aria-hidden="true">
+                      {p.scope === "week" ? "★" : "♛"}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -182,33 +186,33 @@ export default async function PremiosPage({
               `wordmark_url` in `organizations.theme` the day a second tenant
               arrives; today the theme only carries the emblem. */}
           {program.venues.length ? (
-            <div className="sg-card">
-              <div className="sg-eyebrow" style={{ marginBottom: 10 }}>Dónde se cobra</div>
-              {program.theme.logoUrl ? (
-                <div style={{ marginBottom: 12 }}>
-                  <span className="chapa-sign">
-                    <Image
-                      src="/brands/chapa/chapa-wordmark-420.png"
-                      alt={program.orgName}
-                      width={420}
-                      height={126}
-                      style={{ width: 148, height: "auto" }}
-                    />
-                  </span>
+            <>
+              <div className="pk-counter">
+                <span className="pk-tag pk-counter-tag">Dónde se cobra</span>
+                {program.theme.logoUrl ? (
+                  <Image
+                    src="/brands/chapa/chapa-wordmark-420.png"
+                    alt={program.orgName}
+                    width={420}
+                    height={126}
+                    className="pk-counter-mark"
+                  />
+                ) : (
+                  <div className="pk-counter-name">{program.orgName}</div>
+                )}
+                <div className="pk-counter-chips">
+                  {program.venues.map((v) => (
+                    <span className="sg-chip" key={v}>
+                      {v}
+                    </span>
+                  ))}
                 </div>
-              ) : null}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
-                {program.venues.map((v) => (
-                  <span className="sg-chip" key={v}>
-                    {v}
-                  </span>
-                ))}
               </div>
-              <p className="sg-foot" style={{ marginTop: 10, marginBottom: 0 }}>
+              <p className="sg-foot" style={{ margin: 0 }}>
                 Todo premio se cobra en el mostrador. Las condiciones de canje y la vigencia
                 están en las <Link href={`/p/${program.slug}/reglas/`}>reglas del programa</Link>.
               </p>
-            </div>
+            </>
           ) : null}
         </div>
       </div>

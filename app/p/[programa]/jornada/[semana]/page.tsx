@@ -10,6 +10,8 @@ import {
 import { acceptsPicks, getProgram, getWeek } from "@/lib/pickem/program";
 import { closingGame, sameLocalDay } from "@/lib/pickem/schedule";
 import type { Breakdown } from "@/lib/pickem/schema";
+import { ChapaCharacter } from "../../ChapaCharacter";
+import { characterDir } from "../../cast";
 import { WeekStrip } from "../../WeekStrip";
 import { CheckinCard } from "./CheckinCard";
 import { PicksBoard } from "./PicksBoard";
@@ -43,6 +45,8 @@ export default async function JornadaPage({
   const player = await resolvePlayer(program.campaignId);
   const verified = isVerified(player);
 
+  const charDir = characterDir(program.theme.logoUrl);
+
   const strip = (
     <WeekStrip
       slug={program.slug}
@@ -62,17 +66,20 @@ export default async function JornadaPage({
       <>
         <div className="sg-screen">
           <div className="sg-pad">
-            <div>
-              <div className="sg-eyebrow">Jornada {week}</div>
-              <h1 className="sg-display" style={{ marginTop: 6 }}>
-                Primero,
-                <br />
-                tu número
-              </h1>
-              <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
-                Los puntos se guardan en tu WhatsApp. Sin confirmarlo no podemos
-                acreditártelos ni ponerte en el ranking.
-              </p>
+            <div className="pk-titlerow">
+              <div>
+                <span className="pk-tag">Jornada {week}</span>
+                <h1 className="sg-display" style={{ marginTop: 10 }}>
+                  Primero,
+                  <br />
+                  tu número
+                </h1>
+                <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
+                  Los puntos se guardan en tu WhatsApp. Sin confirmarlo no podemos
+                  acreditártelos ni ponerte en el ranking.
+                </p>
+              </div>
+              <ChapaCharacter dir={charDir} name="lince-verificacion" size={110} />
             </div>
             {strip}
           </div>
@@ -114,6 +121,7 @@ export default async function JornadaPage({
         closingLabel={closing ? `${closing.away}–${closing.home}` : null}
         live={acceptsPicks(program)}
         strip={strip}
+        charDir={charDir}
         checkin={
           inWindow || checkedIn ? (
             <CheckinCard
@@ -148,6 +156,7 @@ export default async function JornadaPage({
       settled={weekData.state === "settled"}
       seasonPoints={seasonPoints}
       strip={strip}
+      charDir={charDir}
     />
   );
 }

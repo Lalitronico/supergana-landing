@@ -5,6 +5,7 @@ import { authThrottleKind, supabaseBrowser } from "@/lib/supabase/browser";
 import { WeekView } from "./WeekView";
 import { DeskView } from "./DeskView";
 import { AdjustView } from "./AdjustView";
+import { ChapaCharacter } from "../ChapaCharacter";
 import type { PanelData, PanelView } from "./types";
 
 /**
@@ -26,9 +27,15 @@ type Gate = "loading" | "anon" | "forbidden" | "ready" | "error";
 
 export function PanelClient({
   slug,
+  programName,
+  charDir = null,
   initialView = "jornada",
 }: {
   slug: string;
+  /** The campaign's own name, for the screen a stranger lands on. */
+  programName?: string;
+  /** Where this tenant's cast lives, or null when it has none. */
+  charDir?: string | null;
   initialView?: PanelView;
 }) {
   const [gate, setGate] = useState<Gate>("loading");
@@ -96,7 +103,8 @@ export function PanelClient({
   }
 
   if (gate === "anon") return <SignInGate onSignedIn={() => void load(null)} />;
-  if (gate === "forbidden") return <ForbiddenGate slug={slug} />;
+  if (gate === "forbidden")
+    return <ForbiddenGate slug={slug} programName={programName} charDir={charDir} />;
 
   if (gate === "error" || !data) {
     return (
@@ -386,15 +394,44 @@ function SignInGate({ onSignedIn }: { onSignedIn: () => void }) {
   );
 }
 
-function ForbiddenGate({ slug }: { slug: string }) {
+/**
+ * The one panel screen a player-facing visitor can reach, so it is the one that
+ * gets the module's face rather than the console's: everything else behind the
+ * gate is for staff and keeps panel.css untouched.
+ */
+function ForbiddenGate({
+  slug,
+  programName,
+  charDir,
+}: {
+  slug: string;
+  programName?: string;
+  charDir: string | null;
+}) {
   return (
     <div className="sg-screen">
-      <div className="sg-pad pkp pkp-gate">
-        <h1 className="sg-h" style={{ fontSize: 21 }}>Sin acceso a este programa</h1>
-        <p className="sg-body">
-          Tu sesión es válida, pero tu cuenta no está en la lista de operación de{" "}
-          <b>{slug}</b>. Tener cuenta no autoriza nada por sí solo.
-        </p>
+      <div className="sg-pad">
+        <div className="pk-titlerow">
+          <div>
+            <span className="pk-tag">Acceso a la campaña</span>
+            <h1 className="sg-display" style={{ marginTop: 10 }}>
+              Esta quiniela es por invitación
+            </h1>
+            <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
+              Tu sesión es válida, pero tu cuenta no está en la lista de operación de esta
+              campaña. Tener cuenta no autoriza nada por sí solo.
+            </p>
+          </div>
+          <ChapaCharacter dir={charDir} name="goblin-acceso" size={112} />
+        </div>
+
+        <div className="pk-ticket accent raised" style={{ padding: "14px 18px" }}>
+          <div className="pk-prize-name" style={{ marginTop: 0 }}>
+            {programName ?? slug}
+          </div>
+          <p className="pk-prize-detail">Pide tu acceso al equipo de la campaña.</p>
+        </div>
+
         <button
           className="sg-btn ghost"
           onClick={async () => {

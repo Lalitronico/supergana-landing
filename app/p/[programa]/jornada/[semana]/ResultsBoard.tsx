@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Breakdown, Game } from "@/lib/pickem/schema";
 import { formatKickoff } from "@/lib/pickem/schedule";
 import { teamOf } from "@/lib/pickem/teams";
+import { ChapaCharacter } from "../../ChapaCharacter";
 import { TeamMark } from "../../TeamMark";
 
 /**
@@ -34,6 +35,7 @@ export function ResultsBoard({
   settled,
   seasonPoints,
   strip,
+  charDir,
 }: {
   slug: string;
   week: number;
@@ -44,6 +46,8 @@ export function ResultsBoard({
   settled: boolean;
   seasonPoints: number | null;
   strip?: React.ReactNode;
+  /** Where this tenant's cast lives, or null when it has none. */
+  charDir: string | null;
 }) {
   const playable = games.filter((g) => !g.voided);
   const played = Object.keys(picks).length > 0;
@@ -52,18 +56,21 @@ export function ResultsBoard({
     <>
       <div className="sg-screen">
         <div className="sg-pad">
-          <div>
-            <div className="sg-eyebrow">Jornada {week}</div>
-            <h1 className="sg-display" style={{ marginTop: 6 }}>
-              {settled ? "Jornada cerrada" : "Jornada en juego"}
-            </h1>
-            <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
-              {!played
-                ? "No jugaste esta jornada. Quedan las que siguen."
-                : settled && breakdown
-                  ? `Acertaste ${breakdown.hits} de ${breakdown.of}.`
-                  : "Los picks están cerrados. Los resultados llegan el martes."}
-            </p>
+          <div className="pk-titlerow">
+            <div>
+              <span className="pk-tag">Jornada {week}</span>
+              <h1 className="sg-display" style={{ marginTop: 10 }}>
+                {settled ? "Jornada cerrada" : "Jornada en juego"}
+              </h1>
+              <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
+                {!played
+                  ? "No jugaste esta jornada. Quedan las que siguen."
+                  : settled && breakdown
+                    ? `Acertaste ${breakdown.hits} de ${breakdown.of}.`
+                    : "Los picks están cerrados. Los resultados llegan el martes."}
+              </p>
+            </div>
+            <ChapaCharacter dir={charDir} name="cebra-resultados" size={112} />
           </div>
 
           {strip}
@@ -141,7 +148,7 @@ export function ResultsBoard({
           ) : null}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-            {playable.map((g) => {
+            {playable.map((g, i) => {
               const away = teamOf(g.away);
               const home = teamOf(g.home);
               const winner = winnerOf(g);
@@ -161,32 +168,26 @@ export function ResultsBoard({
               // So the fill follows the reader's own pick and nothing else, and
               // the result is said in words. A screen may not assert a decision
               // the player did not make.
-              const side = (which: "away" | "home", team: typeof away, abbr: string, score: number | null) => (
-                <div
-                  className={`pk-side${which === "home" ? " right" : ""}${mine === which ? " is-picked" : ""}`}
-                >
+              const side = (which: "away" | "home", team: typeof away, abbr: string) => (
+                <div className="pk-score-team">
                   <TeamMark abbr={abbr} />
-                  <span style={{ minWidth: 0 }}>
-                    <span className="pk-side-name">{team.name}</span>
-                    <span className="pk-side-city" style={{ display: "block" }}>
-                      {mine === which ? "TU PICK" : winner === which ? "GANÓ" : team.city}
-                    </span>
-                  </span>
-                  <span
-                    className="pk-lb-pts"
-                    style={{ marginLeft: which === "away" ? "auto" : 0, marginRight: which === "home" ? "auto" : 0 }}
-                  >
-                    {/* A dash, never a zero. A zero says the team scored none. */}
-                    {score === null ? "–" : score}
-                  </span>
+                  <span className="pk-score-name">{team.name}</span>
+                  {mine === which ? (
+                    <span className="pk-score-tag mine">Tu pick</span>
+                  ) : winner === which ? (
+                    <span className="pk-score-tag">Ganó</span>
+                  ) : (
+                    <span className="pk-side-city">{team.city}</span>
+                  )}
                 </div>
               );
 
               return (
                 <div className="pk-match" key={g.id}>
                   <div className="pk-match-head">
-                    <span>{formatKickoff(g.kickoffAt, tz)}</span>
-                    <span>
+                    <span className="pk-match-no">Reto {String(i + 1).padStart(2, "0")}</span>
+                    <span className="pk-match-when">{formatKickoff(g.kickoffAt, tz)}</span>
+                    <span className="pk-match-pts">
                       {!hasScore
                         ? "Por jugarse"
                         : winner === null
@@ -198,10 +199,15 @@ export function ResultsBoard({
                             : "Final"}
                     </span>
                   </div>
-                  <div className="pk-match-body">
-                    {side("away", away, g.away, g.awayScore)}
-                    <div className="pk-at">@</div>
-                    {side("home", home, g.home, g.homeScore)}
+                  <div className="pk-score-body">
+                    {side("away", away, g.away)}
+                    {/* A dash, never a zero. A zero says the team scored none. */}
+                    <span className="pk-scoreboard">
+                      <b>{g.awayScore === null ? "–" : g.awayScore}</b>
+                      <i aria-hidden="true" />
+                      <b>{g.homeScore === null ? "–" : g.homeScore}</b>
+                    </span>
+                    {side("home", home, g.home)}
                   </div>
                 </div>
               );

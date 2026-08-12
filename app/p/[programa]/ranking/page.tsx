@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { resolvePlayer } from "@/lib/pickem/access";
 import { getProgram, getStandings, LEADERBOARD_TOP } from "@/lib/pickem/program";
 import type { LeaderboardRow } from "@/lib/pickem/schema";
+import { ChapaCharacter } from "../ChapaCharacter";
+import { characterDir } from "../cast";
 import { WeekStrip } from "../WeekStrip";
 
 /**
@@ -59,7 +61,7 @@ export default async function RankingPage({
   // row keeps when it is shown on its own below — otherwise finding yourself
   // outside the fifty would look like a different kind of thing.
   const row = (r: LeaderboardRow, me: boolean) => (
-    <div className="pk-lb-row" key={r.participantId} data-me={me}>
+    <div className="pk-ticket pk-lb-row" key={r.participantId} data-me={me}>
       <span className="pk-lb-rank">{r.rank}</span>
       <span className="pk-lb-name">
         {r.alias}
@@ -74,26 +76,60 @@ export default async function RankingPage({
     </div>
   );
 
+  // The podium only stands when there are three scored places to put on it. A
+  // step with a dash on it is a promise the table cannot keep, and week 1 before
+  // kickoff is exactly that table — which is why an unplayed week keeps the
+  // plain rows and the "todavía no se juega" character instead.
+  const scored = notPlayedYet ? [] : standings.top.filter((r) => r.points > 0);
+  const podium = scored.length >= 3 ? scored.slice(0, 3) : [];
+  const rest = podium.length ? standings.top.slice(3) : standings.top;
+
+  // "This is you" has to survive the podium: somebody in the top three loses
+  // the yellow row that marks them everywhere else, and finding yourself is the
+  // reason the screen gets opened.
+  const step = (r: LeaderboardRow, place: 1 | 2 | 3) => (
+    <div
+      className={`pk-pod${place === 1 ? " first" : ""}${
+        player?.participantId === r.participantId ? " is-me" : ""
+      }`}
+      key={r.participantId}
+    >
+      <div className="pk-pod-card">
+        <div className="pk-pod-name">{r.alias}</div>
+        {r.venue ? <div className="pk-pod-venue">{r.venue}</div> : null}
+        <div className="pk-pod-pts">{r.points}</div>
+      </div>
+      <div className="pk-pod-step">{place}</div>
+    </div>
+  );
+
   return (
     <>
       <div className="sg-screen">
         <div className="sg-pad">
-          <div>
-            <div className="sg-eyebrow">
-              {scope === "season" ? "Acumulado de temporada" : `Jornada ${week}`}
+          <div className="pk-titlerow">
+            <div>
+              <span className="pk-tag">
+                {scope === "season" ? "Acumulado de temporada" : `Jornada ${week}`}
+              </span>
+              <h1 className="sg-display" style={{ marginTop: 10 }}>
+                Ranking
+              </h1>
+              {notPlayedYet ? (
+                <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
+                  La jornada {week} todavía no se juega.
+                </p>
+              ) : sameAsSeason ? (
+                <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
+                  Con una jornada jugada, el acumulado y la jornada son la misma tabla.
+                </p>
+              ) : null}
             </div>
-            <h1 className="sg-display" style={{ marginTop: 6 }}>
-              Ranking
-            </h1>
-            {notPlayedYet ? (
-              <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
-                La jornada {week} todavía no se juega.
-              </p>
-            ) : sameAsSeason ? (
-              <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
-                Con una jornada jugada, el acumulado y la jornada son la misma tabla.
-              </p>
-            ) : null}
+            <ChapaCharacter
+              dir={characterDir(program.theme.logoUrl)}
+              name={podium.length ? "lince-ranking-final" : "bandana-ranking"}
+              size={112}
+            />
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -128,9 +164,20 @@ export default async function RankingPage({
               </p>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {standings.top.map((r) => row(r, player?.participantId === r.participantId))}
-            </div>
+            <>
+              {podium.length ? (
+                <div className="pk-podium">
+                  {step(podium[1], 2)}
+                  {step(podium[0], 1)}
+                  {step(podium[2], 3)}
+                </div>
+              ) : null}
+              {rest.length ? (
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {rest.map((r) => row(r, player?.participantId === r.participantId))}
+                </div>
+              ) : null}
+            </>
           )}
 
           {/* Your row, when it did not make the fifty. Separated rather than

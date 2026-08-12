@@ -6,6 +6,7 @@ import { memo, useCallback, useMemo, useState } from "react";
 import type { Game, Mechanics } from "@/lib/pickem/schema";
 import { formatKickoff, qualifiesEarly } from "@/lib/pickem/schedule";
 import { teamOf } from "@/lib/pickem/teams";
+import { ChapaCharacter } from "../../ChapaCharacter";
 import { TeamMark } from "../../TeamMark";
 
 /**
@@ -38,11 +39,17 @@ const ERRORS: Record<string, string> = {
 
 const MatchRow = memo(function MatchRow({
   game,
+  index,
+  hit,
   tz,
   pick,
   onPick,
 }: {
   game: Game;
+  /** Its place in the jornada, 1-based. "RETO 03" is how the mockups name it. */
+  index: number;
+  /** What an accurate pick is worth, straight from the programme's mechanics. */
+  hit: number;
   tz: string;
   pick: Side | undefined;
   onPick: (gameId: string, side: Side) => void;
@@ -53,28 +60,38 @@ const MatchRow = memo(function MatchRow({
   const side = (which: Side, team: typeof away, abbr: string) => (
     <button
       type="button"
-      className={`pk-side${which === "home" ? " right" : ""}${pick === which ? " is-picked" : ""}`}
+      className={`pk-side${pick === which ? " is-picked" : ""}`}
+      style={{ "--team": team.color } as React.CSSProperties}
       onClick={() => onPick(game.id, which)}
       aria-pressed={pick === which}
       aria-label={`Elegir ${team.name}`}
     >
+      {pick === which ? <span className="pk-side-stamp">Tu pick</span> : null}
       <TeamMark abbr={abbr} />
-      <span style={{ minWidth: 0 }}>
-        <span className="pk-side-name">{team.name}</span>
-        <span className="pk-side-city" style={{ display: "block" }}>{team.city}</span>
-      </span>
+      <span className="pk-side-name">{team.name}</span>
+      <span className="pk-side-city">{team.city}</span>
     </button>
   );
 
   return (
     <div className="pk-match">
       <div className="pk-match-head">
-        <span>{formatKickoff(game.kickoffAt, tz)}</span>
-        <span>{game.venueNote || game.network || "Cadena por definir"}</span>
+        <span className="pk-match-no">Reto {String(index).padStart(2, "0")}</span>
+        {/* Kickoff first and the broadcaster after it, in that order and in one
+            ellipsizing cell: when the bar runs out of room the tail is what
+            gets cut, and the tail is the least load-bearing half. */}
+        <span className="pk-match-when">
+          {formatKickoff(game.kickoffAt, tz)}
+          {game.venueNote || game.network ? ` · ${game.venueNote || game.network}` : ""}
+        </span>
+        <span className="pk-match-pts">+{hit} pts</span>
       </div>
       <div className="pk-match-body">
         {side("away", away, game.away)}
-        <div className="pk-at">@</div>
+        <div className="pk-at">
+          <span className="pk-vs">VS</span>
+          <span className="pk-at-hint">elige uno</span>
+        </div>
         {side("home", home, game.home)}
       </div>
     </div>
@@ -94,6 +111,7 @@ export function PicksBoard({
   live,
   strip,
   checkin,
+  charDir,
 }: {
   slug: string;
   week: number;
@@ -111,6 +129,8 @@ export function PicksBoard({
   strip?: React.ReactNode;
   /** The check-in card, when the branch window is open. Also server-rendered. */
   checkin?: React.ReactNode;
+  /** Where this tenant's cast lives, or null when it has none. */
+  charDir: string | null;
 }) {
   const router = useRouter();
   const [picks, setPicks] = useState<Picks>(initialPicks);
@@ -170,63 +190,66 @@ export function PicksBoard({
     <>
       <div className="sg-screen">
         <div className="sg-pad">
-          <div>
-            <div className="sg-eyebrow">
-              Jornada {week} · {playable.length} partidos
+          {/* The character that comes with the state of the board: the referee
+              while the sheet is blank, the one with the clipboard once picks
+              are on it. Both are in the approved set for this screen, and which
+              one is standing there is the fastest read of "have I started". */}
+          <div className="pk-titlerow">
+            <div>
+              <span className="pk-tag">
+                Reto de la jornada {week}
+              </span>
+              <h1 className="sg-display" style={{ marginTop: 10 }}>
+                Arma tu quiniela
+              </h1>
+              <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
+                {chosen === 0
+                  ? `${playable.length} partidos · +${mechanics.hit} pts por acierto`
+                  : `${chosen} pick${chosen === 1 ? "" : "s"} hecho${chosen === 1 ? "" : "s"} · +${mechanics.hit} pts por acierto`}
+                {lockAt ? ` · cierra el ${formatKickoff(lockAt, tz)}` : ""}
+              </p>
             </div>
-            <h1 className="sg-display" style={{ marginTop: 6 }}>
-              Haz tus
-              <br />
-              picks
-            </h1>
-            <p className="sg-body" style={{ marginTop: 8, marginBottom: 0 }}>
-              Elige al ganador de cada partido.
-              {lockAt ? ` Cierran el ${formatKickoff(lockAt, tz)}.` : ""}
-            </p>
+            <ChapaCharacter
+              dir={charDir}
+              name={chosen === 0 ? "cebra-picks" : "dino-picks"}
+              size={118}
+            />
+          </div>
+
+          {/* Progress as a number on a yellow bar, the way the mockups show it.
+              It is what people check before deciding whether they have time to
+              finish now. */}
+          <div
+            className="pk-progress"
+            role="progressbar"
+            aria-valuenow={chosen}
+            aria-valuemin={0}
+            aria-valuemax={playable.length}
+            aria-label="Picks elegidos"
+          >
+            <div
+              className="pk-progress-fill"
+              style={{ width: `${playable.length ? (chosen / playable.length) * 100 : 0}%` }}
+            />
+            <span className="pk-progress-n">
+              {chosen} / {playable.length}
+            </span>
           </div>
 
           {strip}
           {checkin}
 
-          {/* Progress as a sentence and a bar. The number is what people check
-              before deciding whether they have time to finish now. */}
-          <div>
-            <div
-              style={{
-                height: 10,
-                border: "2.5px solid var(--sg-ink)",
-                borderRadius: 999,
-                background: "#fff",
-                overflow: "hidden",
-              }}
-              role="progressbar"
-              aria-valuenow={chosen}
-              aria-valuemin={0}
-              aria-valuemax={playable.length}
-            >
-              <div
-                style={{
-                  width: `${playable.length ? (chosen / playable.length) * 100 : 0}%`,
-                  height: "100%",
-                  background: "var(--sg-yellow)",
-                  transition: "width 140ms ease",
-                }}
-              />
-            </div>
-            <div
-              className="sg-eyebrow"
-              style={{ marginTop: 6, display: "flex", justifyContent: "space-between" }}
-            >
-              <span>
-                {chosen} de {playable.length} elegidos
-              </span>
-              <span>{mechanics.hit} pts por acierto</span>
-            </div>
-          </div>
-
           <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
-            {playable.map((g) => (
-              <MatchRow key={g.id} game={g} tz={tz} pick={picks[g.id]} onPick={onPick} />
+            {playable.map((g, i) => (
+              <MatchRow
+                key={g.id}
+                game={g}
+                index={i + 1}
+                hit={mechanics.hit}
+                tz={tz}
+                pick={picks[g.id]}
+                onPick={onPick}
+              />
             ))}
           </div>
 
@@ -256,13 +279,17 @@ export function PicksBoard({
           </div>
 
           {early ? (
-            <div className="pk-mech is-on">
+            <div className="pk-ticket pk-mech is-on">
+              <span className="pk-mech-disc" aria-hidden="true">
+                ⏱
+              </span>
               <div className="pk-mech-text">
                 <div className="pk-mech-name">Madrugador</div>
                 <div className="pk-mech-sub">
                   Envías con más de {mechanics.earlyHours} h de anticipación
                 </div>
               </div>
+              <div className="pk-perf" />
               <div className="pk-mech-val">+{mechanics.early}</div>
             </div>
           ) : null}

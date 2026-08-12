@@ -50,11 +50,15 @@ export function CheckinCard({
 
   if (checkedInAt) {
     return (
-      <div className="pk-mech is-on">
+      <div className="pk-ticket pk-mech is-on">
+        <span className="pk-mech-disc" aria-hidden="true">
+          ✓
+        </span>
         <div className="pk-mech-text">
           <div className="pk-mech-name">Check-in listo</div>
           <div className="pk-mech-sub">Estás en {checkedInAt}</div>
         </div>
+        <div className="pk-perf" />
         <div className="pk-mech-val">×{1 + multiplier}</div>
       </div>
     );
