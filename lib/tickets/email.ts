@@ -8,7 +8,7 @@
 // Transactional only. Marketing goes on a separate consent and a separate
 // sender — mixing them is a CAN-SPAM problem, not a style preference.
 
-import { formatUsdCents, type Locale } from "./config";
+import { formatUsdCents, type Locale } from "./config.ts";
 
 const FROM = process.env.EMAIL_FROM ?? "Supergana <onboarding@resend.dev>";
 
@@ -16,7 +16,19 @@ export const emailConfigured = () => Boolean(process.env.RESEND_API_KEY);
 
 const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL ?? "https://supergana.fun";
 
-async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+async function sendEmail(to: string | null, subject: string, html: string): Promise<boolean> {
+  // Nowhere to send, and that is a normal state rather than a failure: a
+  // campaign whose `auth.channel` is 'phone' never collects an address (0030),
+  // so its participants are reachable by WhatsApp and nowhere else. Handled in
+  // the same place as the missing API key because it is the same fact — this
+  // message is not going out — and callers should no more branch on it than
+  // they branch on Resend being unconfigured.
+  //
+  // Not logged. A missing key is a misconfiguration somebody should see; a
+  // participant with no address is Tuesday, and logging it once per receipt
+  // would bury the lines that matter.
+  if (!to) return false;
+
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     console.warn(`[tickets email] RESEND_API_KEY missing — skipped "${subject}" to ${to}`);
@@ -82,7 +94,8 @@ const wrap = ({ campaignName, campaignSlug, locale, title, body, cta }: Shell) =
 };
 
 interface Recipient {
-  to: string;
+  /** Null where the campaign identifies by phone: nothing to send, no error. */
+  to: string | null;
   firstName: string;
   locale: Locale;
   campaignName: string;

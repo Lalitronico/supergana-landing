@@ -8,18 +8,31 @@
 
 import { currentUser } from "@/lib/supabase/route";
 import { supabaseAdmin } from "@/lib/supabase/server";
-import type { ParticipantRow } from "./schema";
-import type { StaffRole } from "./roles";
+import { phoneFromAuthEmail } from "@/lib/platform/identity";
+import type { ParticipantRow } from "./schema.ts";
+import type { StaffRole } from "./roles.ts";
 
 // Re-exported so server code has one import for "who is calling and what may
 // they do". Client components must import from ./roles directly — this module
 // reaches for next/headers and cannot be bundled for the browser.
 export type { StaffRole };
-export { canReview, canPayout } from "./roles";
+export { canReview, canPayout } from "./roles.ts";
 
 export interface ParticipantContext {
   userId: string;
-  email: string;
+  /**
+   * The address, or null when this session has none to speak of.
+   *
+   * Null is not an error and not an incomplete profile: a campaign whose
+   * channel is `phone` mints accounts on a synthetic address that reaches
+   * nobody, and this is where that address stops existing. Anything downstream
+   * that wants to SHOW who is signed in reads `phone` instead — or falls back
+   * to it — and anything that wants to SEND somewhere must treat null as "there
+   * is nowhere to send", because there is.
+   */
+  email: string | null;
+  /** E.164 when the session is a phone identity, null otherwise. */
+  phone: string | null;
   /** null when the account exists but the campaign profile isn't filled in yet. */
   participant: ParticipantRow | null;
 }
@@ -43,9 +56,22 @@ export const resolveParticipant = async (
     return null;
   }
 
+  // THE ONE TRANSLATION. `user.email` on a phone identity is plumbing —
+  // `526567767074@wa.supergana.fun` — and every screen that prints an address
+  // would print that instead. It is turned into a phone number here, once, and
+  // no other reader of `currentUser()` in this module may skip past it.
+  //
+  // The participant row's own email is still the fallback for an email session,
+  // as it was: an account created before the address was copied onto the row is
+  // still the same person.
+  const phone = phoneFromAuthEmail(user.email);
   return {
     userId: user.id,
-    email: user.email ?? data?.email ?? "",
+    email: phone ? null : (user.email ?? data?.email ?? null),
+    // Preferring the session over the row deliberately: the row's phone is a
+    // profile field somebody could have edited, the session's is the number a
+    // code came back from.
+    phone: phone ?? data?.phone ?? null,
     participant: data ?? null,
   };
 };

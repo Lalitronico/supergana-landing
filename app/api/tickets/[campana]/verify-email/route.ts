@@ -44,6 +44,13 @@ export async function POST(
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
+  // Nothing to verify: a campaign identified by phone never collects an address
+  // (0030), and its reward is collected over a counter rather than mailed. The
+  // payout gate this feeds only exists on email campaigns.
+  if (campaign.config.auth.channel === "phone") {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
   const ctx = await resolveParticipant(campaign.id);
   if (!ctx) return NextResponse.json({ error: "not_signed_in" }, { status: 401 });
   if (!ctx.participant) {

@@ -11,7 +11,8 @@ const NEW_ACCOUNT_MS = 2 * 60 * 60 * 1000;
 
 interface ParticipantLite {
   id: string;
-  email: string;
+  /** Null on campaigns identified by phone (0030): there is no address. */
+  email: string | null;
   first_name: string;
   last_name: string;
   zip: string | null;

@@ -60,7 +60,7 @@ function CtaLine({ href, title, sub }: { href: string; title: string; sub: strin
  * being bounced off a gate. Session state decides which door to show.
  */
 function AccountDoors() {
-  const { t, base } = useTickets();
+  const { campaign, t, base } = useTickets();
   const { status } = useSession();
 
   return (
@@ -73,9 +73,17 @@ function AccountDoors() {
           <Link href={`${base}entrar/?next=panel`} className="tk-linkbtn">
             {t("homeSignIn")}
           </Link>
-          <Link href={`${base}crear-cuenta/`} className="tk-linkbtn">
-            {t("homeCreate")}
-          </Link>
+          {/* A campaign identified by phone has ONE door and it is the same
+              one either way: proving the number signs you in if you have an
+              account and creates one if you do not. Offering "create an
+              account" beside "sign in" would ask people to know which of the
+              two they are — and the sign-in route deliberately refuses to tell
+              them. */}
+          {campaign.authChannel !== "phone" && (
+            <Link href={`${base}crear-cuenta/`} className="tk-linkbtn">
+              {t("homeCreate")}
+            </Link>
+          )}
         </div>
       )}
       {(status === "ready" || status === "no-profile") && (

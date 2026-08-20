@@ -6,7 +6,7 @@
 // forgotten string is a build error rather than a Spanish word on an English
 // screen. Placeholders are `{name}`; run values through `fill()`.
 
-import type { Locale } from "./config";
+import type { Locale } from "./config.ts";
 
 const es = {
   // ---- chrome -------------------------------------------------------------
@@ -393,10 +393,50 @@ const es = {
   errAccountExists:
     "Ya existe una cuenta con este correo. Entra con tu contraseña o recupérala.",
 
+  // ---- entrar con WhatsApp ------------------------------------------------
+  //
+  // La plantilla de autenticación de Meta lleva texto FIJO y sin marca — "Tu
+  // código de verificación es 1234" — y el número que la manda tiene el nombre
+  // para mostrar rechazado, así que llega de un número crudo. Sin un aviso
+  // previo es indistinguible de spam. De ahí `waNote`: dice lo que va a pasar
+  // ANTES de que pase.
+  fPhoneProven: "Es el número con el que entraste. Tus puntos viven aquí.",
+  waTitle: "Entra con tu WhatsApp",
+  waTitleMark: "WhatsApp",
+  waSub: "Te mandamos un código de 4 dígitos. Sin contraseñas, sin correos.",
+  waLabel: "Tu celular",
+  waPlaceholder: "656 123 4567",
+  waNote:
+    "Te llegará un WhatsApp con 4 dígitos, desde un número que quizá no reconozcas. Es nuestro.",
+  waSend: "Mandarme el código",
+  waCodeTitle: "Escribe los 4 dígitos",
+  waCodeSub: "Te lo mandamos por WhatsApp a {phone}.",
+  waCodeLabel: "Código",
+  waConfirm: "Entrar",
+  waResend: "Volver a mandarlo",
+  waResendIn: "Puedes pedir otro en {seconds} s",
+  waChangeNumber: "Usar otro número",
+  waRehearsal: "Modo ensayo — tu código es {code}",
+  errWaPhone:
+    "Escribe un celular mexicano a 10 dígitos. Puedes usar +52, lada y espacios.",
+  errWaCode: "El código no coincide. Revísalo e intenta de nuevo.",
+  errWaExpired: "Ese código ya venció. Pide uno nuevo.",
+  errWaAttempts: "Demasiados intentos con este código. Pide uno nuevo.",
+  errWaTooMany:
+    "Pediste varios códigos seguidos. Espera unos minutos y vuelve a intentar.",
+  errWaUnavailable:
+    "Ahora mismo no podemos mandar el código. No es tu culpa: ya avisamos al equipo.",
+
   // ---- misc ---------------------------------------------------------------
   poweredBy: "Operado por Supergana",
+  // Dos versiones porque la promesa cambió el 2026-08-05 y solo para quien tiene
+  // OCR encendido. Novamex lo tiene apagado: su ticket lo lee un humano y nadie
+  // más, y decirle otra cosa sería mentir en la dirección contraria. Quién ve
+  // cuál lo decide `campaign.ocrEnabled`, no el archivo que renderiza.
   privacyNote:
     "Tu ticket contiene datos personales. Lo guardamos cifrado y solo lo ve el equipo de validación.",
+  privacyNoteOcr:
+    "Tu ticket contiene datos personales. Lo guardamos cifrado, lo lee un servicio de reconocimiento de texto para agilizar tu revisión, y lo ve el equipo de validación. No lo compartimos con nadie más.",
 } as const;
 
 type Dict = Record<keyof typeof es, string>;
@@ -715,9 +755,36 @@ const en: Dict = {
   errAccountExists:
     "An account with this email already exists. Sign in with your password or recover it.",
 
+  fPhoneProven: "The number you signed in with. Your points live on it.",
+  waTitle: "Sign in with WhatsApp",
+  waTitleMark: "WhatsApp",
+  waSub: "We'll send you a 4-digit code. No passwords, no email.",
+  waLabel: "Your mobile",
+  waPlaceholder: "656 123 4567",
+  waNote:
+    "A WhatsApp with 4 digits is on its way, from a number you may not recognise. It's ours.",
+  waSend: "Send me the code",
+  waCodeTitle: "Enter the 4 digits",
+  waCodeSub: "We sent it by WhatsApp to {phone}.",
+  waCodeLabel: "Code",
+  waConfirm: "Enter",
+  waResend: "Send it again",
+  waResendIn: "You can ask for another in {seconds}s",
+  waChangeNumber: "Use a different number",
+  waRehearsal: "Rehearsal mode — your code is {code}",
+  errWaPhone: "Enter a 10-digit Mexican mobile number. +52, area code and spaces are fine.",
+  errWaCode: "That code doesn't match. Check it and try again.",
+  errWaExpired: "That code has expired. Request a new one.",
+  errWaAttempts: "Too many tries with this code. Request a new one.",
+  errWaTooMany: "You've requested several codes in a row. Wait a few minutes and try again.",
+  errWaUnavailable:
+    "We can't send the code right now. This isn't your fault — the team has been notified.",
+
   poweredBy: "Operated by Supergana",
   privacyNote:
     "Your receipt holds personal data. We store it encrypted and only the validation team sees it.",
+  privacyNoteOcr:
+    "Your receipt holds personal data. We store it encrypted, a text-recognition service reads it to speed up your review, and the validation team sees it. We share it with nobody else.",
 };
 
 export const COPY: Record<Locale, Dict> = { es, en };

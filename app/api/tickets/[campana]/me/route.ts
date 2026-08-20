@@ -29,6 +29,10 @@ export async function GET(
   if (!ctx.participant) {
     return NextResponse.json({
       email: ctx.email,
+      // The identity of the ACCOUNT, which on a phone campaign is the only
+      // thing there is to show. Distinct from `participant.phone`, a profile
+      // field that on those campaigns is written from this and never asked for.
+      phone: ctx.phone,
       participant: null,
       receipts: [],
       rewards: [],
@@ -162,13 +166,46 @@ export async function POST(
   const profile: Record<string, unknown> = {
     campaign_id: campaign.id,
     auth_user_id: ctx.userId,
-    email: ctx.email.toLowerCase(),
     first_name: input.firstName,
     last_name: input.lastName,
     alias: input.alias,
     locale: input.locale,
   };
-  if (profileFields.phone !== "off") profile.phone = input.phone;
+
+  /**
+   * The credential is written from the SESSION, never from the body.
+   *
+   * On a phone campaign the number already came back from a code, and that
+   * proof is the account. Taking a number out of the request here would let
+   * somebody sign in as one number and register as another — the identity
+   * quietly coming apart one profile save at a time. `parseCampaignConfig`
+   * forces `profileFields.phone` to "off" on these campaigns so the form does
+   * not even draw the box; this is the server agreeing with it rather than
+   * trusting it.
+   *
+   * `phone_verified_at` is stamped on first write only. It records when the
+   * number answered, and re-saving a profile is not that happening again.
+   */
+  if (campaign.config.auth.channel === "phone") {
+    if (!ctx.phone) {
+      // A session on this campaign that carries no phone identity has no
+      // business creating a participant: it is a leftover email account from
+      // before the channel changed, or a staff session wandering in.
+      return NextResponse.json({ error: "not_signed_in" }, { status: 401 });
+    }
+    profile.phone = ctx.phone;
+    if (!ctx.participant?.phone_verified_at) {
+      profile.phone_verified_at = new Date().toISOString();
+    }
+  } else {
+    // An email campaign cannot have a null address here: `auth.channel` is
+    // 'email', so `resolveParticipant` returned the real one from the session.
+    if (!ctx.email) {
+      return NextResponse.json({ error: "not_signed_in" }, { status: 401 });
+    }
+    profile.email = ctx.email.toLowerCase();
+    if (profileFields.phone !== "off") profile.phone = input.phone;
+  }
   if (profileFields.zip !== "off") profile.zip = input.zip;
   if (profileFields.state !== "off") profile.state = input.state;
 
@@ -176,7 +213,11 @@ export async function POST(
   const { data: participant, error } = await db
     .from("participants")
     .upsert(profile, { onConflict: "campaign_id,auth_user_id" })
-    .select("id, first_name, last_name, alias, zip, state, locale")
+    // `phone` is read back rather than echoed from the input: on a phone
+    // campaign the input never carried one, and the profile screen shows the
+    // number the session proved. Reading it means the response says what the
+    // row says, instead of what the request wished.
+    .select("id, first_name, last_name, alias, zip, state, phone, locale")
     .single();
 
   if (error || !participant) {
@@ -232,10 +273,12 @@ export async function POST(
       alias: participant.alias,
       zip: participant.zip,
       state: participant.state,
-      // Echoed from the validated input rather than re-read: the select above
-      // stays literal so it does not name a column that may not exist yet, and
-      // what we asked to store is exactly what this request decided.
-      phone: input.phone,
+      // Re-read from the row, not echoed from the input. It used to be echoed,
+      // which was fine while the only phone was one somebody typed — but on a
+      // campaign identified by phone the input carries none and the number
+      // comes from the session, so echoing would answer `null` about a row that
+      // holds the participant's actual number.
+      phone: (participant as { phone?: string | null }).phone ?? null,
       locale: participant.locale,
     },
   });

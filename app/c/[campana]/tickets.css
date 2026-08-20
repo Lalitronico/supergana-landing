@@ -1594,3 +1594,36 @@ a.tk-storedoor:active {
 .tk-hist-item .meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .tk-hist-item .meta b { font-size: 13.5px; }
 .tk-hist-item .meta span { font-size: 11.5px; color: var(--tk-ink-mute); }
+
+/* ---- aviso de modo ensayo ------------------------------------------------ */
+/*
+ * El código en pantalla, cuando no hay a dónde mandarlo.
+ *
+ * Clase propia y no `.tk-error` con el fondo apagado: eso fue el primer intento
+ * y dejó texto blanco sobre nada — una caja vacía sobre el campo del código.
+ * Además no es un error, es una nota de operación, y teñirla de rojo le diría a
+ * quien prueba que algo salió mal justo cuando todo salió bien.
+ *
+ * Deliberadamente llamativa: el único lugar donde un código de verificación
+ * aparece en pantalla tiene que verse como lo que es, una excepción, y no
+ * confundirse nunca con la interfaz de producción. Sólo `codeSender()` puede
+ * llegar hasta aquí, y no puede hacerlo en un despliegue de producción.
+ */
+.tk-rehearsal {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--tk-yellow, #ffd94a),
+    var(--tk-yellow, #ffd94a) 10px,
+    #fff3b0 10px,
+    #fff3b0 20px
+  );
+  color: var(--tk-ink);
+  border: 3px dashed var(--tk-ink);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.4;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}

@@ -29,6 +29,13 @@ export async function POST(
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
+  // A campaign identified by phone has no password to create and no address to
+  // create it against (0030). The screen that posts here is unreachable there,
+  // and this is the server agreeing rather than trusting that.
+  if (campaign.config.auth.channel === "phone") {
+    return NextResponse.json({ error: "not_found" }, { status: 404 });
+  }
+
   let body: unknown;
   try {
     body = await req.json();

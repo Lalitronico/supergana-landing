@@ -40,6 +40,16 @@ interface TicketsContextValue {
   /** Base path with the trailing slash next.config demands. */
   base: string;
   money: (cents: number) => string;
+  /**
+   * The privacy promise, already resolved.
+   *
+   * Five screens make it, and it is not the same promise on every campaign: one
+   * whose OCR is on sends the photo to a third party, and one whose OCR is off
+   * does not. Resolved here so there is a single place that decides, rather
+   * than five ternaries that will drift the first time somebody adds a sixth
+   * screen.
+   */
+  privacyNote: string;
   session: Session;
   store: Store;
 }
@@ -152,6 +162,9 @@ export function TicketsShell({
       t: translator(locale),
       base,
       money: (cents: number) => formatUsdCents(cents, locale),
+      privacyNote: translator(locale)(
+        campaign.ocrEnabled ? "privacyNoteOcr" : "privacyNote",
+      ),
       session,
       store,
     }),

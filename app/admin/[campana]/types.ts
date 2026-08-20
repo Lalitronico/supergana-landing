@@ -32,12 +32,19 @@ export interface AdminReceipt {
 
 export interface AdminParticipant {
   id: string;
-  email: string;
+  /**
+   * Null wherever the campaign identifies by phone (0030). The console must not
+   * print "—" and leave the reviewer with no way to name the person: every
+   * screen that shows this falls back to the number, which on those campaigns
+   * is the identity rather than a delivery address.
+   */
+  email: string | null;
   firstName: string;
   lastName: string;
   zip: string | null;
   state: string | null;
-  /** E.164. Where the operator sends a top-up, so the console must show it. */
+  /** E.164. Where the operator sends a top-up, and on a phone campaign it is
+   *  also who this is — see `email`. */
   phone: string | null;
   /** Null when the campaign asks for no ZIP: there is no household without one. */
   householdKey: string | null;

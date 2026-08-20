@@ -18,6 +18,16 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Signing in with a phone number MINTS a session; this proxy REFRESHES one.
+  // Running the refresh first is not merely wasted work — it attaches its own
+  // Set-Cookie for the same cookie names, and the handler's freshly minted
+  // session then has to win a race it has no reason to be in. Nothing to
+  // refresh here anyway: the whole point of the route is that the caller
+  // arrives without a session.
+  if (request.nextUrl.pathname.includes("/phone-auth")) {
+    return NextResponse.next();
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   if (!url || !key) return NextResponse.next();

@@ -9,8 +9,8 @@ import {
   REWARD_STATUSES,
   type ProfileFieldMode,
   type ProfileFields,
-} from "./config";
-import { PRIZE_KINDS } from "./store";
+} from "./config.ts";
+import { PRIZE_KINDS } from "./store.ts";
 
 // ---------------------------------------------------------------------------
 // Participant
@@ -28,7 +28,7 @@ const stateField = z
   .transform((s) => s.toUpperCase());
 
 // Already E.164 by the time it gets here: the browser normalises what was
-// typed (lib/tickets/phone.ts) and this is the server refusing to take its
+// typed (lib/platform/phone.ts) and this is the server refusing to take its
 // word for it. Mirrors the CHECK added in migration 0015, so the two cannot
 // drift into a state where the API accepts what the column rejects.
 const phoneField = z
@@ -224,7 +224,9 @@ export interface ParticipantRow {
   id: string;
   campaign_id: string;
   auth_user_id: string;
-  email: string;
+  /** Null on campaigns whose `auth.channel` is 'phone' — there the number is
+   *  the identity and no address is ever collected (0030). */
+  email: string | null;
   first_name: string;
   last_name: string;
   /** Leaderboard display name. Null only on profiles that predate the field. */
@@ -239,6 +241,12 @@ export interface ParticipantRow {
   household_key: string | null;
   /** Set once the address is proven real — the payout gate reads this. */
   email_verified_at: string | null;
+  /** Set once the number answered a code. On a phone campaign this is the
+   *  moment the account became somebody's; on an email one it stays null. */
+  phone_verified_at: string | null;
+  /** Which credential this row was created with (0030). Written by the
+   *  trigger, never by the application. */
+  identity_channel: "email" | "phone" | null;
   created_at: string;
 }
 

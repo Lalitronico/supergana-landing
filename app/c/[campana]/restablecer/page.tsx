@@ -12,9 +12,20 @@ import { useSession, useTickets } from "../TicketsShell";
  * predate passwords and only ever signed in by code.
  */
 export default function ResetPasswordPage() {
-  const { t, base } = useTickets();
+  const { campaign, t, base } = useTickets();
   const router = useRouter();
   const { status } = useSession();
+
+/**
+ * A campaign identified by phone (0030) has no password and no address, so this
+ * screen has nothing to do there. Redirected rather than hidden: the URL is
+ * guessable and reachable from an old bookmark, and the API route behind it
+ * already answers 404 — this is the screen agreeing rather than showing a form
+ * whose submit can only fail.
+ */
+  useEffect(() => {
+    if (campaign.authChannel === "phone") router.replace(`${base}entrar/`);
+  }, [campaign.authChannel, router, base]);
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -51,6 +62,12 @@ export default function ResetPasswordPage() {
     setDone(true);
   };
 
+  // Rendered nothing rather than briefly: the redirect above is an effect, so
+  // without this the form paints for one frame before vanishing — which reads
+  // as a glitch and, worse, as a form somebody might start typing into.
+  if (campaign.authChannel === "phone") {
+    return <div className="tk-pad"><p className="tk-body">{t("loading")}</p></div>;
+  }
   return (
     <div className="tk-pad">
       <div>

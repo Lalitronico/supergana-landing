@@ -42,7 +42,11 @@ export interface MeProfile {
 }
 
 export interface Me {
-  email: string;
+  /** Null on campaigns identified by phone (0030): there is no address. */
+  email: string | null;
+  /** E.164 of the ACCOUNT on those campaigns — the number a code came back
+   *  from. Distinct from `participant.phone`, which is a profile field. */
+  phone: string | null;
   participant: MeProfile | null;
   receipts: MeReceipt[];
   rewards: MeReward[];

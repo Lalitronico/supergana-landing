@@ -7,8 +7,15 @@ import { authThrottleKind, supabaseBrowser } from "@/lib/supabase/browser";
 import { useTickets } from "../TicketsShell";
 
 /**
- * Sign-in. Password is the primary path: entering sends no email at all, so
- * the project's mail budget stays out of the critical path. The email-OTP flow
+ * Sign-in for campaigns whose identity channel is the email address.
+ *
+ * This is the screen Ticket al Tanque has always had, moved out of `page.tsx`
+ * unchanged when a second channel arrived (0030) so that adding one could not
+ * disturb it. If this file ever differs from what shipped, that is a bug and
+ * not a refactor.
+ *
+ * Password is the primary path: entering sends no email at all, so the
+ * project's mail budget stays out of the critical path. The email-OTP flow
  * survives as the fallback — it's how accounts created before passwords
  * existed get in (and then set themselves a password from the panel).
  */
@@ -17,8 +24,8 @@ type Mode = "password" | "otp-email" | "otp-code";
 /** In-app screens a `?next=` may name. Every one is a route under `base`. */
 const POST_LOGIN = new Set(["panel", "premios", "subir"]);
 
-export default function SignInPage() {
-  const { t, base } = useTickets();
+export function EmailSignIn() {
+  const { t, base, privacyNote } = useTickets();
   const router = useRouter();
 
   // Resolved at navigation time rather than held in state: reading it here
@@ -294,7 +301,7 @@ export default function SignInPage() {
         </Link>
       )}
 
-      <p className="tk-foot">{t("privacyNote")}</p>
+      <p className="tk-foot">{privacyNote}</p>
     </div>
   );
 }

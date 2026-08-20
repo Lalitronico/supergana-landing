@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatMxPhone, normalizeMxPhone } from "@/lib/tickets/phone";
+import { formatMxPhone, normalizeMxPhone } from "@/lib/platform/phone";
 import { pickableStates } from "@/lib/tickets/states";
 import { useSession, useTickets } from "../TicketsShell";
 import { Headline } from "../Headline";
@@ -39,6 +39,7 @@ export default function RegisterPage() {
     <ProfileForm
       key={me?.participant?.id ?? "new"}
       initial={me?.participant ?? null}
+      accountPhone={me?.phone ?? null}
       onSaved={async () => {
         await reload();
         router.replace(`${base}subir/`);
@@ -60,9 +61,13 @@ export default function RegisterPage() {
  */
 function ProfileForm({
   initial,
+  accountPhone,
   onSaved,
 }: {
   initial: MeProfile | null;
+  /** The number the session was opened with, on phone campaigns. Shown, never
+   *  edited — see where it is rendered. */
+  accountPhone: string | null;
   onSaved: () => Promise<void>;
 }) {
   const { campaign, locale, t } = useTickets();
@@ -244,6 +249,23 @@ function ProfileForm({
                 : t("fPhoneHint")}
             </span>
           </label>
+        )}
+
+        {/* The number that opened the session, shown and not asked for.
+            `profileFields.phone` is forced to "off" on these campaigns
+            (parseCampaignConfig) and the server writes the phone from the
+            session regardless — so the box would be a lie in two directions:
+            it could not change anything, and it would suggest it could. Shown
+            anyway because somebody filling in a profile deserves to see which
+            number their points are about to hang on. */}
+        {campaign.authChannel === "phone" && accountPhone && (
+          <div className="tk-field">
+            {t("fPhone")}
+            <p className="tk-body" style={{ fontWeight: 700, marginTop: 4 }}>
+              {formatMxPhone(accountPhone)}
+            </p>
+            <span className="tk-foot" style={{ marginTop: 4 }}>{t("fPhoneProven")}</span>
+          </div>
         )}
 
         {(asksZip || asksState) && (

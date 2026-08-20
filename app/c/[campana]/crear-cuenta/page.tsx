@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/browser";
@@ -13,8 +13,19 @@ import { useTickets } from "../TicketsShell";
  * person signed in and heading to the profile step.
  */
 export default function CreateAccountPage() {
-  const { campaign, t, base } = useTickets();
+  const { campaign, t, base, privacyNote } = useTickets();
   const router = useRouter();
+
+/**
+ * A campaign identified by phone (0030) has no password and no address, so this
+ * screen has nothing to do there. Redirected rather than hidden: the URL is
+ * guessable and reachable from an old bookmark, and the API route behind it
+ * already answers 404 — this is the screen agreeing rather than showing a form
+ * whose submit can only fail.
+ */
+  useEffect(() => {
+    if (campaign.authChannel === "phone") router.replace(`${base}entrar/`);
+  }, [campaign.authChannel, router, base]);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -83,6 +94,12 @@ export default function CreateAccountPage() {
     }
   };
 
+  // Rendered nothing rather than briefly: the redirect above is an effect, so
+  // without this the form paints for one frame before vanishing — which reads
+  // as a glitch and, worse, as a form somebody might start typing into.
+  if (campaign.authChannel === "phone") {
+    return <div className="tk-pad"><p className="tk-body">{t("loading")}</p></div>;
+  }
   return (
     <div className="tk-pad">
       <div>
@@ -160,7 +177,7 @@ export default function CreateAccountPage() {
         </Link>
       )}
 
-      <p className="tk-foot">{t("privacyNote")}</p>
+      <p className="tk-foot">{privacyNote}</p>
     </div>
   );
 }

@@ -6,8 +6,8 @@
 // with the ones hardcoded in `tickets_approve_receipt` (migration 0006), which
 // is the authority whenever money is involved.
 
-import type { EligibilityMode } from "./matching";
-import type { OrgTheme } from "./theme";
+import type { EligibilityMode } from "./matching.ts";
+import type { OrgTheme } from "./theme.ts";
 
 export type Locale = "es" | "en";
 
@@ -79,6 +79,8 @@ export interface CampaignConfig {
   pointsPerDollar: number;
   /** Which fields "completa tu perfil" asks for. See `ProfileFields`. */
   profileFields: ProfileFields;
+  /** How a participant proves who they are. See `AuthConfig`. */
+  auth: AuthConfig;
   /** Who may submit receipts while the campaign is a draft. See `Rehearsal`. */
   rehearsal: Rehearsal;
   /**
@@ -210,6 +212,48 @@ export const DEFAULT_PROFILE_FIELDS: ProfileFields = {
   state: "required",
 };
 
+/**
+ * How a participant proves who they are.
+ *
+ *  · `email` — an address and a password, with a mailed code as backup. What
+ *              every campaign did before there was a choice, and the right one
+ *              wherever the reward is DELIVERED to that address: Ticket al
+ *              Tanque pays its rewards by email, so the address has to be real
+ *              and proving it is part of paying.
+ *  · `phone` — a WhatsApp number and a four-digit code. Right where the prize is
+ *              collected in person against a redemption code, which is Carrera
+ *              Alaska: there the address was pure friction, and worse than
+ *              friction, because this project has no SMTP of its own and the
+ *              mail it promised never arrived.
+ *
+ * A campaign's choice, not a module's, and not a slug's.
+ */
+export type AuthChannel = "email" | "phone";
+
+export interface AuthConfig {
+  channel: AuthChannel;
+  /**
+   * Codes this campaign may send in a rolling hour, across all numbers.
+   *
+   * Not a security control — the per-number limit in `OTP.maxResendsPerHour` is
+   * that. This is a spend breaker: `start` is reachable without a session,
+   * every send is a WhatsApp conversation billed to the tenant, and the failure
+   * this prevents is a bill, arriving quietly, on somebody else's card.
+   *
+   * 200/hour is roughly ten times a plausible opening day for a campaign this
+   * size and still two orders of magnitude below a bill worth an argument.
+   */
+  maxSendsPerHour: number;
+}
+
+/**
+ * Email, deliberately — the same reasoning as `DEFAULT_PROFILE_FIELDS`. Every
+ * campaign that exists today identifies by email and none of their config rows
+ * carry this key, so any other default would change a running campaign by
+ * deploying a parser. Phone has to be asked for by name.
+ */
+export const DEFAULT_AUTH: AuthConfig = { channel: "email", maxSendsPerHour: 200 };
+
 export interface Campaign {
   id: string;
   slug: string;
@@ -264,6 +308,7 @@ const DEFAULTS: CampaignConfig = {
   brands: [],
   pointsPerDollar: 10,
   profileFields: DEFAULT_PROFILE_FIELDS,
+  auth: DEFAULT_AUTH,
   // Staff-only unless a campaign says otherwise: the permissive value has to be
   // asked for, never inherited by a campaign nobody edited.
   rehearsal: "staff",
@@ -288,6 +333,19 @@ const asOcr = (value: unknown): OcrConfig => {
     // Same chain, one link further: nothing decides on its own in a campaign
     // that is not even reading. Both flags have to be asked for by name.
     autoApprove: o.enabled === true && o.auto_approve === true,
+  };
+};
+
+/**
+ * An unrecognised channel reads as `email`, like `rehearsal` reads as `staff`:
+ * a typo in this key must fail toward the door that still opens for the people
+ * already inside, not toward one nobody has a credential for.
+ */
+const asAuth = (value: unknown): AuthConfig => {
+  const a = (value ?? {}) as Record<string, unknown>;
+  return {
+    channel: a.channel === "phone" ? "phone" : DEFAULT_AUTH.channel,
+    maxSendsPerHour: asInt(a.max_sends_per_hour, DEFAULT_AUTH.maxSendsPerHour),
   };
 };
 
@@ -346,6 +404,7 @@ const asBrands = (value: unknown): Brand[] =>
 export const parseCampaignConfig = (raw: unknown): CampaignConfig => {
   const c = (raw ?? {}) as Record<string, unknown>;
   const states = asStringArray(c.eligible_states).map((s) => s.toUpperCase());
+  const auth = asAuth(c.auth);
   return {
     minPurchaseCents: asInt(c.min_purchase_cents, DEFAULTS.minPurchaseCents),
     rewardCents: asInt(c.reward_cents, DEFAULTS.rewardCents),
@@ -364,7 +423,23 @@ export const parseCampaignConfig = (raw: unknown): CampaignConfig => {
     showGrandPrize: c.show_grand_prize === true,
     brands: asBrands(c.brands),
     pointsPerDollar: asInt(c.points_per_dollar, DEFAULTS.pointsPerDollar),
-    profileFields: asProfileFields(c.profile_fields),
+    auth,
+    /**
+     * DERIVED, not a second key to keep in sync.
+     *
+     * When the number is the credential it has already been proven, and the
+     * profile form asking for it again would let somebody save a DIFFERENT
+     * number from the one that opened the session — which is the whole identity
+     * quietly coming apart. The server writes the phone from the session and
+     * ignores the body; this makes the form agree with it.
+     *
+     * Same shape as `mechanicOf`: read the consequence off the decision instead
+     * of writing it down twice and letting a seed set the two out of sync.
+     */
+    profileFields:
+      auth.channel === "phone"
+        ? { ...asProfileFields(c.profile_fields), phone: "off" }
+        : asProfileFields(c.profile_fields),
     // An unrecognised value falls back to "staff". A typo in this key must fail
     // closed — the direction where a mistake costs a slower rehearsal instead of
     // an open door.
@@ -410,6 +485,22 @@ export interface PublicCampaign {
    * against its own copy — this one is a rendering hint, never the authority.
    */
   profileFields: ProfileFields;
+  /**
+   * Which sign-in screen to draw. Safe to publish: it describes the campaign,
+   * not anybody in it. Only the channel — `maxSendsPerHour` is a spend breaker
+   * and telling a browser where the ceiling is only helps somebody find it.
+   */
+  authChannel: AuthChannel;
+  /**
+   * Whether a third party reads this campaign's receipts.
+   *
+   * Published for one reason: the privacy notice has to be true, and it stopped
+   * being true for Alaska on 2026-08-05 while still promising that only the
+   * validation team sees the photo. The flag says nothing about anybody — it
+   * describes the campaign — and the screen that reads it is the one making the
+   * promise.
+   */
+  ocrEnabled: boolean;
   prizes: Prize[];
 }
 
@@ -432,6 +523,8 @@ export const toPublicCampaign = (campaign: Campaign): PublicCampaign => ({
   rulesVersion: campaign.config.rulesVersion,
   pointsPerDollar: campaign.config.pointsPerDollar,
   profileFields: campaign.config.profileFields,
+  authChannel: campaign.config.auth.channel,
+  ocrEnabled: campaign.config.ocr.enabled,
   prizes: campaign.config.prizes,
 });
 
@@ -451,14 +544,13 @@ export const formatUsdCents = (cents: number, locale: Locale = "en"): string =>
     maximumFractionDigits: 2,
   }).format(cents / 100);
 
-/** "12.34" / "12,34" / "$12.34" → 1234. Returns null when it isn't a number. */
-export const parseUsdToCents = (input: string): number | null => {
-  const cleaned = input.replace(/[^0-9.,-]/g, "").replace(",", ".");
-  if (!cleaned) return null;
-  const value = Number.parseFloat(cleaned);
-  if (!Number.isFinite(value) || value < 0) return null;
-  return Math.round(value * 100);
-};
+// `parseUsdToCents` used to live here. It divided four-figure totals by a
+// thousand — `"1,048.00"` → `"1.048.00"` → 1.048 — so a $1,048 receipt was
+// stored as $1.05, in the manual console, from day one. The fix was a new
+// function, `parseAmountToCents` in ./matching.ts, and this one was left behind
+// with no callers: a trap for whoever autocompleted the wrong name next.
+// Removed 2026-08-20, with tests on the replacement covering the exact string
+// that broke it. Do not bring it back.
 
 /**
  * Monday 00:00 in the campaign timezone, as an ISO instant. Mirrors the SQL

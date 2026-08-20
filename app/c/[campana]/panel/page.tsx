@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/browser";
+import { displayIdentity } from "@/lib/platform/phone";
 import { RECEIPT_STATUS_KEY, REWARD_STATUS_KEY } from "@/lib/tickets/i18n";
 import type { ReceiptStatus, RewardStatus } from "@/lib/tickets/config";
 import { useSession, useStoreState, useTickets } from "../TicketsShell";
@@ -332,7 +333,7 @@ function VerifyEmailCard({
 }
 
 export default function PanelPage() {
-  const { campaign, locale, t, base, money } = useTickets();
+  const { campaign, locale, t, base, money, privacyNote } = useTickets();
   const router = useRouter();
   const { status, me, reload } = useSession();
 
@@ -378,7 +379,8 @@ export default function PanelPage() {
         <div>
           <h1 className="tk-h" style={{ fontSize: 30 }}>{t("pnTitle")}</h1>
           <p className="tk-foot" style={{ marginTop: 4 }}>
-            {t("pnHello", { name: me.participant?.firstName ?? "" })} · {me.email}
+            {t("pnHello", { name: me.participant?.firstName ?? "" })} ·{" "}
+            {displayIdentity(me.email, me.phone)}
           </p>
         </div>
       </div>
@@ -412,7 +414,11 @@ export default function PanelPage() {
 
       <LeaderboardCard slug={campaign.slug} />
 
-      {reward && me.participant && !me.participant.emailVerified && (
+      {/* Gated on the address existing, not only on the reward. A campaign
+          identified by phone has no address to verify and no reward mailed to
+          one — its prizes are collected over a counter — so this card would be
+          asking somebody to prove something nobody needs. */}
+      {reward && me.email && me.participant && !me.participant.emailVerified && (
         <VerifyEmailCard
           slug={campaign.slug}
           email={me.email}
@@ -489,13 +495,17 @@ export default function PanelPage() {
         </div>
       )}
 
-      <p className="tk-foot">{t("privacyNote")}</p>
+      <p className="tk-foot">{privacyNote}</p>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
         {/* Also the migration path for OTP-era accounts that have no password
-            yet: updateUser works from any signed-in session. */}
-        <Link href={`${base}restablecer/`} className="tk-linkbtn">
-          {t("pnChangePw")}
-        </Link>
+            yet: updateUser works from any signed-in session. Absent where the
+            account has no password at all — signing in there is a code to a
+            number, and there is nothing to change. */}
+        {campaign.authChannel !== "phone" && (
+          <Link href={`${base}restablecer/`} className="tk-linkbtn">
+            {t("pnChangePw")}
+          </Link>
+        )}
         <button type="button" className="tk-linkbtn" onClick={signOut}>
           {t("authSignOut")}
         </button>
