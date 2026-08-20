@@ -12,7 +12,7 @@
 // privacy liability, and neither improves with age.
 
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { RECEIPTS_BUCKET } from "./config";
+import { RECEIPTS_BUCKET } from "./config.ts";
 
 /**
  * How long an object may exist without a receipt row before it is treated as

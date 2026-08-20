@@ -64,3 +64,15 @@ export const normalizeMxPhone = (raw: string): string | null => {
  */
 export const formatMxPhone = (e164: string): string =>
   e164.replace(/^\+52(\d{3})(\d{3})(\d{4})$/, "+52 $1 $2 $3");
+
+/**
+ * How to name a participant on a screen, whichever way they signed in.
+ *
+ * A campaign identified by phone has no address to show (0030), and a console
+ * that printed "—" would leave a reviewer looking at a receipt with no way to
+ * say whose it is. The number is not a fallback there — it is the identity.
+ */
+export const displayIdentity = (
+  email: string | null | undefined,
+  phone: string | null | undefined,
+): string => email ?? (phone ? formatMxPhone(phone) : "—");

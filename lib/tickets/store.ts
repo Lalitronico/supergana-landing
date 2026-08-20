@@ -4,8 +4,8 @@
 // a Drop is data an operator curates every week, not a key somebody sets once.
 // No server imports here: the panel and the console both read this file.
 
-import type { Locale } from "./config";
-import type { CopyKey } from "./i18n";
+import type { Locale } from "./config.ts";
+import type { CopyKey } from "./i18n.ts";
 
 export const DROP_STATUSES = ["scheduled", "open", "closed"] as const;
 export type DropStatus = (typeof DROP_STATUSES)[number];

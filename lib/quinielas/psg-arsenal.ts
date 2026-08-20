@@ -1,5 +1,5 @@
-import { PLAYER_OPTIONS } from "./players";
-import type { QuinielaContent } from "./schema";
+import { PLAYER_OPTIONS } from "./players.ts";
+import type { QuinielaContent } from "./schema.ts";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const asset = (path: string) => `${BASE}${path}`;

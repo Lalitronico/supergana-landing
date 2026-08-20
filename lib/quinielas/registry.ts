@@ -1,5 +1,5 @@
-import type { QuinielaContent } from "./schema";
-import { psgArsenal } from "./psg-arsenal";
+import type { QuinielaContent } from "./schema.ts";
+import { psgArsenal } from "./psg-arsenal.ts";
 
 // Add new quinielas here. Slug must match the file's slug field.
 const REGISTRY: Record<string, QuinielaContent> = {

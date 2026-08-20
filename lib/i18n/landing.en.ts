@@ -1,4 +1,4 @@
-import type { LandingCopy } from "./landing.es";
+import type { LandingCopy } from "./landing.es.ts";
 
 /**
  * English copy for the platform landing.

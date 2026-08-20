@@ -26,8 +26,8 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { DEFAULT_OCR_MODEL } from "./config";
-import { parseAmountToCents } from "./matching";
+import { DEFAULT_OCR_MODEL } from "./config.ts";
+import { parseAmountToCents } from "./matching.ts";
 
 // ---------------------------------------------------------------------------
 // Configuración

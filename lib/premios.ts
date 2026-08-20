@@ -1,4 +1,4 @@
-import { premioAsset } from "./config";
+import { premioAsset } from "./config.ts";
 
 export type PremioTier = "estrella" | "top" | "participacion";
 

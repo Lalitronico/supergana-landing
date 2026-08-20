@@ -18,8 +18,8 @@
 //   • never create an order before the receipt reached status `approved`.
 //   • store the returned order id in `rewards.provider_ref`.
 
-import type { PayoutProvider } from "./config";
-import type { RewardStatusValue } from "./schema";
+import type { PayoutProvider } from "./config.ts";
+import type { RewardStatusValue } from "./schema.ts";
 
 export interface PayoutRequest {
   /** The reward's `external_id`. The provider's idempotency key. Never reuse it. */

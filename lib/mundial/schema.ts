@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { ALIVE_TEAMS, SEMIFINALISTS, SEMIFINALS } from "./teams";
-import { FINAL_ENDING_IDS, FINAL_STAR_ACTIVE_IDS, TOP_SCORER_IDS } from "./players";
+import { ALIVE_TEAMS, SEMIFINALISTS, SEMIFINALS } from "./teams.ts";
+import { FINAL_ENDING_IDS, FINAL_STAR_ACTIVE_IDS, TOP_SCORER_IDS } from "./players.ts";
 
 const teamId = z.enum(ALIVE_TEAMS as [string, ...string[]]);
 

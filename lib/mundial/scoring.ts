@@ -9,8 +9,8 @@
 // Scores are compared unordered (2-1 == 1-2) — semis/final teams are unknown
 // at fill time.
 
-import { eligibleStages, type Stage } from "./config";
-import type { MundialEntryRow, MundialResultsRow, ScorePrediction } from "./schema";
+import { eligibleStages, type Stage } from "./config.ts";
+import type { MundialEntryRow, MundialResultsRow, ScorePrediction } from "./schema.ts";
 
 export interface StageWinnerRow {
   entryId: string;

@@ -3,15 +3,15 @@
 // the fields an API route chooses to expose.
 
 import { supabaseAdmin } from "@/lib/supabase/server";
-import { resolveStaff } from "./access";
+import { resolveStaff } from "./access.ts";
 import {
   parseCampaignConfig,
   weekStart,
   type Campaign,
   type CampaignStatus,
   type Locale,
-} from "./config";
-import { parseOrgTheme } from "./theme";
+} from "./config.ts";
+import { parseOrgTheme } from "./theme.ts";
 
 interface CampaignQueryRow {
   id: string;

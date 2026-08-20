@@ -1,4 +1,4 @@
-import { character } from "./config";
+import { character } from "./config.ts";
 
 export type CaseId = "mundial" | "liga" | "clasicos" | "aniversarios";
 

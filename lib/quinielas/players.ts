@@ -1,4 +1,4 @@
-import type { PlayerOption } from "./schema";
+import type { PlayerOption } from "./schema.ts";
 
 const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const asset = (path: string) => `${BASE}${path}`;

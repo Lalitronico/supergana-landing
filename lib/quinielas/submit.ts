@@ -6,7 +6,7 @@ import type {
   PlayerRegistration,
   ProvisionalLeaderboardRow,
   SubmissionSuccess,
-} from "./schema";
+} from "./schema.ts";
 
 type SubmitResult =
   | { ok: true; data: SubmissionSuccess }

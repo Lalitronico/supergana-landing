@@ -2,10 +2,10 @@
 // env-gated: without RESEND_API_KEY the campaign still works, we just skip
 // the email and log it, so a missing key can never break payment or submit.
 
-import { CAMPAIGN, formatUsd, STAGE_LABELS, type Stage } from "./config";
-import { teamById } from "./teams";
-import { finalEndingLabel, finalStarLabel, topScorerLabel } from "./players";
-import type { MundialAnswers } from "./schema";
+import { CAMPAIGN, formatUsd, STAGE_LABELS, type Stage } from "./config.ts";
+import { teamById } from "./teams.ts";
+import { finalEndingLabel, finalStarLabel, topScorerLabel } from "./players.ts";
+import type { MundialAnswers } from "./schema.ts";
 
 const FROM = process.env.EMAIL_FROM ?? "Supergana <onboarding@resend.dev>";
 

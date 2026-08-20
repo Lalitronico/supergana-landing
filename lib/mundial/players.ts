@@ -1,4 +1,4 @@
-import { SEMIFINALISTS, type MundialTeamId } from "./teams";
+import { SEMIFINALISTS, type MundialTeamId } from "./teams.ts";
 
 // Player data for the final's extra questions. Verified 2026-07-07 against
 // tournament coverage (Olympics/CNN goleadores + ESPN/El Tiempo team profiles):

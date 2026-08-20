@@ -1,4 +1,4 @@
-import { asset, landingAsset } from "./config";
+import { asset, landingAsset } from "./config.ts";
 
 /**
  * Character art registry for the landing.

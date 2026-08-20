@@ -1,5 +1,5 @@
-import { es, type LandingCopy } from "./landing.es";
-import { en } from "./landing.en";
+import { es, type LandingCopy } from "./landing.es.ts";
+import { en } from "./landing.en.ts";
 
 export type { LandingCopy };
 
