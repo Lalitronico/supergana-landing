@@ -71,7 +71,7 @@ export function PickemHeader({
         <span className="pk-bar-name">{programName.split(/\s+by\s+/i)[0]}</span>
 
         <span className="pk-head-side">
-          <Link className="sg-pill" href={`/p/${programSlug}/reglas/`}>
+          <Link className="sg-pill" href={`/p/${programSlug}/reglas/`} data-tour="head-reglas">
             Reglas
           </Link>
 

@@ -3,8 +3,11 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { getProgram, isVisible } from "@/lib/pickem/program";
 import { themeCssVars } from "@/lib/tickets/theme";
+import { characterDir } from "./cast";
 import { PickemHeader } from "./PickemHeader";
 import { PickemTabs } from "./PickemTabs";
+import { PickemTour } from "./PickemTour";
+import { pickemTour } from "./tour";
 import "@/styles/module-shell.css";
 import "./pickem.css";
 
@@ -54,7 +57,20 @@ export default async function PickemLayout({
           logoAlt={program.theme.logoAlt ?? program.orgName}
           status={program.status}
         />
-        {children}
+        {/* The tour wraps the children rather than sitting beside them, so it
+            can hold state across a route change: a client component at a stable
+            position in a layout is reconciled, not remounted, and a tour that
+            walks four screens cannot live inside one of them. `{children}` is
+            still server-rendered output — passing RSC through a client boundary
+            does not make the pages client components. */}
+        <PickemTour
+          definition={pickemTour(program)}
+          charDir={characterDir(program.theme.logoUrl)}
+          hit={program.mechanics.hit}
+          slug={program.slug}
+        >
+          {children}
+        </PickemTour>
         {/* AFTER the children, so the flex column reads head → the child's
             scrolling screen → whatever contextual sticky the child adds → the
             tabs. Navigation belongs to the shell: twelve screens each writing

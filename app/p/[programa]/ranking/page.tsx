@@ -157,28 +157,39 @@ export default async function RankingPage({
             />
           ) : null}
 
-          {standings.top.length === 0 ? (
-            <div className="sg-card">
-              <p className="sg-body" style={{ margin: 0 }}>
-                Todavía no hay nadie en esta tabla. Sé el primero.
-              </p>
-            </div>
-          ) : (
-            <>
-              {podium.length ? (
-                <div className="pk-podium">
-                  {step(podium[1], 2)}
-                  {step(podium[0], 1)}
-                  {step(podium[2], 3)}
-                </div>
-              ) : null}
-              {rest.length ? (
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {rest.map((r) => row(r, player?.participantId === r.participantId))}
-                </div>
-              ) : null}
-            </>
-          )}
+          {/* Wraps BOTH branches so the tour's anchor exists whether or not
+              anybody is on the board yet — an empty table is a state worth
+              showing a newcomer, not a step to skip. `.sg-pad` is a flex column
+              with `gap: 16`, so merging two of its children into one item would
+              have silently closed the space between the podium and the list:
+              the gap is restated here to keep the screen pixel-identical. */}
+          <div
+            data-tour="ranking-table"
+            style={{ display: "flex", flexDirection: "column", gap: 16 }}
+          >
+            {standings.top.length === 0 ? (
+              <div className="sg-card">
+                <p className="sg-body" style={{ margin: 0 }}>
+                  Todavía no hay nadie en esta tabla. Sé el primero.
+                </p>
+              </div>
+            ) : (
+              <>
+                {podium.length ? (
+                  <div className="pk-podium">
+                    {step(podium[1], 2)}
+                    {step(podium[0], 1)}
+                    {step(podium[2], 3)}
+                  </div>
+                ) : null}
+                {rest.length ? (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {rest.map((r) => row(r, player?.participantId === r.participantId))}
+                  </div>
+                ) : null}
+              </>
+            )}
+          </div>
 
           {/* Your row, when it did not make the fifty. Separated rather than
               appended, so that "48, 49, 50, 231" cannot be misread as the table

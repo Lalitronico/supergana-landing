@@ -130,7 +130,7 @@ export default async function PremiosPage({
           {/* What is on offer. Empty until the client defines it — the prizes
               are theirs to define and supply, and inventing a placeholder here
               would be inventing a promise on their behalf. */}
-          <div>
+          <div data-tour="premios-list">
             <div className="sg-eyebrow" style={{ marginBottom: 8 }}>
               {claimable.length ? "También está en juego" : "Cada jornada"}
             </div>

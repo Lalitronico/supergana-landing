@@ -36,6 +36,11 @@ type Tab = {
   icon: React.ReactNode;
   /** Everything under these prefixes lights this tab. */
   match: string[];
+  /** The guided tour's handle on this tab. A class would not do: `.pk-tab` is
+      four identical siblings, so pointing at one would mean `:nth-child(3)`,
+      which silently points at the wrong tab the day a fifth destination is
+      added or the order changes. */
+  tour: string;
 };
 
 const ICON = {
@@ -105,18 +110,21 @@ export function PickemTabs({
       // Any week, not just the open one: somebody reading jornada 3's results is
       // still in the part of the app where you play.
       match: [`${base}/jornada/`],
+      tour: "tab-jugar",
     },
     {
       href: `${base}/ranking/`,
       label: "Ranking",
       icon: <ChartIcon />,
       match: [`${base}/ranking/`],
+      tour: "tab-ranking",
     },
     {
       href: `${base}/premios/`,
       label: "Premios",
       icon: <GiftIcon />,
       match: [`${base}/premios/`],
+      tour: "tab-premios",
     },
     {
       // Registration and the code screen light "Perfil" because that is what
@@ -126,6 +134,7 @@ export function PickemTabs({
       label: "Perfil",
       icon: <PersonIcon />,
       match: [`${base}/perfil/`, `${base}/registro/`, `${base}/verificar/`],
+      tour: "tab-perfil",
     },
   ];
 
@@ -140,6 +149,7 @@ export function PickemTabs({
             key={tab.label}
             href={tab.href}
             className={`pk-tab${active ? " is-active" : ""}`}
+            data-tour={tab.tour}
             aria-current={active ? "page" : undefined}
           >
             {tab.icon}

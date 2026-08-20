@@ -87,7 +87,7 @@ export default async function PickemLanding({
           </section>
 
           {week?.lockAt && first ? (
-            <section className="sg-card">
+            <section className="sg-card" data-tour="portada-countdown">
               {/* Two lines, deliberately: "Jornada 1 cierra el mié 9 sep · 6:20
                   PM" is 41 characters of spaced uppercase and wraps mid-date on
                   a 390px screen. Splitting where the meaning splits beats
@@ -196,13 +196,14 @@ export default async function PickemLanding({
               </div>
               <Link
                 className="sg-btn"
+                data-tour="portada-cta"
                 href={`/p/${program.slug}/jornada/${program.openWeek}/`}
               >
                 Ir a la jornada {program.openWeek}
               </Link>
             </>
           ) : (
-            <Link className="sg-btn" href={`/p/${program.slug}/registro/`}>
+            <Link className="sg-btn" data-tour="portada-cta" href={`/p/${program.slug}/registro/`}>
               Entrar al juego
             </Link>
           )}

@@ -437,6 +437,70 @@
   .pk-modal-card { animation: none; }
 }
 
+/* ---- the tour, wearing this module's face ------------------------------- */
+
+/* module-shell.css draws the tour's geometry — the hole, the scrim, where the
+   card parks. This is the module giving it the same paper and the same gesture
+   as everything else here, exactly like the block near the top of this file
+   does for .sg-head and .pk-tabs. The platform layer never mentions a .pk-*
+   class and this file never forks the engine; that split is what lets Carrera
+   de Tickets adopt the tour by writing twelve lines of its own. */
+.pk-app .sg-tour-card {
+  background: var(--pk-paper);
+  border-radius: 22px;
+  animation: pk-pop 180ms cubic-bezier(0.34, 1.32, 0.64, 1) both;
+}
+
+/* A centred card is held in place BY a transform, so it cannot borrow pk-pop:
+   that keyframe ends at `transform: none` and would drop the card half a card
+   down the frame on the last frame of the animation. */
+.pk-app .sg-tour-card.centred {
+  animation-name: pk-pop-centred;
+}
+
+@keyframes pk-pop-centred {
+  from { transform: translateY(-50%) scale(0.92); opacity: 0; }
+  to { transform: translateY(-50%) scale(1); opacity: 1; }
+}
+
+/* The cast is drawn portrait — oso-premios is 409x640 — so sizing it by WIDTH,
+   which is what --pk-char-w does everywhere else, turns a "92px" character into
+   144px of height. Everywhere else that is free, because the screen scrolls.
+   Inside a tour card whose height is capped to the space beside the spotlight,
+   it is the difference between a card with a body and a card with a title. So
+   here, and only here, the cast is sized by height: every pose then costs the
+   same vertical budget no matter how wide it was drawn. */
+.pk-app .sg-tour-art .pk-char {
+  width: auto;
+}
+
+.pk-app .sg-tour-art img {
+  height: 88px;
+  width: auto;
+}
+
+/* The demo tile inside a tour card carries no crest, and `.pk-side-stamp` is
+   absolutely positioned to sit ON the crest — so without one it lands on the
+   team name. A real match row does not have this problem because `.pk-mark` is
+   42px of clearance. Buying that clearance back with padding is cheaper and
+   more honest than drawing an empty crest the demo has no team for. */
+.pk-app .sg-tour-card .pk-side {
+  padding-top: 27px;
+}
+
+/* The ring reads as the tenant's, not as generic chrome. Kept at --pk-accent
+   rather than ink so the spotlight belongs to the same palette as the tags and
+   the progress bar it will be pointing at. */
+.pk-app .sg-tour-spot {
+  box-shadow:
+    0 0 0 9999px rgba(10, 10, 10, 0.55),
+    inset 0 0 0 var(--sg-bw) var(--pk-accent);
+}
+
+.pk-app .sg-tour-spot.is-full {
+  box-shadow: 0 0 0 9999px rgba(10, 10, 10, 0.55);
+}
+
 /* The dino stands ON the card's top edge, half out of it, the way the mockups
    put the cast on top of things. It is the one place a character overlaps —
    and it can, because nothing lives up there to be covered. */

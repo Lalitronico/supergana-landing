@@ -12,6 +12,7 @@ import { getProgram } from "@/lib/pickem/program";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { ChapaCharacter } from "../ChapaCharacter";
 import { characterDir } from "../cast";
+import { TourReplay } from "@/components/platform/Tour";
 
 /**
  * The screen a player comes back to in week 7.
@@ -65,6 +66,11 @@ export default async function PerfilPage({
             <Link className="sg-btn" href={`/p/${program.slug}/registro/`}>
               Entrar al juego
             </Link>
+
+            {/* Both branches get one. This is where a stranger who tapped
+                Perfil lands, and it is the likeliest place for somebody who
+                skipped the tour to go looking for it. */}
+            <TourReplay tourId="pickem" scope={program.slug} />
           </div>
         </div>
       </>
@@ -196,6 +202,10 @@ export default async function PerfilPage({
             Tus puntos viven en tu número, no en este teléfono. Si cambias de celular,
             entras con el mismo WhatsApp y los recuperas.
           </p>
+
+          {/* Also for the counter staff, who need to walk a customer through the
+              game without wiping their own account to do it. */}
+          <TourReplay tourId="pickem" scope={program.slug} />
         </div>
       </div>
     </>

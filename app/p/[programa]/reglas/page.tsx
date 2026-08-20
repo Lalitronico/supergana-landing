@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getPrizes, getProgram } from "@/lib/pickem/program";
 import { ChapaCharacter } from "../ChapaCharacter";
 import { characterDir } from "../cast";
+import { TourReplay } from "@/components/platform/Tour";
 
 /**
  * The published rules, reachable from inside the product.
@@ -318,6 +319,12 @@ export default async function ReglasPage({
           <Link className="sg-btn ghost sm" href={`/p/${program.slug}/`}>
             Volver al inicio
           </Link>
+
+          {/* Renders nothing when the module has no tour, so this screen never
+              has to know whether one exists. Here rather than at the top because
+              somebody who reached the rules is already reading; the offer to be
+              walked through it belongs after they run out of page. */}
+          <TourReplay tourId="pickem" scope={program.slug} />
         </div>
       </div>
     </>
