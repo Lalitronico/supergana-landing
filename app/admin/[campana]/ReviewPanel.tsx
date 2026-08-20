@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatUsdCents, isFuturePurchaseDate, todayInTz } from "@/lib/tickets/config";
 import type { CampaignMechanic } from "@/lib/tickets/config";
-import { matchLine, parseAmountToCents, toMatchable } from "@/lib/tickets/matching";
+import { matchLine, parseAmountToCents, storeNameFrom, toMatchable } from "@/lib/tickets/matching";
 import type { EligibilityMode } from "@/lib/tickets/matching";
-import { formatMxPhone } from "@/lib/tickets/phone";
+import { displayIdentity, formatMxPhone } from "@/lib/platform/phone";
 import type { AdminExtraction, AdminProduct, QueueItem } from "./types";
 import type { MatchableProduct } from "@/lib/tickets/matching";
 
@@ -86,14 +86,15 @@ const ISSUE_MESSAGE: Record<string, string> = {
 /**
  * La caja de "tienda" a partir de lo leído.
  *
- * La sucursal gana sobre la razón social: el modelo lee
- * `ALMACENES DIST. DE LA FRONTERA SA DE CV.` y `DEL RIO (0010)`, y la lista de
- * tiendas de la campaña dice "Del Río". Nadie llama a esa tienda por su razón
- * social, y el candado anti-duplicado es (tienda + fecha + total): mientras más
- * cerca esté de como la nombra la campaña, mejor cierra.
+ * Es `storeNameFrom`, la misma función que usa la aprobación automática, y no
+ * una copia con la misma intención: el candado anti-duplicado es
+ * (tienda + fecha + total), así que si la consola y la máquina nombraran
+ * distinto la misma tienda, el mismo ticket enviado dos veces pasaría dos
+ * veces. Esto era una copia hasta el 2026-08-20 y ya había divergido en el caso
+ * que importa — ver el comentario de `storeNameFrom`.
  */
-const storeFromExtraction = (extraction: AdminExtraction): string =>
-  (extraction.store_branch ?? extraction.store_name ?? "").trim();
+const storeFromExtraction = (extraction: AdminExtraction, stores: string[]): string =>
+  storeNameFrom(extraction, stores);
 
 /**
  * Las líneas leídas, convertidas a filas del formulario y ya matcheadas contra
@@ -203,7 +204,7 @@ export function ReviewPanel({
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState(false);
   const [storeName, setStoreName] = useState(
-    () => receipt.store_name ?? (seedOk ? storeFromExtraction(seedOk) : ""),
+    () => receipt.store_name ?? (seedOk ? storeFromExtraction(seedOk, stores) : ""),
   );
   const [purchaseDate, setPurchaseDate] = useState(
     () => receipt.purchase_date ?? seedOk?.purchase_date ?? "",
@@ -279,7 +280,7 @@ export function ReviewPanel({
     // efecto sí habría dejado ver.
     setSeededFrom(incoming.created_at);
     setExtraction(incoming);
-    setStoreName(storeFromExtraction(incoming));
+    setStoreName(storeFromExtraction(incoming, stores));
     setPurchaseDate(incoming.purchase_date ?? "");
     setTotal(incoming.total_printed ?? "");
     const seeded = linesFromExtraction(incoming, matchable, eligibility);
@@ -292,7 +293,7 @@ export function ReviewPanel({
     // si después vacía las cajas, el formulario queda pristine otra vez y sin
     // esto la siembra automática volvería a llenar lo que acaba de limpiar.
     setSeededFrom(source.created_at);
-    setStoreName(storeFromExtraction(source));
+    setStoreName(storeFromExtraction(source, stores));
     setPurchaseDate(source.purchase_date ?? "");
     setTotal(source.total_printed ?? "");
     const seeded = linesFromExtraction(source, matchable, eligibility);
@@ -669,7 +670,7 @@ export function ReviewPanel({
         <div>
           <dl className="tka-kv">
             <dt>Participante</dt>
-            <dd>{participant?.email ?? "—"}</dd>
+            <dd>{displayIdentity(participant?.email, participant?.phone)}</dd>
             <dt>Hogar</dt>
             <dd className="tka-mono">{participant?.householdKey ?? "—"}</dd>
             {/* Solo cuando existe: en las campañas que piden celular, este es

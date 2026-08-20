@@ -22,17 +22,19 @@
 // ticket se queda en la cola y su código de regla queda en el log.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Campaign, CampaignConfig } from "./config";
-import { isFuturePurchaseDate } from "./config";
-import { sendReceiptNeedsNewImage } from "./email";
+import type { Campaign, CampaignConfig } from "./config.ts";
+import { isFuturePurchaseDate } from "./config.ts";
+import { sendReceiptNeedsNewImage } from "./email.ts";
 import {
   matchLine,
-  normalize,
+  namesAListedStore,
+  storeNameFrom,
   toMatchable,
   type EligibilityMode,
+  type ExtractedStore,
   type MatchableProduct,
-} from "./matching";
-import type { ExtractionResult } from "./ocr";
+} from "./matching.ts";
+import type { ExtractionResult } from "./ocr.ts";
 
 export interface AutoCapture {
   storeName: string;
@@ -57,39 +59,17 @@ export type AutoOutcome =
 /**
  * El nombre de tienda que se escribe al aprobar.
  *
- * Es el mismo que arma el autofill de la consola (`storeFromExtraction`), y esa
- * coincidencia es deliberada: el candado anti-duplicado es
- * `lower(store) | fecha | total`, así que si la máquina escribiera "DEL RIO
- * (0010)" y el revisor "Del Río", el mismo ticket enviado dos veces daría dos
- * llaves distintas y pasaría dos veces. Con las dos rutas produciendo la misma
- * cadena, el candado cierra igual venga de donde venga.
+ * Delega en `storeNameFrom`, que es la MISMA función que usa el autofill de la
+ * consola, y esa coincidencia es la razón de que exista: el candado
+ * anti-duplicado es `lower(store) | fecha | total`, así que dos rutas que
+ * nombren distinto la misma tienda dejan pasar dos veces el mismo ticket.
+ *
+ * `stores` es opcional sólo para no romper a quien llame sin la campaña a mano;
+ * pasarla es lo correcto y es lo que hace la compuerta. Ver `storeNameFrom`
+ * para por qué la lista importa.
  */
-export const autoStoreName = (extraction: {
-  store_branch?: string | null;
-  storeBranch?: string | null;
-  store_name?: string | null;
-  storeName?: string | null;
-}): string =>
-  (
-    extraction.storeBranch ??
-    extraction.store_branch ??
-    extraction.storeName ??
-    extraction.store_name ??
-    ""
-  ).trim();
-
-/** ¿La tienda leída es una de las que la campaña lista? */
-const storeIsListed = (store: string, stores: string[]): boolean => {
-  const read = normalize(store);
-  if (!read) return false;
-  return stores.some((listed) => {
-    const want = normalize(listed);
-    // En los dos sentidos: el ticket imprime "DEL RIO (0010)" y la campaña
-    // lista "Del Río", pero otra cadena podría imprimir menos de lo que la
-    // campaña escribió.
-    return want.length >= 3 && (read.includes(want) || want.includes(read));
-  });
-};
+export const autoStoreName = (extraction: ExtractedStore, stores: string[] = []): string =>
+  storeNameFrom(extraction, stores);
 
 /**
  * Decide qué hacer con un ticket recién leído.
@@ -202,7 +182,16 @@ export function decideAutomatically({
     return { action: "queue", reason: "future_date" };
   }
 
-  if (!storeIsListed(autoStoreName(extraction), config.stores)) {
+  /**
+   * La tienda, resuelta contra la lista de la campaña ANTES de preguntar si
+   * está en ella. `storeNameFrom` mira los dos campos que leyó el modelo —
+   * razón social y sucursal— porque cuál de los dos trae el nombre de la cadena
+   * lo decide cómo esté impreso el ticket, no una regla nuestra. Ver el
+   * comentario de esa función: preferir la sucursal a ciegas mandó a la cola un
+   * ticket legítimo de Del Río.
+   */
+  const storeName = autoStoreName(extraction, config.stores);
+  if (!namesAListedStore(storeName, config.stores)) {
     return { action: "queue", reason: "store_not_listed" };
   }
 
@@ -239,7 +228,7 @@ export function decideAutomatically({
   return {
     action: "approve",
     capture: {
-      storeName: autoStoreName(extraction),
+      storeName,
       purchaseDate: extraction.purchaseDate,
       totalCents: extraction.totalCents,
       eligibleCents,
@@ -260,7 +249,9 @@ const autoNote = (model: string, eligibleCents: number) =>
   `Aprobado automáticamente por lectura de ${model}: elegible ${(eligibleCents / 100).toFixed(2)} sin observaciones.`;
 
 interface Recipient {
-  to: string;
+  /** Null donde la campaña se identifica por teléfono (0030): no hay correo que
+   *  escribir, y no es un error — `sendEmail` lo trata como "no hay a dónde". */
+  to: string | null;
   firstName: string;
   locale: "es" | "en";
   campaignName: string;

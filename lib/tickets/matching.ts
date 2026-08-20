@@ -187,3 +187,71 @@ export function parseAmountToCents(input: string): number | null {
   const cents = Number.parseInt(whole || "0", 10) * 100 + Number.parseInt(fraction, 10);
   return Number.isFinite(cents) && cents >= 0 ? cents : null;
 }
+
+// ---------------------------------------------------------------------------
+// El nombre de la tienda
+// ---------------------------------------------------------------------------
+
+/** Las dos formas en que puede llegar una extracción: snake de la base, camel
+ *  del motor. Se aceptan las dos para que no haya que convertir antes. */
+export interface ExtractedStore {
+  store_name?: string | null;
+  storeName?: string | null;
+  store_branch?: string | null;
+  storeBranch?: string | null;
+}
+
+const chainOf = (e: ExtractedStore) => (e.storeName ?? e.store_name ?? "").trim();
+const branchOf = (e: ExtractedStore) => (e.storeBranch ?? e.store_branch ?? "").trim();
+
+/** ¿Este texto nombra alguna de las tiendas que la campaña lista? */
+export const namesAListedStore = (text: string, stores: string[]): boolean => {
+  const read = normalize(text);
+  if (!read) return false;
+  return stores.some((listed) => {
+    const want = normalize(listed);
+    // En los dos sentidos: el ticket imprime "DEL RIO (0010)" y la campaña lista
+    // "Del Río", pero otra cadena podría imprimir menos de lo que se escribió.
+    return want.length >= 3 && (read.includes(want) || want.includes(read));
+  });
+};
+
+/**
+ * El nombre de tienda que se escribe al aprobar, venga de la máquina o de la
+ * consola.
+ *
+ * UNA SOLA FUNCIÓN PARA LAS DOS, y eso es la mitad de su razón de ser: el
+ * candado anti-duplicado es `lower(tienda) | fecha | total`, así que si la
+ * máquina escribiera "DEL RIO (0010)" y el revisor "Del Río", el mismo ticket
+ * enviado dos veces daría dos llaves distintas y pasaría dos veces.
+ *
+ * POR QUÉ NO BASTA CON PREFERIR LA SUCURSAL. Ésa era la regla, y venía de un
+ * ticket real: el modelo leía `ALMACENES DIST. DE LA FRONTERA SA DE CV.` como
+ * razón social y `DEL RIO (0010)` como sucursal, y nadie llama a esa tienda por
+ * su razón social. Pero el reparto de los dos campos lo decide cómo esté
+ * impreso el ticket, no una regla. El 2026-08-20 un ticket de Del Río salió al
+ * revés — `SUPER DEL RIO` en la razón social y `SUCURSAL 0010` en la sucursal —
+ * y preferir la sucursal a ciegas dejó "SUCURSAL 0010" como nombre de tienda:
+ * la compuerta preguntó si esa era una tienda participante, la respuesta fue
+ * no, y un ticket legítimo se fue a la cola. Nunca fue un problema de dinero
+ * —la compuerta falla hacia la cola, nunca hacia el rechazo— pero desactivaba
+ * justo lo que la aprobación automática existe para hacer.
+ *
+ * LA REGLA AHORA: gana el campo que efectivamente nombre una tienda de la
+ * campaña. Si ninguno lo hace, se conserva el comportamiento anterior, porque
+ * en ese caso lo va a mirar una persona de todos modos y lo que necesita es el
+ * nombre más reconocible, no el más largo.
+ */
+export const storeNameFrom = (extraction: ExtractedStore, stores: string[] = []): string => {
+  const chain = chainOf(extraction);
+  const branch = branchOf(extraction);
+
+  if (stores.length > 0) {
+    // La sucursal primero: cuando las dos nombran la tienda, la sucursal es la
+    // más específica y la que cierra mejor el candado.
+    if (branch && namesAListedStore(branch, stores)) return branch;
+    if (chain && namesAListedStore(chain, stores)) return chain;
+  }
+
+  return branch || chain;
+};

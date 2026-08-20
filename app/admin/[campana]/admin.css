@@ -431,3 +431,22 @@
 }
 
 .tka-toast.bad { background: var(--a-red); color: #fff; }
+
+/* ---- lecturas: foto / lo leído / lo decidido ----------------------------- */
+/*
+ * Tres columnas propias en vez de reutilizar `.tka-detail`, que es de dos (foto
+ * + panel de revisión) y mandaba la tercera abajo del todo. El punto de esta
+ * pantalla es que las tres se lean de un vistazo: la foto, la transcripción y
+ * la decisión. En cuanto no caben, apilan — un ticket es alto y estrecho, y
+ * apilado sigue siendo legible.
+ */
+.rd-cols { display: grid; grid-template-columns: 300px 1fr 1fr; gap: 18px; align-items: start; }
+@media (max-width: 1180px) { .rd-cols { grid-template-columns: 260px 1fr; } }
+@media (max-width: 860px)  { .rd-cols { grid-template-columns: 1fr; } }
+
+/* La foto del ticket, contenida: `.tka-shot` fija una altura mínima para la
+ * cola de revisión, y aquí lo que hace falta es que la imagen quepa entera. */
+/* Aquí .tka-shot va sobre la propia <img>, no sobre un contenedor: la altura
+ * mínima que la cola necesita para que el panel no salte sobra cuando lo único
+ * que hay que hacer es que el ticket quepa entero. */
+.rd-cols img.tka-shot { min-height: 0; max-width: 100%; height: auto; display: block; padding: 6px; }

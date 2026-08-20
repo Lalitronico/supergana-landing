@@ -19,6 +19,65 @@ import { NextPrizeProgress } from "../NextPrizeProgress";
 import { PrivacyPill } from "../PrivacyPill";
 import { currentClaim } from "../useMe";
 
+
+/**
+ * HEIC → JPEG, en el teléfono, cuando el teléfono se cuela.
+ *
+ * `PICKER_IMAGE_TYPES` deja HEIC fuera del `accept` a propósito, y eso basta
+ * para el camino normal: iOS convierte solo antes de entregar el archivo. Pero
+ * no es un candado. Compartir una foto "desde Fotos", un archivo guardado en
+ * iCloud Drive, o cualquier navegador que ignore `accept` entrega el HEIC
+ * crudo, y ahí el lector no lo decodifica: la lectura vuelve con
+ * `status: "skipped"` y el ticket cae a captura manual sin que nadie sepa por
+ * qué.
+ *
+ * Se decodifica con el propio navegador —`createImageBitmap` sobre un canvas—
+ * y no con una librería: en iOS Safari, que es donde vive el problema, el
+ * decodificador de HEIC es nativo y ya está ahí. En un Chrome de escritorio no
+ * lo está, y por eso esto NO puede fallar hacia el error: si el decode no sale,
+ * se sube el original tal cual. El servidor sigue aceptando HEIC y el ticket
+ * cae a manual, que es exactamente lo que pasaba antes. Nadie pierde la
+ * posibilidad de subir su ticket por un formato de contenedor.
+ */
+const HEIC_TYPES = ["image/heic", "image/heif"];
+
+const asJpegIfHeic = async (file: File): Promise<File> => {
+  const looksHeic =
+    HEIC_TYPES.includes(file.type.toLowerCase()) ||
+    // Compartir desde Fotos a veces entrega `type: ""`. El nombre es lo único
+    // que queda.
+    (!file.type && /\.(heic|heif)$/i.test(file.name));
+  if (!looksHeic) return file;
+
+  try {
+    const bitmap = await createImageBitmap(file);
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0);
+    bitmap.close?.();
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      // 0.9: el ticket es texto impreso pequeño y el ruido de compresión es
+      // justo lo que hace fallar una lectura. Un ticket de 4 MP a 0.9 cabe de
+      // sobra bajo los 10 MB del bucket.
+      canvas.toBlob(resolve, "image/jpeg", 0.9),
+    );
+    if (!blob) return file;
+
+    return new File([blob], file.name.replace(/\.(heic|heif)$/i, ".jpg"), {
+      type: "image/jpeg",
+      lastModified: file.lastModified,
+    });
+  } catch {
+    // Este navegador no sabe leer HEIC. Que suba el original: el servidor lo
+    // acepta y un humano lo captura, como siempre.
+    return file;
+  }
+};
+
 const EXTENSION: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -110,6 +169,10 @@ export default function UploadPage() {
     setError(null);
 
     try {
+      // Antes de nada: si esto es un HEIC que se coló, se convierte aquí. Todo
+      // lo de abajo —extensión, ruta, contentType, el POST— lee de `upload`, no
+      // de `file`, o el objeto se guardaría con la extensión equivocada.
+      const upload = await asJpegIfHeic(file);
       const supabase = supabaseBrowser();
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) {
@@ -121,12 +184,12 @@ export default function UploadPage() {
       // `<campaign>/<auth-uid>/<uuid>.<ext>` — the storage policy checks the
       // second segment against auth.uid(), so this is the only shape that can
       // be written by this account.
-      const ext = EXTENSION[file.type] ?? "jpg";
+      const ext = EXTENSION[upload.type] ?? "jpg";
       const path = `${campaign.slug}/${auth.user.id}/${uuid()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from(RECEIPTS_BUCKET)
-        .upload(path, file, { contentType: file.type, upsert: false });
+        .upload(path, upload, { contentType: upload.type, upsert: false });
 
       if (uploadError) {
         console.error("[tickets upload] storage upload failed", uploadError);
@@ -138,7 +201,7 @@ export default function UploadPage() {
       const res = await fetch(`/api/tickets/${campaign.slug}/receipts/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imagePath: path, contentType: file.type }),
+        body: JSON.stringify({ imagePath: path, contentType: upload.type }),
       });
 
       if (!res.ok) {

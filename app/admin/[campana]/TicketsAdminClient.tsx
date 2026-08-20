@@ -5,8 +5,9 @@ import type { CSSProperties } from "react";
 import { authThrottleKind, supabaseBrowser } from "@/lib/supabase/browser";
 import { formatUsdCents, mechanicOf } from "@/lib/tickets/config";
 import { canPayout, canReview } from "@/lib/tickets/roles";
+import { ReadingsView } from "./ReadingsView";
 import { PAYOUT_TRANSITIONS } from "@/lib/tickets/payouts";
-import { formatMxPhone } from "@/lib/tickets/phone";
+import { displayIdentity, formatMxPhone } from "@/lib/platform/phone";
 import type { CampaignMechanic, ProfileFields, RewardStatus } from "@/lib/tickets/config";
 import type { EligibilityMode } from "@/lib/tickets/matching";
 import type { AdminData, AdminProduct, QueueItem } from "./types";
@@ -14,7 +15,7 @@ import { ReviewPanel } from "./ReviewPanel";
 import { StoreView } from "./StoreView";
 
 type Gate = "loading" | "anon" | "forbidden" | "ready" | "error";
-type View = "dash" | "queue" | "payouts" | "catalog" | "store";
+type View = "dash" | "queue" | "readings" | "payouts" | "catalog" | "store";
 
 const money = (cents: number) => formatUsdCents(cents, "en");
 
@@ -187,6 +188,13 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
   const NAV: { key: View; label: string; count?: number }[] = [
     { key: "dash", label: "Resumen" },
     { key: "queue", label: "Cola de revisión", count: queue.length },
+    // Only where receipts are actually read, and only for reviewers. A campaign
+    // with the OCR off has nothing to show here, and a seat without review
+    // rights has no business seeing what a third party read off somebody's
+    // receipt — the endpoint refuses it too, this only stops offering it.
+    ...(campaign.config.ocr.enabled && reviewer
+      ? [{ key: "readings" as View, label: "Lecturas" }]
+      : []),
     ...(mechanic === "accumulation"
       ? [{ key: "store" as View, label: "Tienda de Premios" }]
       : []),
@@ -298,6 +306,8 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
               }}
             />
           )}
+
+          {view === "readings" && <ReadingsView slug={slug} />}
 
           {view === "store" && <StoreView slug={slug} onNotify={notify} />}
 
@@ -799,8 +809,9 @@ function QueueView({
   timezone: string;
   /** Whether a line counts by exact SKU or by naming the brand. */
   eligibility: EligibilityMode;
-  /** Whether this campaign reads receipts, and whether the reading pre-fills. */
-  ocr: { enabled: boolean; autofill: boolean };
+  /** Whether this campaign reads receipts, whether the reading pre-fills, and
+   *  whether it may settle a clean one without a reviewer. */
+  ocr: { enabled: boolean; autofill: boolean; autoApprove: boolean };
   /** Decides which identifying column is worth a place in the queue table. */
   profileFields: ProfileFields;
   onDone: (message: string, bad?: boolean) => void | Promise<void>;
@@ -819,8 +830,16 @@ function QueueView({
       <div>
         <h2 className="tka-title">Cola de revisión</h2>
         <div className="tka-sub">
-          {queue.length} tickets pendientes. Sin OCR en la v1: la captura de tienda, fecha,
-          total y líneas se hace aquí, que es exactamente lo que la promesa de 48 h cubre.
+          {queue.length} tickets pendientes.{" "}
+          {/* Este texto decía "Sin OCR en la v1" hasta el 2026-08-20, dos semanas
+              después de que el OCR entrara en producción. Se lo leían los
+              revisores. Ahora lo dice la configuración, no un comentario que
+              alguien se olvidó de borrar. */}
+          {ocr.autoApprove
+            ? "Lo que llega aquí es lo que la lectura automática no quiso decidir sola."
+            : ocr.enabled
+              ? "Cada ticket llega con la lectura del modelo al lado; la decisión es tuya."
+              : "La captura de tienda, fecha, total y líneas se hace aquí."}
         </div>
       </div>
 
@@ -872,7 +891,7 @@ function QueueView({
                     </b>
                     <br />
                     <span style={{ fontSize: 11, color: "#6B665B" }}>
-                      {item.participant?.email}
+                      {displayIdentity(item.participant?.email, item.participant?.phone)}
                     </span>
                   </td>
                   <td>
