@@ -8,7 +8,7 @@
  * than a failure, because it reads as verified.
  */
 
-import { admin, anonClient, purgeAccounts, purgeObjects, SUPABASE_URL, ANON_KEY, PROBE_PASSWORD } from "./_shared.mjs";
+import { admin, anonClient, findUser, purgeAccounts, purgeObjects, SUPABASE_URL, ANON_KEY, PROBE_PASSWORD } from "./_shared.mjs";
 const db = admin();
 
 const { data: victimReceipt } = await db
@@ -16,8 +16,8 @@ const { data: victimReceipt } = await db
   .eq("image_path", (await db.from("receipts").select("image_path")
     .like("image_path", "%probe-victim%").single()).data.image_path).single();
 
-const attackerAuth = (await db.auth.admin.listUsers({ perPage: 1000 })).data.users
-  .find((u) => u.email === "probe.atacante@supergana.fun");
+const attackerAuth = await findUser(db, "probe.atacante@supergana.fun");
+if (!attackerAuth) throw new Error("falta la cuenta atacante: corre security.mjs primero");
 
 const PASS = PROBE_PASSWORD;
 const as = anonClient();

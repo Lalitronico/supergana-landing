@@ -10,7 +10,7 @@
  * boundaries are reachable and Novamex's numbers are never touched.
  */
 
-import { admin, anonClient, purgeAccounts, purgeObjects, SUPABASE_URL, ANON_KEY, PROBE_PASSWORD } from "./_shared.mjs";
+import { admin, anonClient, findUser, purgeAccounts, purgeObjects, SUPABASE_URL, ANON_KEY, PROBE_PASSWORD } from "./_shared.mjs";
 const db = admin();
 
 const REWARD = 2000;
@@ -25,8 +25,15 @@ const { data: org } = await db.from("organizations")
   .upsert({ slug: "probe-conc", name: "Probe Concurrencia" }, { onConflict: "slug" })
   .select("id").single();
 
-const reviewer = (await db.auth.admin.listUsers({ perPage: 1000 })).data.users
-  .find((u) => u.email === "edu_lalitogol@hotmail.com").id;
+const REVIEWER_EMAIL = "edu_lalitogol@hotmail.com";
+const reviewerUser = await findUser(db, REVIEWER_EMAIL);
+if (!reviewerUser) {
+  // Named rather than crashed on `.id of undefined`: this probe borrows a real
+  // account as its reviewer, and "that account is gone" is a fact somebody can
+  // act on.
+  throw new Error(`no existe la cuenta ${REVIEWER_EMAIL}, que esta sonda usa como revisor`);
+}
+const reviewer = reviewerUser.id;
 
 const buildCampaign = async (config) => {
   await db.from("campaigns").delete().eq("slug", "probe-conc");

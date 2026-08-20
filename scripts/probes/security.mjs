@@ -10,7 +10,7 @@
  * sender; the project's budget is 2 messages an hour and this would eat it.
  */
 
-import { admin, anonClient, purgeAccounts, purgeObjects, SUPABASE_URL, ANON_KEY, PROBE_PASSWORD } from "./_shared.mjs";
+import { admin, anonClient, findUser, purgeAccounts, purgeObjects, SUPABASE_URL, ANON_KEY, PROBE_PASSWORD } from "./_shared.mjs";
 const db = admin();
 
 const results = [];
@@ -20,8 +20,7 @@ const check = (name, expectation, ok, detail = "") =>
 // ---------------------------------------------------------------- setup ----
 const PASS = "Pr0be!" + Math.abs(Number(process.argv[2] ?? 7)) + "xQz";
 const mk = async (email) => {
-  const { data: list } = await db.auth.admin.listUsers({ perPage: 1000 });
-  const found = list?.users.find((u) => u.email === email);
+  const found = await findUser(db, email);
   if (found) {
     await db.auth.admin.updateUserById(found.id, { password: PASS, email_confirm: true });
     return found.id;

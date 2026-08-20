@@ -35,13 +35,53 @@ export const admin = () =>
 export const anonClient = () =>
   createClient(SUPABASE_URL, ANON_KEY, { auth: { persistSession: false } });
 
+
+/**
+ * Every account, one small page at a time.
+ *
+ * `listUsers({ perPage: 1000 })` is what every caller here used to do, and on
+ * 2026-08-20 it started answering HTTP 500 — measured: 20 works, 50 and above
+ * fail, with an empty error body. The failure is the worst shape available,
+ * because supabase-js reports it as `{ users: [] }` with the error tucked in a
+ * second field nobody was reading: a probe looking for its own fixture account
+ * saw "not found" and crashed, and a script looking for a participant would
+ * have concluded the participant did not exist.
+ *
+ * So: a page size well under the cliff, an explicit error rather than an empty
+ * list, and a ceiling so a paging bug cannot spin forever.
+ */
+const PAGE = 20;
+const MAX_PAGES = 200;
+
+export const allUsers = async (db) => {
+  const users = [];
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const { data, error } = await db.auth.admin.listUsers({ page, perPage: PAGE });
+    if (error) {
+      throw new Error(
+        `listUsers(page ${page}) falló con HTTP ${error.status ?? "?"}. ` +
+          `Si es 500, revisa el tamaño de página: el endpoint lo topa.`,
+      );
+    }
+    const batch = data?.users ?? [];
+    users.push(...batch);
+    if (batch.length < PAGE) return users;
+  }
+  throw new Error(`listUsers superó ${MAX_PAGES} páginas; algo va mal en la paginación.`);
+};
+
+/** The one lookup every caller actually wanted. Case-insensitive, like GoTrue. */
+export const findUser = async (db, email) => {
+  const wanted = email.toLowerCase();
+  return (await allUsers(db)).find((u) => (u.email ?? "").toLowerCase() === wanted) ?? null;
+};
+
 export const PROBE_PASSWORD = "Pr0be!7xQz";
 
 /** Creates the account if missing and returns a client signed in as it. */
 export const signedInAs = async (email) => {
   const db = admin();
-  const { data: list } = await db.auth.admin.listUsers({ perPage: 1000 });
-  const existing = list?.users.find((u) => u.email === email);
+  const existing = await findUser(db, email);
   if (existing) {
     await db.auth.admin.updateUserById(existing.id, {
       password: PROBE_PASSWORD, email_confirm: true,
@@ -73,8 +113,7 @@ export const signedInAs = async (email) => {
  */
 export const purgeAccounts = async (matcher) => {
   const db = admin();
-  const { data: list } = await db.auth.admin.listUsers({ perPage: 1000 });
-  const doomed = (list?.users ?? []).filter((u) => matcher(u.email ?? ""));
+  const doomed = (await allUsers(db)).filter((u) => matcher(u.email ?? ""));
   if (doomed.length) await purgeObjects(doomed.map((u) => u.id));
   for (const user of doomed) {
     const { data: parts } = await db.from("participants")

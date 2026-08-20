@@ -10,7 +10,7 @@
  * Builds a real second tenant, attacks across it, then removes it.
  */
 
-import { admin, anonClient, purgeAccounts, purgeObjects, SUPABASE_URL, ANON_KEY, PROBE_PASSWORD } from "./_shared.mjs";
+import { admin, anonClient, findUser, purgeAccounts, purgeObjects, SUPABASE_URL, ANON_KEY, PROBE_PASSWORD } from "./_shared.mjs";
 const db = admin();
 
 const out = [];
@@ -30,8 +30,7 @@ const { data: other } = await db.from("campaigns").upsert({
 }, { onConflict: "slug" }).select("id, slug").single();
 
 const mkUser = async (email) => {
-  const { data: list } = await db.auth.admin.listUsers({ perPage: 1000 });
-  const f = list?.users.find((u) => u.email === email);
+  const f = await findUser(db, email);
   if (f) { await db.auth.admin.updateUserById(f.id, { password: PROBE_PASSWORD }); return f.id; }
   const { data } = await db.auth.admin.createUser({
     email, password: PROBE_PASSWORD, email_confirm: true });
