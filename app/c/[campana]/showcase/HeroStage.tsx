@@ -19,7 +19,7 @@ import { stageCast } from "../fiesta/stage";
  */
 export function HeroStage({ org }: { org: string }) {
   const { campaign, t } = useTickets();
-  const { host, others } = stageCast(campaign.theme, 4);
+  const { host, others } = stageCast(campaign.theme, 3);
   const rate = campaign.pointsPerDollar;
   const hasMascot = Boolean(campaign.theme.mascots.greet);
 
@@ -35,7 +35,7 @@ export function HeroStage({ org }: { org: string }) {
       <div className="sh-stage" aria-hidden="true">
         <div className="sh-stage-floor" />
         <div className="sh-pop sh-slot pump" style={pop(1)}>
-          <GasPump digits={`+${rate}`} height={232} />
+          <GasPump digits={`+${rate}`} height={228} />
         </div>
         {others[2] && (
           <div className="sh-pop sh-slot s4" style={pop(4)}>
@@ -44,7 +44,7 @@ export function HeroStage({ org }: { org: string }) {
         )}
         {others[0] && (
           <div className="sh-pop sh-slot s2" style={pop(2)}>
-            <CastFigure member={others[0]} height={162} delay={400} alt="" />
+            <CastFigure member={others[0]} height={160} delay={400} alt="" />
           </div>
         )}
         {host ? (

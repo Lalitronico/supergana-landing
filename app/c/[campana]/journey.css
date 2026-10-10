@@ -1222,3 +1222,7 @@ a.tk-fuelcard {
   .tk-tank { max-width: 118px; }
   .tk-fuelcard { gap: 12px; }
 }
+
+/* Reel windows: nothing taller than a digit may leak, and nothing may clip one. */
+.jr-reel { overflow: hidden; line-height: 1; }
+.jr-reel-col { line-height: 1.15em; }

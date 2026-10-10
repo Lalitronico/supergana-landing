@@ -18,7 +18,7 @@ const STAGE_H = 1080;
 /** Fewest lanes drawn: a lone racer still gets a track that looks like a race. */
 const MIN_LANES = 4;
 /** Height of the track in stage pixels; mirrors --track-h in live.css. */
-const TRACK_H = 586;
+const TRACK_H = 556;
 
 /** Supergana's own cast, for tenants that ship no cast and no mascots. */
 const DEFAULT_CHARACTERS = [
@@ -452,6 +452,8 @@ export function LiveScreen({ slug }: { slug: string }) {
   // with it the avatar) follows, so four racers get big characters.
   const laneCount = Math.max(MIN_LANES, data.top.length);
   const laneH = TRACK_H / laneCount;
+  const avPx = Math.min(96, laneH - 54);
+  const ticks = [0.25, 0.5, 0.75];
   const maxCents = Math.max(1, ...data.mix.map((b) => b.cents));
 
   return (
@@ -589,8 +591,16 @@ export function LiveScreen({ slug }: { slug: string }) {
 
               <div
                 className="lv-track"
-                style={{ "--lanes": laneCount, "--lane": `${laneH}px` } as CSSProperties}
+                style={{ "--lanes": laneCount, "--lane": `${laneH}px`, "--av": `${avPx}px` } as CSSProperties}
               >
+                {/* Distance marks on the same scale the runners use, so a short
+                    run still reads as a race: start line, quarters, the flag. */}
+                <div className="lv-marks" aria-hidden="true">
+                  <i style={{ left: "0%" }} className="start" />
+                  {ticks.map((t) => (
+                    <i key={t} style={{ left: `${t * 100}%` }} />
+                  ))}
+                </div>
                 {Array.from({ length: laneCount }, (_, i) => (
                   <div className="lv-lane-line" key={i} style={{ top: i * laneH }}>
                     <span>{i + 1}</span>
@@ -635,6 +645,22 @@ export function LiveScreen({ slug }: { slug: string }) {
                     </div>
                   );
                 })}
+              </div>
+
+              <div
+                className="lv-axis"
+                style={{ "--av": `${avPx}px` } as CSSProperties}
+                aria-hidden="true"
+              >
+                <div className="lv-axis-in">
+                  <span style={{ left: "0%" }}>SALIDA</span>
+                  {ticks.map((t) => (
+                    <span key={t} style={{ left: `${t * 100}%` }}>
+                      {int(goal * t)}
+                    </span>
+                  ))}
+                </div>
+                <b>META</b>
               </div>
 
               <FactStrip facts={facts} />

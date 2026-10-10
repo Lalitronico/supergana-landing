@@ -27,7 +27,7 @@
   --lv-body: var(--font-inter), Inter, "Segoe UI", system-ui, sans-serif;
   --lv-shadow: 6px 6px 0 0 var(--lv-ink);
   --lv-border: 4px solid var(--lv-ink);
-  --track-h: 586px;
+  --track-h: 556px;
 
   position: fixed;
   inset: 0;
@@ -439,7 +439,6 @@
 }
 .lv-runner {
   /* Avatar size follows the lane: four racers get big characters. */
-  --av: min(96px, calc(var(--lane) - 54px));
   position: absolute;
   top: 6px;
   width: var(--av);
@@ -656,21 +655,28 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 70px;
+  height: 24px;
   border-radius: 0 0 18px 18px;
-  background: linear-gradient(to top, #fff 15%, transparent);
+  background: linear-gradient(to top, #fff 10%, transparent);
   pointer-events: none;
 }
 .lv-feed-list {
+  /* Column-wrap trick: an item that does not fit whole moves to a second
+     column that overflow hides, so the panel never shows a half-cut row. */
   list-style: none;
-  margin: 16px 0 0;
-  padding: 0 0 20px;
+  margin: 16px 0 14px;
+  padding: 0;
+  flex: 1;
+  min-height: 0;
   display: flex;
-  flex-direction: column;
+  flex-flow: column wrap;
+  align-content: flex-start;
   gap: 10px;
   overflow: hidden;
 }
 .lv-feed-item {
+  width: 100%;
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: 58px 1fr auto;
   align-items: center;
@@ -884,3 +890,36 @@
 @media (prefers-reduced-motion: reduce) {
   .lv-root * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+
+/* ---- track furniture: start line, quarter marks, axis ------------------ */
+.lv-track {
+  background-image: repeating-linear-gradient(-45deg, rgba(250, 247, 240, 0.045) 0 18px, transparent 18px 36px);
+}
+/* Same geometry as .lv-runner's `left`: avatar centre at 0 → 1 of the open track. */
+.lv-marks, .lv-axis-in {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(90px + var(--av) / 2);
+  width: calc(100% - 90px - 56px - var(--av) - 90px);
+}
+.lv-marks i {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 3px dashed rgba(250, 247, 240, 0.16);
+}
+.lv-marks i.start { border-left: 4px solid rgba(250, 247, 240, 0.4); }
+.lv-axis {
+  position: relative;
+  height: 28px;
+  margin-top: -2px;
+  color: var(--lv-ink);
+  font-family: var(--lv-display);
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: 0.04em;
+}
+.lv-axis-in { top: 0; bottom: 0; left: calc(4px + 90px + var(--av) / 2); width: calc(100% - 8px - 90px - 56px - var(--av) - 90px); }
+.lv-axis-in span { position: absolute; top: 2px; transform: translateX(-50%); white-space: nowrap; }
+.lv-axis b { position: absolute; right: 4px; top: 2px; width: 56px; text-align: center; font-weight: 800; }

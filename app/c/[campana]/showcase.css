@@ -773,12 +773,14 @@
    host stands left, the pump rises behind the middle (its dial clears every
    head), the second character stands in front of the pump, the third on the
    right, and the fourth peeks from behind between them. */
-.sh-slot.s1 { left: 6px; z-index: 3; }
+.sh-slot.s1 { left: 4px; z-index: 3; }
 .sh-slot.s1.mascot { width: 44%; }
-.sh-slot.pump { left: calc(50% - 58px); bottom: 12px; z-index: 1; }
-.sh-slot.s3 { left: calc(50% - 62px); z-index: 4; bottom: 10px; }
-.sh-slot.s2 { right: 6px; z-index: 3; }
-.sh-slot.s4 { right: 92px; z-index: 2; bottom: 26px; }
+/* The pump is the tallest thing on the stage, so its dial (the +N readout) rises
+   clear of every head; the lower body is what the cast overlaps. */
+.sh-slot.pump { left: 142px; bottom: 12px; z-index: 2; }
+.sh-slot.s3 { left: 96px; z-index: 4; bottom: 10px; }
+.sh-slot.s2 { right: 4px; z-index: 3; }
+.sh-slot.s4 { display: none; }
 
 /* Entrance: each character springs up from below with a little overshoot, in
    sequence. The idle bob lives on the inner image, so the two never fight over

@@ -39,6 +39,9 @@ function Reel({ digit, index }: { digit: number; index: number }) {
         style={{
           transform: `translateY(${shift}%)`,
           transitionDuration: `${duration}s`,
+          // One step per digit: the reel clicks from number to number like a
+          // real odometer, so no frame ever shows a digit cut in half.
+          transitionTimingFunction: `steps(${target}, end)`,
         }}
       >
         {DIGITS.map((d, i) => (
