@@ -1,0 +1,59 @@
+/* Fiesta layer: Supergana's cartoon palette and patterns, shared by every
+   screen of the module (and the live screen). Tokens only + a few pattern
+   utilities; screen-specific styles live in showcase.css / journey.css.
+   Loaded right after tickets.css. See DIRECCION_ARTE_R2.md. */
+
+.tk-app {
+  --sg-cream: #FAF7F0;
+  --sg-ink: #0A0A0A;
+  --sg-yellow: #FFD93D;
+  --sg-yellow-deep: #F5C211;
+  --sg-red: #FF4757;
+  --sg-red-deep: #E63946;
+  --sg-blue: #1E90FF;
+  --sg-blue-deep: #1769BF;
+  --sg-green: #2ECC71;
+  --sg-green-deep: #1FA85A;
+  --sg-pink: #FF6B9D;
+  --sg-pink-deep: #E84A7F;
+  --sg-purple: #8B5CF6;
+  --sg-orange: #FF8A3D;
+}
+
+/* Sunburst rays behind a stage. Colours via --rays-a / --rays-b. */
+.sg-rays {
+  background:
+    repeating-conic-gradient(from 0deg at 50% 60%,
+      var(--rays-a, var(--sg-yellow)) 0deg 10deg,
+      var(--rays-b, #FFE98A) 10deg 20deg);
+}
+
+/* Halftone dots. Colour via --dots. */
+.sg-halftone {
+  background-image: radial-gradient(var(--dots, rgba(10, 10, 10, 0.12)) 1.4px, transparent 1.6px);
+  background-size: 10px 10px;
+}
+
+/* Diagonal stripes. Colours via --stripe-a / --stripe-b. */
+.sg-stripes {
+  background: repeating-linear-gradient(-45deg,
+    var(--stripe-a, var(--sg-cream)) 0 14px,
+    var(--stripe-b, #F1EBDD) 14px 28px);
+}
+
+/* Checkered flag strip. */
+.sg-checker {
+  background:
+    conic-gradient(var(--sg-ink) 25%, var(--sg-cream) 0 50%, var(--sg-ink) 0 75%, var(--sg-cream) 0)
+    0 0 / 16px 16px;
+}
+
+/* The Supergana wordmark: "Supergana" + red dot, as on supergana.fun. */
+.sg-wordmark {
+  font-family: var(--tk-display, "Bricolage Grotesque", system-ui, sans-serif);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--sg-ink);
+  white-space: nowrap;
+}
+.sg-wordmark .sg-dot { color: var(--sg-red); }

@@ -7,6 +7,7 @@ import { isLocale, toPublicCampaign, type Locale } from "@/lib/tickets/config";
 import { HashSession } from "@/app/auth/HashSession";
 import { TicketsShell } from "./TicketsShell";
 import "./tickets.css";
+import "./fiesta.css";
 import "./showcase.css";
 import "./journey.css";
 
