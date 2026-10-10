@@ -129,7 +129,7 @@ export function ApprovalCelebration({ me }: { me: Me | null }) {
           {show.points > 0 && (
             <PumpDisplay
               value={show.points}
-              unit={t("pointsUnit")}
+              title={t("jrPumpLabel")}
               label={`+${show.points} ${t("pointsUnit")}`}
             />
           )}

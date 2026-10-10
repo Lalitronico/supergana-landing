@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { translator, type Translate } from "@/lib/tickets/i18n";
 import { formatUsdCents, type Locale, type PublicCampaign } from "@/lib/tickets/config";
-import { brandTone, isCobranded, themeCssVars } from "@/lib/tickets/theme";
+import { brandTone, castMember, isCobranded, themeCssVars } from "@/lib/tickets/theme";
 import { useMe, type Me, type MeStatus } from "./useMe";
 import { useStore, type StoreStatus } from "./useStore";
 import { SafeImg } from "./showcase/SafeImg";
@@ -216,6 +216,13 @@ export function TicketsShell({
   // An account with no profile here has no points, and printing "0 pts" at
   // somebody who has not joined yet reads as a loss rather than a blank slate.
   const points = status === "ready" && me ? me.points : null;
+  // The character they play as (resolved by the server), when the campaign has a
+  // cast: it takes the star's place in the balance chip, so the header says who
+  // you are as well as what you have, in the same space.
+  const avatarMember = castMember(
+    theme,
+    (me?.participant as { avatar?: string | null } | null | undefined)?.avatar,
+  );
 
   return (
     <TicketsContext.Provider value={value}>
@@ -271,7 +278,18 @@ export function TicketsShell({
 
               {points !== null && (
                 <Link href={`${base}panel/`} className="tk-points" aria-label={t("pointsAria")}>
-                  <span className="tk-star">{STAR}</span>
+                  {avatarMember ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- tenant art from data
+                    <img
+                      className="tk-points-avatar"
+                      src={avatarMember.avatar ?? avatarMember.image}
+                      alt=""
+                      decoding="async"
+                      draggable={false}
+                    />
+                  ) : (
+                    <span className="tk-star">{STAR}</span>
+                  )}
                   <b>{points.toLocaleString(locale === "en" ? "en-US" : "es-MX")}</b>
                   <span className="unit">{t("pointsUnit")}</span>
                 </Link>

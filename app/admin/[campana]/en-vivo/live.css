@@ -316,15 +316,16 @@
 .lv-qr-url {
   font-family: var(--lv-display);
   font-weight: 800;
-  font-size: 24px;
-  padding: 6px 18px;
+  font-size: 21px;
+  padding: 6px 16px;
   background: var(--lv-ink);
   color: var(--lv-cream);
-  border-radius: 999px;
+  border-radius: 20px;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  text-align: center;
+  line-height: 1.15;
+  /* The whole address must show: wrap rather than cut. */
+  overflow-wrap: anywhere;
 }
 .lv-qr .lv-peek { right: -22px; top: -40px; height: 108px; }
 
@@ -445,7 +446,7 @@
   height: var(--av);
   /* Distance is proportional to points: --p runs 0..1 from the start line to
      the flag, with room at both ends for the name tag centred under the face. */
-  left: calc(90px + (100% - 90px - 56px - var(--av) - 90px) * var(--p));
+  left: calc(var(--pad, 90px) + (100% - var(--pad, 90px) - 56px - var(--av) - var(--pad, 90px)) * var(--p));
   transition: left 900ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .lv-avatar {
@@ -900,8 +901,8 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  left: calc(90px + var(--av) / 2);
-  width: calc(100% - 90px - 56px - var(--av) - 90px);
+  left: calc(var(--pad, 90px) + var(--av) / 2);
+  width: calc(100% - var(--pad, 90px) - 56px - var(--av) - var(--pad, 90px));
 }
 .lv-marks i {
   position: absolute;
@@ -920,6 +921,37 @@
   font-size: 19px;
   letter-spacing: 0.04em;
 }
-.lv-axis-in { top: 0; bottom: 0; left: calc(4px + 90px + var(--av) / 2); width: calc(100% - 8px - 90px - 56px - var(--av) - 90px); }
+.lv-axis-in { top: 0; bottom: 0; left: calc(4px + var(--pad, 90px) + var(--av) / 2); width: calc(100% - 8px - var(--pad, 90px) - 56px - var(--av) - var(--pad, 90px)); }
 .lv-axis-in span { position: absolute; top: 2px; transform: translateX(-50%); white-space: nowrap; }
 .lv-axis b { position: absolute; right: 4px; top: 2px; width: 56px; text-align: center; font-weight: 800; }
+
+/* ---- compact lanes (more than five racers) ------------------------------ */
+.lv-track.compact .lv-lane-line span { font-size: 20px; left: 8px; }
+.lv-track.compact .lv-runner { top: 4px; }
+.lv-track.compact .lv-runner .lv-avatar { border-width: 3px; }
+.lv-track.compact .lv-runner .lv-avatar b { font-size: 20px; }
+.lv-track.compact .lv-tag {
+  /* Name and points in ONE pill beside the avatar. */
+  top: 50%;
+  left: calc(100% + 8px);
+  transform: translateY(-50%);
+  padding: 0 10px 1px;
+  font-size: 20px;
+  border-width: 2px;
+}
+.lv-track.compact .lv-tag b { max-width: 150px; }
+.lv-track.compact .lv-runner.flip .lv-tag { left: auto; right: calc(100% + 8px); }
+.lv-track.compact .lv-up { width: 20px; height: 20px; font-size: 10px; top: -6px; right: -6px; border-width: 2px; }
+.lv-more {
+  position: absolute;
+  left: 0;
+  right: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--lv-display);
+  font-weight: 800;
+  font-size: 24px;
+  color: var(--lv-yellow);
+  letter-spacing: -0.01em;
+}

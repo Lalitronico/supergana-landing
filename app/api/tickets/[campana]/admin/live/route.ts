@@ -26,7 +26,8 @@ export const runtime = "nodejs";
  */
 
 const FEED_SIZE = 12;
-const TOP_SIZE = 5;
+/** Racers the track can show. Past this, the last lane becomes "+N more". */
+const MAX_RACERS = 12;
 const CACHE_MS = 2000;
 const PAGE = 1000;
 const MAX_ROWS = 5000;
@@ -149,6 +150,8 @@ export interface LiveData {
   /** The tenant's whole cast, for the stage; empty when it has none. */
   cast: (LiveFigure & { brand: string | null })[];
   top: { id: string; rank: number; alias: string; points: number; avatar: LiveFigure | null }[];
+  /** Racers beyond `top` (0 unless more than MAX_RACERS have points). */
+  topMore: number;
   mix: {
     brand: string;
     color: string;
@@ -294,10 +297,14 @@ export async function GET(
       if (spendKinds.has(p.kind)) continue;
       totals.set(p.participant_id, (totals.get(p.participant_id) ?? 0) + p.points);
     }
-    const top = [...totals.entries()]
+    const ranked = [...totals.entries()]
       .filter(([, pts]) => pts > 0)
-      .sort((x, y) => y[1] - x[1])
-      .slice(0, TOP_SIZE)
+      .sort((x, y) => y[1] - x[1]);
+    // Up to MAX_RACERS are all shown; beyond that, MAX_RACERS - 1 plus a "+N" lane.
+    const shown = ranked.length > MAX_RACERS ? MAX_RACERS - 1 : ranked.length;
+    const topMore = ranked.length - shown;
+    const top = ranked
+      .slice(0, shown)
       .map(([id, pts], i) => ({
         id,
         rank: i + 1,
@@ -424,6 +431,7 @@ export async function GET(
       feed,
       cast: cast.map((m) => ({ ...figureOf(m), image: m.image, brand: m.brand })),
       top,
+      topMore,
       mix,
     };
     cache.set(campaign.id, { at: Date.now(), body });

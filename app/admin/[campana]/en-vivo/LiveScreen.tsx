@@ -450,9 +450,14 @@ export function LiveScreen({ slug }: { slug: string }) {
   const goal = Math.max(leaderPoints * 1.1, 400);
   // Only lanes with a racer, never fewer than MIN_LANES; the lane height (and
   // with it the avatar) follows, so four racers get big characters.
-  const laneCount = Math.max(MIN_LANES, data.top.length);
+  const hasMore = data.topMore > 0;
+  const laneCount = Math.max(MIN_LANES, data.top.length + (hasMore ? 1 : 0));
+  // Past five racers the lanes compact: a smaller avatar with the name pill
+  // BESIDE it instead of below, so everybody in the room can find themselves.
+  const compact = laneCount > 5;
   const laneH = TRACK_H / laneCount;
-  const avPx = Math.min(96, laneH - 54);
+  const avPx = compact ? Math.max(30, laneH - 8) : Math.min(96, laneH - 54);
+  const padPx = compact ? 56 : 90;
   const ticks = [0.25, 0.5, 0.75];
   const maxCents = Math.max(1, ...data.mix.map((b) => b.cents));
 
@@ -590,8 +595,15 @@ export function LiveScreen({ slug }: { slug: string }) {
               </div>
 
               <div
-                className="lv-track"
-                style={{ "--lanes": laneCount, "--lane": `${laneH}px`, "--av": `${avPx}px` } as CSSProperties}
+                className={`lv-track ${compact ? "compact" : ""}`}
+                style={
+                  {
+                    "--lanes": laneCount,
+                    "--lane": `${laneH}px`,
+                    "--av": `${avPx}px`,
+                    "--pad": `${padPx}px`,
+                  } as CSSProperties
+                }
               >
                 {/* Distance marks on the same scale the runners use, so a short
                     run still reads as a race: start line, quarters, the flag. */}
@@ -607,6 +619,14 @@ export function LiveScreen({ slug }: { slug: string }) {
                   </div>
                 ))}
                 <div className="lv-finish" aria-hidden="true" />
+                {hasMore && (
+                  <div
+                    className="lv-more"
+                    style={{ top: data.top.length * laneH, height: laneH }}
+                  >
+                    +{data.topMore} corredores más
+                  </div>
+                )}
 
                 {data.top.length === 0 && (
                   <div className="lv-race-empty">
@@ -634,7 +654,7 @@ export function LiveScreen({ slug }: { slug: string }) {
                       className={`lv-racer ${passers.has(row.id) ? "pass" : ""} ${row.rank === 1 ? "lead" : ""}`}
                       style={{ top: (row.rank - 1) * laneH, "--p": p } as CSSProperties}
                     >
-                      <div className="lv-runner">
+                      <div className={`lv-runner ${p > 0.55 ? "flip" : ""}`}>
                         <Avatar figure={row.avatar} alias={row.alias} className="big" />
                         <span className="lv-tag">
                           <b>{row.alias}</b>
@@ -649,7 +669,7 @@ export function LiveScreen({ slug }: { slug: string }) {
 
               <div
                 className="lv-axis"
-                style={{ "--av": `${avPx}px` } as CSSProperties}
+                style={{ "--av": `${avPx}px`, "--pad": `${padPx}px` } as CSSProperties}
                 aria-hidden="true"
               >
                 <div className="lv-axis-in">

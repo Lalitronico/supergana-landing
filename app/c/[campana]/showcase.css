@@ -1239,3 +1239,18 @@
   .sh-ticket .top .tk-foot { display: none; }
   .sh-ticket .top { padding-bottom: 14px; }
 }
+
+/* The participant's character in the balance chip: a 28px bust that replaces the
+   star without making the chip (or the header) taller. */
+.tk-app .tk-points:has(.tk-points-avatar) { padding-left: 3px; min-height: 0; }
+.tk-points-avatar {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  background: var(--sg-yellow);
+  margin: -2px 1px -2px 0;
+}
