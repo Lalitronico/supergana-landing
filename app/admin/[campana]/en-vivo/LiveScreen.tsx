@@ -17,7 +17,7 @@ const STAGE_W = 1920;
 const STAGE_H = 1080;
 const LANES = 6;
 /** Lane pitch in stage pixels; mirrors --lane in live.css. */
-const LANE_H = 62;
+const LANE_H = 58;
 
 /** Supergana's own cast, for tenants that ship no cast and no mascots. */
 const DEFAULT_CHARACTERS = [
@@ -193,7 +193,6 @@ function FeedRow({
       <div className="lv-feed-body">
         <div className="lv-feed-who">
           <span className="lv-feed-name">{item.alias}</span>
-          {item.kind === "ticket" && item.auto && <span className="lv-auto">AUTO</span>}
         </div>
         <div className="lv-feed-what">
           {item.kind === "ticket"
@@ -209,7 +208,10 @@ function FeedRow({
         ) : (
           <span className="lv-feed-pts redeem">Premio</span>
         )}
-        <span className="lv-feed-ago">{ago(nowMs, item.at)}</span>
+        <span className="lv-feed-ago">
+          {item.kind === "ticket" && item.auto && <span className="lv-auto">AUTO</span>}
+          {ago(nowMs, item.at)}
+        </span>
       </div>
     </li>
   );
@@ -221,7 +223,7 @@ function buildFacts(data: LiveData): { kicker: string; text: string }[] {
   if (data.topProduct) {
     facts.push({
       kicker: "Lo más comprado",
-      text: `${data.topProduct.label} · ${int(data.topProduct.units)} ${data.topProduct.units === 1 ? "pieza" : "piezas"}`,
+      text: `${data.topProduct.label} ×${int(data.topProduct.units)}`,
     });
   }
   const total = data.mix.reduce((sum, b) => sum + b.cents, 0);
@@ -468,7 +470,7 @@ export function LiveScreen({ slug }: { slug: string }) {
             {(!theme.logoUrl || theme.poweredBy) && (
               <span className="lv-sg">
                 {theme.logoUrl && <small>Powered by</small>}
-                <SuperganaWordmark size={46} />
+                <SuperganaWordmark size={42} />
               </span>
             )}
           </div>
@@ -590,9 +592,7 @@ export function LiveScreen({ slug }: { slug: string }) {
                     <span>{i + 1}</span>
                   </div>
                 ))}
-                <div className="lv-finish" aria-hidden="true">
-                  <span>META</span>
-                </div>
+                <div className="lv-finish" aria-hidden="true" />
 
                 {data.top.length === 0 && (
                   <div className="lv-race-empty">

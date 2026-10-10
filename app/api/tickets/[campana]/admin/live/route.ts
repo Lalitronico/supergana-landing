@@ -357,7 +357,9 @@ export async function GET(
         color: FALLBACK_COLORS[i % FALLBACK_COLORS.length],
         logoUrl: null as string | null,
       }));
-    const mix = [...configured, ...extras].map((b) => ({
+    // With brands configured the chart is exactly those brands: a stray label
+    // from an older catalogue must not push a seventh bar off a fixed layout.
+    const mix = (configured.length > 0 ? configured : extras).map((b) => ({
       brand: b.name,
       color: b.color,
       logoUrl: b.logoUrl,

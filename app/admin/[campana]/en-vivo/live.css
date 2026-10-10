@@ -27,7 +27,7 @@
   --lv-body: var(--font-inter), Inter, "Segoe UI", system-ui, sans-serif;
   --lv-shadow: 6px 6px 0 0 var(--lv-ink);
   --lv-border: 4px solid var(--lv-ink);
-  --lane: 62px;
+  --lane: 58px;
 
   position: fixed;
   inset: 0;
@@ -73,7 +73,7 @@
 .lv-head {
   height: 92px;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 24px;
 }
@@ -84,9 +84,9 @@
   min-width: 0;
 }
 .lv-logo {
-  height: 72px;
+  height: 64px;
   width: auto;
-  max-width: 280px;
+  max-width: 250px;
   object-fit: contain;
 }
 .lv-x {
@@ -105,6 +105,7 @@
   font-weight: 600;
   font-size: 18px;
   color: var(--lv-ink-soft);
+  white-space: nowrap;
 }
 /* The wordmark component (fiesta/Wordmark.tsx) leans on fiesta.css tokens that
    exist only under .tk-app; restate the two it needs. */
@@ -121,11 +122,13 @@
   margin: 0;
   font-family: var(--lv-display);
   font-weight: 800;
-  font-size: 58px;
+  font-size: 54px;
   letter-spacing: -0.04em;
   line-height: 1;
   text-align: center;
   white-space: nowrap;
+  justify-self: center;
+  width: fit-content;
 }
 .lv-title::after {
   /* Marker highlighter under the title; the tenant colour when it has one. */
@@ -327,8 +330,8 @@
 
 /* ---- counters -------------------------------------------------------- */
 .lv-row { display: grid; gap: 22px; }
-.lv-row-big { grid-template-columns: 1.3fr 1fr; height: 170px; }
-.lv-row-small { grid-template-columns: repeat(3, 1fr); height: 150px; }
+.lv-row-big { grid-template-columns: 1.3fr 1fr; height: 160px; }
+.lv-row-small { grid-template-columns: repeat(3, 1fr); height: 172px; }
 .lv-counter {
   padding: 14px 22px;
   display: flex;
@@ -390,7 +393,7 @@
   height: 46px;
 }
 .lv-race-sub { font-weight: 700; font-size: 20px; color: var(--lv-ink-soft); }
-.lv-peek-race { right: 6px; top: -62px; height: 112px; }
+.lv-peek-race { right: 6px; top: -48px; height: 100px; }
 
 .lv-track {
   position: relative;
@@ -438,7 +441,7 @@
 }
 .lv-runner {
   position: absolute;
-  top: 4px;
+  top: 2px;
   width: 54px;
   height: 54px;
   /* Distance is proportional to points: --p is 0..1 of the open track. */
@@ -611,7 +614,7 @@
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
-.lv-peek-mix { right: 14px; top: -64px; height: 106px; transform: rotate(-7deg); }
+.lv-peek-mix { right: -6px; top: -56px; height: 92px; transform: rotate(-7deg); }
 
 /* ---- feed ------------------------------------------------------------ */
 .lv-feed {
@@ -716,7 +719,7 @@
   white-space: nowrap;
 }
 .lv-feed-pts.redeem { color: var(--lv-pink); }
-.lv-feed-ago { font-size: 19px; font-weight: 700; color: var(--lv-ink-soft); }
+.lv-feed-ago { display: inline-flex; align-items: center; gap: 8px; font-size: 19px; font-weight: 700; color: var(--lv-ink-soft); white-space: nowrap; }
 .lv-auto {
   font-size: 18px;
   font-weight: 800;
