@@ -263,6 +263,17 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
             <span className="tka-badge">
               Semana desde {new Date(quota.weekStart).toLocaleDateString("es-MX")}
             </span>
+            {/* Opens the projector view in its own tab: it is meant to live on
+                a second screen while the console stays on the laptop. */}
+            <a
+              className="tka-btn sm"
+              href={`/admin/${slug}/en-vivo/`}
+              target="_blank"
+              rel="noopener"
+              style={{ textDecoration: "none" }}
+            >
+              Pantalla en vivo
+            </a>
             <button className="tka-btn ghost sm" onClick={() => void load()}>
               Actualizar
             </button>
