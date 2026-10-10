@@ -76,7 +76,7 @@ const asColor = (value: unknown): string | null =>
  */
 const LOCAL_ASSET = /^\/brands\/[a-z0-9][a-z0-9/_-]*\.(?:png|svg|webp|jpg|jpeg)$/i;
 
-const asAssetUrl = (value: unknown): string | null => {
+export const asAssetUrl = (value: unknown): string | null => {
   if (typeof value !== "string") return null;
   const url = value.trim();
   if (LOCAL_ASSET.test(url)) return url;

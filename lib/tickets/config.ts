@@ -7,7 +7,7 @@
 // is the authority whenever money is involved.
 
 import type { EligibilityMode } from "./matching.ts";
-import type { OrgTheme } from "./theme.ts";
+import { asAssetUrl, type OrgTheme } from "./theme.ts";
 
 export type Locale = "es" | "en";
 
@@ -46,7 +46,21 @@ export type Rehearsal = "staff" | "anyone";
 export interface Brand {
   name: string;
   color: string;
+  /**
+   * The brand's own logo, for a multi-brand campaign whose org logo is the
+   * parent company's (Novamex → Jarritos, Mineragua). Same validation as the
+   * theme's assets; null → the brand renders as its colour chip.
+   */
+  logoUrl: string | null;
 }
+
+/**
+ * How progress towards the next prize is drawn. `bar` is the system default;
+ * `fuel` draws it as a tank filling up, for campaigns whose prizes are fuel
+ * (Ticket al Tanque). Presentation only: the number underneath is the same
+ * `nextPrize` either way.
+ */
+export type ProgressMeter = "bar" | "fuel";
 
 export interface CampaignConfig {
   /** Minimum eligible spend, in a single transaction, after coupons and before tax. */
@@ -118,6 +132,8 @@ export interface CampaignConfig {
    * inventing a fact in order to throw it away.
    */
   eligibility: EligibilityMode;
+  /** See `ProgressMeter`. */
+  progressMeter: ProgressMeter;
 }
 
 /** The model this platform reads receipts with, unless a campaign names another. */
@@ -321,6 +337,7 @@ const DEFAULTS: CampaignConfig = {
   // silently started counting every line naming the brand would be a campaign
   // paying for products it never promoted.
   eligibility: "sku",
+  progressMeter: "bar",
 };
 
 const asOcr = (value: unknown): OcrConfig => {
@@ -395,9 +412,15 @@ const asBrands = (value: unknown): Brand[] =>
   Array.isArray(value)
     ? value.flatMap((entry) => {
         if (!entry || typeof entry !== "object") return [];
-        const { name, color } = entry as Record<string, unknown>;
+        const { name, color, logo_url } = entry as Record<string, unknown>;
         if (typeof name !== "string") return [];
-        return [{ name, color: typeof color === "string" ? color : "#0A0A0A" }];
+        return [
+          {
+            name,
+            color: typeof color === "string" ? color : "#0A0A0A",
+            logoUrl: asAssetUrl(logo_url),
+          },
+        ];
       })
     : [];
 
@@ -448,6 +471,7 @@ export const parseCampaignConfig = (raw: unknown): CampaignConfig => {
     prizes: asPrizes(c.prizes),
     ocr: asOcr(c.ocr),
     eligibility: c.eligibility === "brand" ? "brand" : DEFAULTS.eligibility,
+    progressMeter: c.progress_meter === "fuel" ? "fuel" : DEFAULTS.progressMeter,
   };
 };
 
@@ -502,6 +526,7 @@ export interface PublicCampaign {
    */
   ocrEnabled: boolean;
   prizes: Prize[];
+  progressMeter: ProgressMeter;
 }
 
 export const toPublicCampaign = (campaign: Campaign): PublicCampaign => ({
@@ -526,6 +551,7 @@ export const toPublicCampaign = (campaign: Campaign): PublicCampaign => ({
   authChannel: campaign.config.auth.channel,
   ocrEnabled: campaign.config.ocr.enabled,
   prizes: campaign.config.prizes,
+  progressMeter: campaign.config.progressMeter,
 });
 
 // ---------------------------------------------------------------------------

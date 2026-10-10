@@ -437,6 +437,11 @@ const es = {
     "Tu ticket contiene datos personales. Lo guardamos cifrado y solo lo ve el equipo de validación.",
   privacyNoteOcr:
     "Tu ticket contiene datos personales. Lo guardamos cifrado, lo lee un servicio de reconocimiento de texto para agilizar tu revisión, y lo ve el equipo de validación. No lo compartimos con nadie más.",
+  // ---- showcase: brands, products, entry screens --------------------------
+
+  // ---- journey: reading, celebration, tank, prizes ------------------------
+
+  // ---- live screen ---------------------------------------------------------
 } as const;
 
 type Dict = Record<keyof typeof es, string>;
@@ -785,6 +790,12 @@ const en: Dict = {
     "Your receipt holds personal data. We store it encrypted and only the validation team sees it.",
   privacyNoteOcr:
     "Your receipt holds personal data. We store it encrypted, a text-recognition service reads it to speed up your review, and the validation team sees it. We share it with nobody else.",
+
+  // ---- showcase: brands, products, entry screens --------------------------
+
+  // ---- journey: reading, celebration, tank, prizes ------------------------
+
+  // ---- live screen ---------------------------------------------------------
 };
 
 export const COPY: Record<Locale, Dict> = { es, en };
