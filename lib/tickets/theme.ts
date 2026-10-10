@@ -19,6 +19,26 @@
 export const MASCOT_POSES = ["greet", "celebrate", "ticket", "point"] as const;
 export type MascotPose = (typeof MASCOT_POSES)[number];
 
+/**
+ * One member of a tenant's cast: a platform character dressed for this client,
+ * usually holding one of its products. The cast is what a multi-brand campaign
+ * shows instead of a single mascot — the hero stage, the brand cards, the
+ * celebration (the character of the brand you bought), the live screen — and
+ * it is the list participants pick their own character from.
+ */
+export interface CastMember {
+  /** Stable key, also what `participants.avatar` stores. */
+  id: string;
+  /** Display name ("Gato", "Dino"…). */
+  name: string;
+  /** Full-body art. */
+  image: string;
+  /** Square bust for avatars; falls back to `image` when absent. */
+  avatar: string | null;
+  /** The brand this character holds, matched against `config.brands[].name`. */
+  brand: string | null;
+}
+
 export interface OrgTheme {
   /** Client logo for the co-brand header. Null → the header shows Supergana alone. */
   logoUrl: string | null;
@@ -39,6 +59,8 @@ export interface OrgTheme {
   poweredBy: boolean;
   /** Optional per-pose artwork. Missing poses simply don't render. */
   mascots: Partial<Record<MascotPose, string>>;
+  /** Optional cast. Empty → screens fall back to the mascot poses. */
+  cast: CastMember[];
 }
 
 export const EMPTY_THEME: OrgTheme = {
@@ -48,6 +70,7 @@ export const EMPTY_THEME: OrgTheme = {
   brandInk: null,
   poweredBy: true,
   mascots: {},
+  cast: [],
 };
 
 /** A theme is only worth a co-brand header once there is a logo to put in it. */
@@ -95,6 +118,30 @@ const asMascots = (value: unknown): Partial<Record<MascotPose, string>> => {
   return out;
 };
 
+const CAST_ID = /^[a-z0-9-]{1,32}$/;
+const MAX_CAST = 12;
+
+const asCast = (value: unknown): CastMember[] => {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const out: CastMember[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== "object") continue;
+    const e = entry as Record<string, unknown>;
+    const id = typeof e.id === "string" ? e.id.trim() : "";
+    const image = asAssetUrl(e.image);
+    // A member without an id or a picture cannot be shown or picked, and a
+    // duplicate id would make two characters answer to one avatar.
+    if (!CAST_ID.test(id) || !image || seen.has(id)) continue;
+    seen.add(id);
+    const name = typeof e.name === "string" && e.name.trim() ? e.name.trim().slice(0, 40) : id;
+    const brand = typeof e.brand === "string" && e.brand.trim() ? e.brand.trim() : null;
+    out.push({ id, name, image, avatar: asAssetUrl(e.avatar), brand });
+    if (out.length >= MAX_CAST) break;
+  }
+  return out;
+};
+
 export const parseOrgTheme = (raw: unknown): OrgTheme => {
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return EMPTY_THEME;
   const t = raw as Record<string, unknown>;
@@ -107,8 +154,50 @@ export const parseOrgTheme = (raw: unknown): OrgTheme => {
     // signature. Removing it is a commercial decision somebody has to make.
     poweredBy: t.powered_by !== false,
     mascots: asMascots(t.mascots),
+    cast: asCast(t.cast),
   };
 };
+
+/** The cast member a participant picked, if it still exists in the theme. */
+export const castMember = (theme: OrgTheme, id: string | null | undefined): CastMember | null =>
+  (id && theme.cast.find((m) => m.id === id)) || null;
+
+// ---------------------------------------------------------------------------
+// Brand tone
+// ---------------------------------------------------------------------------
+//
+// A tenant's colour is not always one that can be written in. Novamex's yellow
+// is 1.6:1 on the cream paper — invisible as a headline word, perfect as a
+// highlighter. The shell reads this to decide HOW the brand marks emphasis:
+// "dark" → brand-coloured text (the original behaviour), "light" → ink text on
+// a brand-coloured marker band. Decided from the colour, so no tenant has to
+// know the rule exists.
+
+const CREAM = "#FAF7F0";
+
+const luminance = (hex: string): number => {
+  const h = hex.replace("#", "");
+  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const [r, g, b] = [0, 2, 4].map((i) => {
+    const c = parseInt(full.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+};
+
+export const contrastRatio = (a: string, b: string): number => {
+  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
+};
+
+/**
+ * "light" below 2:1 on the paper. Not the 3:1 large-text bar on purpose:
+ * Alaska's sky blue sits at 2.9:1 as a 34 px headline word and was accepted
+ * that way with the client (2026-08-03); the marker is for colours that cannot
+ * be read as words at all, like Novamex's yellow at 1.6:1.
+ */
+export const brandTone = (theme: OrgTheme): "light" | "dark" | null =>
+  theme.brand ? (contrastRatio(theme.brand, CREAM) < 2 ? "light" : "dark") : null;
 
 // ---------------------------------------------------------------------------
 // Rendering

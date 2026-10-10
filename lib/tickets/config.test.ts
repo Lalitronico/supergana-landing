@@ -108,3 +108,31 @@ test("the translator prefers a campaign's override and still fills placeholders"
   assert.equal(t("accHeroMark", { org: "X" }), "X");
   assert.equal(translator("en", { es: { accHeroTitle: "z" } })("accHeroTitle", { org: "X" }), "Win prizes with X!");
 });
+
+// ---------------------------------------------------------------------------
+// Theme cast and brand tone (lib/tickets/theme.ts)
+// ---------------------------------------------------------------------------
+import { brandTone, castMember, parseOrgTheme } from "./theme.ts";
+
+test("cast: keeps valid members, drops bad ids, missing art and duplicates", () => {
+  const theme = parseOrgTheme({
+    cast: [
+      { id: "dino", name: "Dino", image: "/brands/x/dino.webp", avatar: "/brands/x/a-dino.webp", brand: "Sidral Mundet" },
+      { id: "Dino!", image: "/brands/x/bad.webp" },
+      { id: "gato", image: "javascript:alert(1)" },
+      { id: "dino", image: "/brands/x/dup.webp" },
+      { id: "oso", image: "/brands/x/oso.webp" },
+    ],
+  });
+  assert.deepEqual(theme.cast.map((m) => m.id), ["dino", "oso"]);
+  assert.equal(theme.cast[1].name, "oso");
+  assert.equal(theme.cast[1].avatar, null);
+  assert.equal(castMember(theme, "dino")?.brand, "Sidral Mundet");
+  assert.equal(castMember(theme, "nadie"), null);
+});
+
+test("brand tone: a light brand is drawn as a marker, a dark one as text", () => {
+  assert.equal(brandTone(parseOrgTheme({ brand: "#FFB900" })), "light");
+  assert.equal(brandTone(parseOrgTheme({ brand: "#0098E0" })), "dark");
+  assert.equal(brandTone(parseOrgTheme({})), null);
+});
