@@ -7,6 +7,10 @@ import { Headline } from "./Headline";
 import { Mascot } from "./Mascot";
 import { NextPrizeProgress } from "./NextPrizeProgress";
 import { StepStrip } from "./StepStrip";
+import { brandNames } from "./showcase/brandNames";
+import { BrandLockup } from "./showcase/BrandLockup";
+import { PrizeTeaser, type TeaserPrize } from "./showcase/PrizeTeaser";
+import { ProductGallery } from "./showcase/ProductGallery";
 
 interface QuotaView {
   weeklyQuota: number;
@@ -18,7 +22,12 @@ interface ProductView {
   brand: string;
   name: string;
   size: string | null;
+  /** Validated asset URL, or null. Only the accumulation home draws it. */
+  imageUrl: string | null;
 }
+
+/** Staggered entrance: block `n` of the screen rises `n * 70ms` after the first. */
+const rise = (n: number) => ({ "--i": n }) as React.CSSProperties;
 
 /**
  * The upload call to action, as the bottom half of the ticket.
@@ -68,7 +77,7 @@ function AccountDoors() {
       {/* Nothing while the session resolves: a "sign in" that morphs into
           "my panel" reads as a glitch on a phone. */}
       {status === "anon" && (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
+        <div className="sh-doors" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12 }}>
           <span className="tk-foot" style={{ fontWeight: 700 }}>{t("homeAccountQ")}</span>
           <Link href={`${base}entrar/?next=panel`} className="tk-linkbtn">
             {t("homeSignIn")}
@@ -246,10 +255,20 @@ function ThresholdHome({
  * this mechanic, and printing them from a zeroed config is what made this
  * screen announce "buy $0, get $0, all gone".
  */
-function AccumulationHome({ products }: { products: ProductView[] }) {
-  const { campaign, t, base } = useTickets();
+function AccumulationHome({
+  products,
+  prizes,
+}: {
+  products: ProductView[];
+  prizes: TeaserPrize[];
+}) {
+  const { campaign, t, base, locale } = useTickets();
   const rate = campaign.pointsPerDollar;
   const org = campaign.orgName;
+  // What counts for points. When the campaign names its brands, ONLY those do
+  // ("Jarritos y Mineragua", not every product of the parent company), so the
+  // copy that says "products of X" must say X = the brands. No brands: the org.
+  const eligible = brandNames(campaign.brands, locale) ?? org;
 
   // The real validation catalogue, which is what a shopper needs in front of
   // the shelf. Falls back to the configured brand chips for a multi-brand
@@ -264,14 +283,18 @@ function AccumulationHome({ products }: { products: ProductView[] }) {
   // screen shipped with. No tenant needs an illustrator to launch.
   const hasArt = Boolean(campaign.theme.mascots.greet);
 
+  // The photo gallery is opt-in by data: it needs at least one product image.
+  // Without any, the chips above stay exactly as every earlier campaign had them.
+  const galleryProducts = products.some((p) => p.imageUrl) ? products : [];
+
   return (
     <div className="tk-pad">
       {/* No eyebrow here, unlike the threshold home: this headline already says
           the org's name, in the org's colour, and saying it twice in the two
           biggest type sizes on the screen reads as a stutter. */}
-      <div className={hasArt ? "tk-hero art" : "tk-hero"}>
+      <div className={hasArt ? "tk-hero art sh-rise" : "tk-hero sh-rise"} style={rise(0)}>
         <h1 className="tk-h tk-hero-title">
-          <Headline text={t("accHeroTitle", { org })} mark={org} as="brand" />
+          <Headline text={t("accHeroTitle", { org })} mark={t("accHeroMark", { org })} as="brand" />
         </h1>
         {hasArt && (
           <div className="tk-hero-art">
@@ -280,17 +303,33 @@ function AccumulationHome({ products }: { products: ProductView[] }) {
           </div>
         )}
       </div>
-      <p className="tk-body">{t("accHeroSub")}</p>
+      <p className="tk-body sh-rise" style={rise(1)}>
+        {t("accHeroSub")}
+      </p>
 
-      <StepStrip />
+      <div className="sh-rise" style={rise(2)}>
+        <BrandLockup brands={campaign.brands} />
+      </div>
 
-      <div className="tk-ticket">
+      {/* The ticket comes before the glance strip: the one thing this screen
+          exists for is the press, and on a 390x844 phone it has to be on the
+          first screen with its camera icon, not scrolled to. */}
+      <div className="tk-ticket sh-ticket sh-rise" style={rise(3)}>
         <div className="top">
           <div className="tk-eyebrow">{t("accRateLabel")}</div>
-          <div className="tk-amount" style={{ fontSize: 34, marginTop: 4 }}>
+          <div className="tk-amount sh-rate" style={{ fontSize: 34, marginTop: 4 }}>
             {t("accRateLine", { rate })}
           </div>
           <p className="tk-foot" style={{ marginTop: 8 }}>{t("accRateNote")}</p>
+          {/* Decorative stamp: the star is the system's mark for points. */}
+          <span className="sh-stamp" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <path
+                d="m12 2.6 2.9 6.05 6.6.86-4.85 4.55 1.24 6.54L12 17.4l-5.89 3.2 1.24-6.54L2.5 9.51l6.6-.86z"
+                fill="var(--tk-ink)"
+              />
+            </svg>
+          </span>
         </div>
         <div className="rip" />
         <div className="bottom pressable">
@@ -302,11 +341,45 @@ function AccumulationHome({ products }: { products: ProductView[] }) {
         </div>
       </div>
 
+      <div className="sh-rise" style={rise(4)}>
+        <StepStrip />
+      </div>
+
       {/* Renders nothing until there is a session and an open Drop. For a
           participant it is the reason to press the ticket above. */}
       <NextPrizeProgress />
 
       <AccountDoors />
+
+      <PrizeTeaser prizes={prizes} />
+
+      {galleryProducts.length > 0 ? (
+        <section className="sh-gallery-block">
+          <h2 className="tk-h" style={{ fontSize: 19 }}>
+            {t("accProductsTitle")}
+          </h2>
+          <ProductGallery products={galleryProducts} brands={campaign.brands} />
+          <p className="tk-foot">{t("accProductsNote", { org: eligible })}</p>
+        </section>
+      ) : (
+        items.length > 0 && (
+          <div className="tk-card">
+            <h2 className="tk-h" style={{ fontSize: 19, marginBottom: 10 }}>
+              {t("accProductsTitle")}
+            </h2>
+            <div className="tk-brands">
+              {items.map((item) => (
+                <span className="tk-chip" key={item.key}>
+                  {item.label}
+                </span>
+              ))}
+            </div>
+            <p className="tk-foot" style={{ marginTop: 10 }}>
+              {t("accProductsNote", { org: eligible })}
+            </p>
+          </div>
+        )
+      )}
 
       <div className="tk-card">
         <h2 className="tk-h" style={{ fontSize: 19, marginBottom: 12 }}>
@@ -315,7 +388,7 @@ function AccumulationHome({ products }: { products: ProductView[] }) {
         <div className="tk-steps">
           {(
             [
-              [t("acc1Lead", { org }), t("acc1Rest")],
+              [t("acc1Lead", { org: eligible }), t("acc1Rest")],
               [t("acc2Lead"), t("acc2Rest")],
               [t("acc3Lead", { rate }), t("acc3Rest")],
             ] as const
@@ -329,24 +402,6 @@ function AccumulationHome({ products }: { products: ProductView[] }) {
           ))}
         </div>
       </div>
-
-      {items.length > 0 && (
-        <div className="tk-card">
-          <h2 className="tk-h" style={{ fontSize: 19, marginBottom: 10 }}>
-            {t("accProductsTitle")}
-          </h2>
-          <div className="tk-brands">
-            {items.map((item) => (
-              <span className="tk-chip" key={item.key}>
-                {item.label}
-              </span>
-            ))}
-          </div>
-          <p className="tk-foot" style={{ marginTop: 10 }}>
-            {t("accProductsNote", { org })}
-          </p>
-        </div>
-      )}
 
       {campaign.eligibleStates.length > 0 && (
         <div className="tk-card flat">
@@ -379,13 +434,15 @@ function AccumulationHome({ products }: { products: ProductView[] }) {
 export function HomeScreen({
   quota,
   products,
+  prizes,
 }: {
   quota: QuotaView;
   products: ProductView[];
+  prizes: TeaserPrize[];
 }) {
   const { campaign } = useTickets();
   return campaign.mechanic === "accumulation" ? (
-    <AccumulationHome products={products} />
+    <AccumulationHome products={products} prizes={prizes} />
   ) : (
     <ThresholdHome quota={quota} products={products} />
   );

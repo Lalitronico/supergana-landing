@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authThrottleKind, supabaseBrowser } from "@/lib/supabase/browser";
 import { useTickets } from "../TicketsShell";
+import { EntryHead } from "../showcase/EntryHead";
+import { PasswordField } from "../showcase/PasswordField";
 
 /**
  * Sign-in for campaigns whose identity channel is the email address.
@@ -160,22 +162,13 @@ export function EmailSignIn() {
 
   return (
     <div className="tk-pad">
-      <div>
-        <div className="tk-eyebrow">{t("regStep", { n: 1 })}</div>
-        <h1 className="tk-h" style={{ fontSize: 28, marginTop: 6 }}>
-          {heading[0]}
-        </h1>
-        <p className="tk-body" style={{ fontSize: 13.5, marginTop: 6 }}>
-          {heading[1]}
-        </p>
-      </div>
+      <EntryHead step={1} title={heading[0]} sub={heading[1]} />
 
       {error && <p className="tk-error">{error}</p>}
 
       {mode === "password" && (
         <form
-          className="tk-card"
-          style={{ display: "flex", flexDirection: "column", gap: 14 }}
+          className="tk-card sh-form"
           onSubmit={signInWithPassword}
         >
           <label className="tk-field">
@@ -184,6 +177,9 @@ export function EmailSignIn() {
               type="email"
               inputMode="email"
               autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -191,16 +187,12 @@ export function EmailSignIn() {
               required
             />
           </label>
-          <label className="tk-field">
-            {t("fPassword")}
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </label>
+          <PasswordField
+            label={t("fPassword")}
+            value={password}
+            onChange={setPassword}
+            autoComplete="current-password"
+          />
           <button className="tk-btn" type="submit" disabled={busy}>
             {busy ? t("authSigningIn") : t("authSignIn")} →
           </button>
@@ -221,8 +213,7 @@ export function EmailSignIn() {
 
       {mode === "otp-email" && (
         <form
-          className="tk-card"
-          style={{ display: "flex", flexDirection: "column", gap: 14 }}
+          className="tk-card sh-form"
           onSubmit={sendCode}
         >
           <label className="tk-field">
@@ -231,6 +222,9 @@ export function EmailSignIn() {
               type="email"
               inputMode="email"
               autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -253,8 +247,7 @@ export function EmailSignIn() {
 
       {mode === "otp-code" && (
         <form
-          className="tk-card"
-          style={{ display: "flex", flexDirection: "column", gap: 14 }}
+          className="tk-card sh-form"
           onSubmit={verify}
         >
           <label className="tk-field">

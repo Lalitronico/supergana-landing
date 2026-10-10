@@ -6,7 +6,7 @@ import { formatMxPhone, normalizeMxPhone } from "@/lib/platform/phone";
 import { pickableStates } from "@/lib/tickets/states";
 import { useSession, useTickets } from "../TicketsShell";
 import { Headline } from "../Headline";
-import { Mascot } from "../Mascot";
+import { EntryHead } from "../showcase/EntryHead";
 import type { MeProfile } from "../useMe";
 
 const ERROR_KEYS: Record<
@@ -80,6 +80,10 @@ function ProfileForm({
   const [firstName, setFirstName] = useState(initial?.firstName ?? "");
   const [lastName, setLastName] = useState(initial?.lastName ?? "");
   const [alias, setAlias] = useState(initial?.alias ?? "");
+  // The nickname is the field people stall on. Until they touch it, it follows
+  // their first name (a valid 2-20 char default they can overwrite), so the
+  // common case is one fewer thing to invent in a hurry.
+  const [aliasEdited, setAliasEdited] = useState(Boolean(initial?.alias));
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [zip, setZip] = useState(initial?.zip ?? "");
   const [state, setState] = useState(initial?.state ?? "");
@@ -90,8 +94,6 @@ function ProfileForm({
   const [error, setError] = useState<string | null>(null);
 
   const states = pickableStates(campaign.eligibleStates);
-
-  const hasArt = Boolean(campaign.theme.mascots.greet);
 
   // Derived every render instead of stored: the field the participant edits is
   // whatever they typed, and the E.164 form is a view of it. Keeping a second
@@ -163,32 +165,16 @@ function ProfileForm({
 
   return (
     <div className="tk-pad">
-      {/* The one screen with no mockup — Codex never saw it, because the phone
-          field did not exist when the mockups were drawn. Built from the system:
-          the step counter, the brand word, and the mascot the other screens use.
-          A form is where people leave, so it gets the same warmth as the rest. */}
-      <div className={hasArt ? "tk-hero art" : undefined}>
-        <div>
-          <div className="tk-eyebrow">{t("regStep", { n: 2 })}</div>
-          <h1 className="tk-h" style={{ fontSize: 28, marginTop: 6 }}>
-            <Headline text={t("regTitle")} mark={t("regTitleMark")} as="brand" />
-          </h1>
-          <p className="tk-body" style={{ fontSize: 13.5, marginTop: 6 }}>
-            {t(campaign.mechanic === "accumulation" ? "accRegSub" : "regSub")}
-          </p>
-        </div>
-        {hasArt && (
-          <div className="tk-hero-art">
-            <Mascot pose="greet" />
-          </div>
-        )}
-      </div>
+      <EntryHead
+        step={2}
+        title={<Headline text={t("regTitle")} mark={t("regTitleMark")} as="brand" />}
+        sub={t(campaign.mechanic === "accumulation" ? "accRegSub" : "regSub")}
+      />
 
       {error && <p className="tk-error">{error}</p>}
 
       <form
-        className="tk-card"
-        style={{ display: "flex", flexDirection: "column", gap: 14 }}
+        className="tk-card sh-form"
         onSubmit={submit}
       >
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -197,8 +183,14 @@ function ProfileForm({
             <input
               type="text"
               autoComplete="given-name"
+              autoCapitalize="words"
+              enterKeyHint="next"
+              autoFocus
               value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
+              onChange={(e) => {
+                setFirstName(e.target.value);
+                if (!aliasEdited) setAlias(e.target.value.trim().slice(0, 20));
+              }}
               required
             />
           </label>
@@ -207,6 +199,8 @@ function ProfileForm({
             <input
               type="text"
               autoComplete="family-name"
+              autoCapitalize="words"
+              enterKeyHint="next"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
               required
@@ -221,7 +215,10 @@ function ProfileForm({
             autoComplete="nickname"
             maxLength={20}
             value={alias}
-            onChange={(e) => setAlias(e.target.value)}
+            onChange={(e) => {
+              setAliasEdited(true);
+              setAlias(e.target.value);
+            }}
             required
           />
           <span className="tk-foot" style={{ marginTop: 4 }}>{t("fAliasHint")}</span>

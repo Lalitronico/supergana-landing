@@ -9,6 +9,7 @@ import { formatUsdCents, type Locale, type PublicCampaign } from "@/lib/tickets/
 import { isCobranded, themeCssVars } from "@/lib/tickets/theme";
 import { useMe, type Me, type MeStatus } from "./useMe";
 import { useStore, type StoreStatus } from "./useStore";
+import { SafeImg } from "./showcase/SafeImg";
 import type { StoreSnapshot } from "@/lib/tickets/store";
 
 /**
@@ -154,26 +155,30 @@ export function TicketsShell({
     [storeState.status, storeState.snapshot, storeState.reload],
   );
 
-  const value = useMemo<TicketsContextValue>(
-    () => ({
+  const value = useMemo<TicketsContextValue>(() => {
+    // One translator per render of the context, built with the campaign's own
+    // wording so every screen inherits it without knowing it exists.
+    const translate = translator(locale, campaign.copy);
+    return {
       campaign,
       locale,
       setLocale,
-      t: translator(locale),
+      t: translate,
       base,
       money: (cents: number) => formatUsdCents(cents, locale),
-      privacyNote: translator(locale)(
-        campaign.ocrEnabled ? "privacyNoteOcr" : "privacyNote",
-      ),
+      privacyNote: translate(campaign.ocrEnabled ? "privacyNoteOcr" : "privacyNote"),
       session,
       store,
-    }),
-    [campaign, locale, setLocale, base, session, store],
-  );
+    };
+  }, [campaign, locale, setLocale, base, session, store]);
 
   const t = value.t;
   const theme = campaign.theme;
-  const cobrand = isCobranded(theme);
+  // A logo that fails to load drops the whole co-brand lockup back to the
+  // Supergana wordmark: a header with a broken-image icon (or an empty slot next
+  // to "powered by") is worse in front of a client than no logo at all.
+  const [logoFailed, setLogoFailed] = useState(false);
+  const cobrand = isCobranded(theme) && !logoFailed;
 
   // The prize store is its own destination in accumulation campaigns, where
   // points are the whole point. Threshold campaigns have no store to visit —
@@ -218,17 +223,19 @@ export function TicketsShell({
           {campaign.status !== "live" && (
             <div className="tk-ribbon">{t("draftRibbon")}</div>
           )}
-          <header className="tk-head">
+          <header className="tk-head" data-cobrand={cobrand ? "true" : undefined}>
             {cobrand ? (
-              // Plain <img>, not next/image: a theme's logo URL is data, and
-              // next/image would need every tenant's host in remotePatterns
-              // before it would render one. Images are unoptimized anyway.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <SafeImg
                 className="tk-cobrand"
                 src={theme.logoUrl ?? ""}
                 alt={theme.logoAlt ?? campaign.orgName}
-                decoding="async"
+                onFail={() => setLogoFailed(true)}
+                fallback={
+                  <div className="tk-logo">
+                    <span className="dot" />
+                    {t("appName")}
+                  </div>
+                }
               />
             ) : (
               <div className="tk-logo">

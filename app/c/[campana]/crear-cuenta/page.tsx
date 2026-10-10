@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabaseBrowser } from "@/lib/supabase/browser";
 import { useTickets } from "../TicketsShell";
+import { EntryHead } from "../showcase/EntryHead";
+import { PasswordField } from "../showcase/PasswordField";
 
 /**
  * Account creation: email + password, no email sent, no wall. The server
@@ -29,7 +31,6 @@ export default function CreateAccountPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exists, setExists] = useState(false);
@@ -43,10 +44,6 @@ export default function CreateAccountPage() {
     }
     if (password.length < 8) {
       setError(t("errPwShort"));
-      return;
-    }
-    if (password !== confirm) {
-      setError(t("errPwMatch"));
       return;
     }
 
@@ -102,23 +99,21 @@ export default function CreateAccountPage() {
   }
   return (
     <div className="tk-pad">
-      <div>
-        <div className="tk-eyebrow">{t("regStep", { n: 1 })}</div>
-        <h1 className="tk-h" style={{ fontSize: 28, marginTop: 6 }}>
-          {t("acTitle")}
-        </h1>
-        <p className="tk-body" style={{ fontSize: 13.5, marginTop: 6 }}>
-          {/* An accumulation campaign never emails a reward, so promising one
-              here would be the first lie the participant reads. */}
-          {t(campaign.mechanic === "accumulation" ? "accAcSub" : "acSub")}
-        </p>
-      </div>
+      {/* The "confirm password" box is gone on purpose: on a phone it doubles
+          the slowest step of sign-up, and the Show toggle on the field below
+          catches a typo better than a second blind entry does. */}
+      <EntryHead
+        step={1}
+        title={t("acTitle")}
+        // An accumulation campaign never emails a reward, so promising one
+        // here would be the first lie the participant reads.
+        sub={t(campaign.mechanic === "accumulation" ? "accAcSub" : "acSub")}
+      />
 
       {error && <p className="tk-error">{error}</p>}
 
       <form
-        className="tk-card"
-        style={{ display: "flex", flexDirection: "column", gap: 14 }}
+        className="tk-card sh-form"
         onSubmit={submit}
       >
         <label className="tk-field">
@@ -127,6 +122,10 @@ export default function CreateAccountPage() {
             type="email"
             inputMode="email"
             autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            enterKeyHint="next"
             autoFocus
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -134,28 +133,14 @@ export default function CreateAccountPage() {
             required
           />
         </label>
-        <label className="tk-field">
-          {t("fPassword")}
-          <input
-            type="password"
-            autoComplete="new-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            minLength={8}
-          />
-        </label>
-        <label className="tk-field">
-          {t("fPassword2")}
-          <input
-            type="password"
-            autoComplete="new-password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            required
-            minLength={8}
-          />
-        </label>
+        <PasswordField
+          label={t("fPassword")}
+          value={password}
+          onChange={setPassword}
+          autoComplete="new-password"
+          minLength={8}
+          hint={t("shPwHint")}
+        />
         <button className="tk-btn" type="submit" disabled={busy}>
           {busy ? t("acCreating") : t("acBtn")} →
         </button>

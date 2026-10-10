@@ -8,6 +8,7 @@
 
 import type { EligibilityMode } from "./matching.ts";
 import { asAssetUrl, type OrgTheme } from "./theme.ts";
+import { COPY, type CopyKey } from "./i18n.ts";
 
 export type Locale = "es" | "en";
 
@@ -61,6 +62,13 @@ export interface Brand {
  * `nextPrize` either way.
  */
 export type ProgressMeter = "bar" | "fuel";
+
+/**
+ * Per-campaign wording: `config.copy = { es: { <CopyKey>: "..." }, en: { ... } }`
+ * replaces any key of the copy dictionary for THAT campaign only. A tenant's
+ * headline is a matter of data, not of a code change (see `parseCopyOverrides`).
+ */
+export type CopyOverrides = Partial<Record<Locale, Partial<Record<CopyKey, string>>>>;
 
 export interface CampaignConfig {
   /** Minimum eligible spend, in a single transaction, after coupons and before tax. */
@@ -134,6 +142,8 @@ export interface CampaignConfig {
   eligibility: EligibilityMode;
   /** See `ProgressMeter`. */
   progressMeter: ProgressMeter;
+  /** See `CopyOverrides`. */
+  copy: CopyOverrides;
 }
 
 /** The model this platform reads receipts with, unless a campaign names another. */
@@ -338,6 +348,7 @@ const DEFAULTS: CampaignConfig = {
   // paying for products it never promoted.
   eligibility: "sku",
   progressMeter: "bar",
+  copy: {},
 };
 
 const asOcr = (value: unknown): OcrConfig => {
@@ -408,6 +419,35 @@ const asProfileFields = (value: unknown): ProfileFields => {
   };
 };
 
+/** Long enough for a paragraph of legal copy, short enough that a pasted page is dropped. */
+const MAX_COPY_LENGTH = 600;
+
+/**
+ * Only keys that exist in the dictionary, only strings, trimmed and non-empty,
+ * capped in length. Everything else is ignored rather than rejected: the row is
+ * edited by hand, and one typo'd key must not blank a campaign's wording. The
+ * values render as React text, never as HTML, so they cannot inject markup.
+ */
+export const parseCopyOverrides = (value: unknown): CopyOverrides => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const raw = value as Record<string, unknown>;
+  const out: CopyOverrides = {};
+  for (const locale of ["es", "en"] as const) {
+    const entries = raw[locale];
+    if (!entries || typeof entries !== "object" || Array.isArray(entries)) continue;
+    const clean: Partial<Record<CopyKey, string>> = {};
+    for (const [key, text] of Object.entries(entries as Record<string, unknown>)) {
+      if (!Object.hasOwn(COPY[locale], key)) continue;
+      if (typeof text !== "string") continue;
+      const trimmed = text.trim();
+      if (trimmed.length === 0 || trimmed.length > MAX_COPY_LENGTH) continue;
+      clean[key as CopyKey] = trimmed;
+    }
+    if (Object.keys(clean).length > 0) out[locale] = clean;
+  }
+  return out;
+};
+
 const asBrands = (value: unknown): Brand[] =>
   Array.isArray(value)
     ? value.flatMap((entry) => {
@@ -472,6 +512,7 @@ export const parseCampaignConfig = (raw: unknown): CampaignConfig => {
     ocr: asOcr(c.ocr),
     eligibility: c.eligibility === "brand" ? "brand" : DEFAULTS.eligibility,
     progressMeter: c.progress_meter === "fuel" ? "fuel" : DEFAULTS.progressMeter,
+    copy: parseCopyOverrides(c.copy),
   };
 };
 
@@ -527,6 +568,8 @@ export interface PublicCampaign {
   ocrEnabled: boolean;
   prizes: Prize[];
   progressMeter: ProgressMeter;
+  /** Wording overrides for this campaign. Public by nature: it is on screen. */
+  copy: CopyOverrides;
 }
 
 export const toPublicCampaign = (campaign: Campaign): PublicCampaign => ({
@@ -552,6 +595,7 @@ export const toPublicCampaign = (campaign: Campaign): PublicCampaign => ({
   ocrEnabled: campaign.config.ocr.enabled,
   prizes: campaign.config.prizes,
   progressMeter: campaign.config.progressMeter,
+  copy: campaign.config.copy,
 });
 
 // ---------------------------------------------------------------------------

@@ -66,3 +66,45 @@ test("the send breaker takes a number and refuses nonsense", () => {
     DEFAULT_AUTH.maxSendsPerHour,
   );
 });
+
+// ---- per-campaign copy overrides ------------------------------------------
+
+import { parseCopyOverrides } from "./config.ts";
+
+test("copy overrides keep known keys, trimmed, and drop everything else", () => {
+  const out = parseCopyOverrides({
+    es: { accHeroTitle: "  ¡Cada ticket llena tu tanque!  ", accHeroMark: "tanque", notAKey: "x" },
+    en: { accHeroTitle: "Every receipt fills your tank!" },
+    fr: { accHeroTitle: "non" },
+  });
+  assert.deepEqual(out, {
+    es: { accHeroTitle: "¡Cada ticket llena tu tanque!", accHeroMark: "tanque" },
+    en: { accHeroTitle: "Every receipt fills your tank!" },
+  });
+});
+
+test("copy overrides ignore non-strings, empties, oversize text and bad shapes", () => {
+  assert.deepEqual(parseCopyOverrides(null), {});
+  assert.deepEqual(parseCopyOverrides([]), {});
+  assert.deepEqual(parseCopyOverrides({ es: [] }), {});
+  assert.deepEqual(
+    parseCopyOverrides({
+      es: { accHeroTitle: 5, accHeroMark: "   ", accHeroSub: "x".repeat(601), __proto__: "y", toString: "z" },
+    }),
+    {},
+  );
+});
+
+test("an unedited config has no copy overrides", () => {
+  assert.deepEqual(parseCampaignConfig({}).copy, {});
+});
+
+import { translator } from "./i18n.ts";
+
+test("the translator prefers a campaign's override and still fills placeholders", () => {
+  const t = translator("es", { es: { accHeroTitle: "Gana con {org}, {org}" } });
+  assert.equal(t("accHeroTitle", { org: "X" }), "Gana con X, X");
+  // Untouched keys and the other locale keep the dictionary's wording.
+  assert.equal(t("accHeroMark", { org: "X" }), "X");
+  assert.equal(translator("en", { es: { accHeroTitle: "z" } })("accHeroTitle", { org: "X" }), "Win prizes with X!");
+});

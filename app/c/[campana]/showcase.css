@@ -1,1 +1,464 @@
-/* Showcase layer: brand logos, product gallery, entry screens. Loaded after tickets.css. */
+/* Showcase layer: brand logos, product gallery, entry screens. Loaded after tickets.css.
+   Every rule here is opt-in by markup (an `sh-` class or a data attribute that only
+   renders when the tenant's data asks for it), so a campaign with none of that data
+   keeps the look tickets.css gives it. Where a tickets.css rule is refined, the
+   selector is more specific rather than the original being edited. */
+
+/* ---- entrance ------------------------------------------------------------ */
+
+/* Blocks rise in sequence on first paint. `both` keeps them hidden during their
+   delay; the delay is `--i` steps of 70ms, set per block in the markup. */
+@keyframes sh-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+.tk-app .sh-rise {
+  animation: sh-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+/* ---- header: the co-brand lockup ---------------------------------------- */
+
+.tk-app .tk-head { padding: 12px 16px 11px; min-height: 64px; }
+
+/* Co-branded: client logo on the left, the platform's signature on the right,
+   separated by the same 3px rule as everything else. The logo is capped by height
+   AND width so a very wide or very tall lockup both land in the same visual slot. */
+.tk-app .tk-head[data-cobrand] .tk-cobrand {
+  height: 40px;
+  max-width: 48%;
+  object-position: left center;
+  /* Browsers downscale large PNGs with their default resampler; this asks for the
+     smoother one so a 2x/3x source stays crisp instead of shimmering. */
+  image-rendering: auto;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+.tk-app .tk-powered { align-items: flex-end; gap: 3px; padding-left: 12px; border-left: 2px solid rgba(10, 10, 10, 0.14); }
+.tk-app .tk-powered .by { font-size: 8.5px; letter-spacing: 0.16em; }
+
+/* ---- bottom tabs --------------------------------------------------------- */
+
+.tk-app .tk-nav { padding-bottom: env(safe-area-inset-bottom, 0); }
+
+.tk-app .tk-nav a { transition: color 140ms ease; -webkit-tap-highlight-color: transparent; }
+.tk-app .tk-navico { transition: transform 160ms cubic-bezier(0.3, 1.6, 0.5, 1), background 140ms ease; }
+.tk-app .tk-nav a:active .tk-navico { transform: scale(0.9); }
+
+.tk-app .tk-nav a.cta .tk-navico {
+  box-shadow: 2px 2px 0 0 var(--tk-ink);
+  transform: translateY(-2px);
+}
+.tk-app .tk-nav a.cta:active .tk-navico {
+  transform: translate(1px, -1px);
+  box-shadow: 1px 1px 0 0 var(--tk-ink);
+}
+
+.tk-app .tk-nav a[aria-current="page"] .tk-navlabel { font-weight: 800; }
+
+/* ---- home: brand lockup -------------------------------------------------- */
+
+.sh-lockup { display: flex; flex-direction: column; gap: 8px; }
+
+.sh-lockup-label {
+  font-family: var(--tk-display);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--tk-ink-mute);
+}
+
+.sh-lockup ul { list-style: none; margin: 0; padding: 0; display: flex; gap: 10px; }
+
+.sh-lockup li {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border: 3px solid var(--tk-ink);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--sh-brand, #fff) 14%, #fff);
+  box-shadow: 3px 3px 0 0 var(--tk-ink);
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.sh-lockup li img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+}
+
+.sh-lockup-name {
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+
+@media (hover: hover) {
+  .sh-lockup li:hover { transform: translate(-1px, -1px) rotate(-1deg); box-shadow: 5px 5px 0 0 var(--tk-ink); }
+}
+
+/* ---- home: the rate ticket ----------------------------------------------- */
+
+.sh-ticket .top { position: relative; padding-right: 86px; }
+
+/* A sticker on the corner of the ticket: the star is the platform's mark for
+   points, and the slight tilt is what makes it read as stuck on rather than laid
+   out. Purely decorative (aria-hidden), so it carries no copy to translate. */
+.sh-stamp {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 58px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--tk-ink);
+  border-radius: 50%;
+  background: var(--tk-yellow);
+  box-shadow: 3px 3px 0 0 var(--tk-ink);
+  transform: rotate(10deg);
+}
+.sh-stamp svg { width: 28px; height: 28px; }
+
+.sh-rate { line-height: 1.02; text-wrap: balance; }
+
+.sh-ticket .tk-ctaline { transition: background 120ms ease, transform 120ms ease; }
+.sh-ticket .tk-ctaline-ico { transition: transform 160ms cubic-bezier(0.3, 1.6, 0.5, 1); }
+.sh-ticket .tk-ctaline-go { transition: transform 160ms ease; }
+
+@media (hover: hover) {
+  .sh-ticket .tk-ctaline:hover { background: var(--tk-yellow-deep); }
+  .sh-ticket .tk-ctaline:hover .tk-ctaline-go { transform: translateX(3px); }
+}
+.sh-ticket .tk-ctaline:active .tk-ctaline-ico { transform: scale(0.92) rotate(-6deg); }
+
+.sh-doors { flex-wrap: wrap; }
+.sh-doors .tk-linkbtn { font-size: 13.5px; font-weight: 700; padding: 6px 2px; color: var(--tk-ink); }
+
+/* ---- home: prize teaser -------------------------------------------------- */
+
+.sh-prizes ul { list-style: none; margin: 8px 0 0; padding: 0; }
+
+.sh-prizes li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 2.5px dashed rgba(10, 10, 10, 0.2);
+}
+.sh-prizes li:first-child { border-top: 0; }
+
+.sh-prize-name {
+  font-family: var(--tk-display);
+  font-weight: 700;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.sh-prize-cost {
+  flex: none;
+  min-width: 106px;
+  justify-content: flex-end;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px 4px 7px;
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 999px;
+  background: var(--tk-cream);
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 13px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.sh-prize-cost svg { width: 15px; height: 15px; }
+
+/* ---- home: product gallery ------------------------------------------------ */
+
+.sh-gallery-block { display: flex; flex-direction: column; gap: 12px; }
+
+/* Bleeds to the screen edge (the page has 18px of padding) so the last card is
+   visibly cut off: that is the whole affordance for "this scrolls". The vertical
+   padding is for the cards' hard shadows, which overflow-x would otherwise clip. */
+.sh-gallery {
+  list-style: none;
+  margin: 0 -18px;
+  padding: 4px 18px 10px;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 18px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.sh-gallery::-webkit-scrollbar { display: none; }
+
+.sh-prod {
+  --sh-brand: #ffd93d;
+  flex: none;
+  width: 142px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 3px solid var(--tk-ink);
+  border-radius: 18px;
+  box-shadow: 4px 4px 0 0 var(--tk-ink);
+  overflow: hidden;
+  animation: sh-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 200ms);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+@media (hover: hover) {
+  .sh-prod:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 0 var(--tk-ink); }
+}
+
+.sh-prod-photo {
+  position: relative;
+  height: 156px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 12px 10px 0;
+  border-bottom: 3px solid var(--tk-ink);
+  /* The brand's colour, washed: strong enough to say "Jarritos orange", soft
+     enough that the bottle's own label stays the loudest thing on the card. */
+  background:
+    radial-gradient(circle at 50% 78%, rgba(255, 255, 255, 0.75) 0 34%, transparent 62%),
+    color-mix(in srgb, var(--sh-brand) 34%, #fff);
+}
+
+.sh-prod-photo img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 0 rgba(10, 10, 10, 0.18));
+  transform: rotate(-4deg);
+  transition: transform 220ms cubic-bezier(0.3, 1.6, 0.5, 1);
+  user-select: none;
+}
+@media (hover: hover) {
+  .sh-prod:hover .sh-prod-photo img { transform: rotate(3deg) scale(1.05); }
+}
+
+.sh-prod-initial {
+  align-self: center;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 64px;
+  line-height: 1;
+  color: var(--tk-ink);
+  opacity: 0.85;
+  margin-bottom: 12px;
+}
+
+.sh-prod-text { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px 12px; }
+
+.sh-prod-brand {
+  font-family: var(--tk-display);
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tk-ink-mute);
+}
+
+.sh-prod-text b {
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.sh-prod-size { font-size: 12px; font-weight: 600; color: var(--tk-ink-soft); }
+
+/* ---- entry screens -------------------------------------------------------- */
+
+.sh-entry-head { display: block; }
+
+.sh-entry-head.art {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 30%;
+  align-items: end;
+  gap: 6px;
+}
+
+/* Three pips and the step label: where you are, in the least words. Filled pips
+   are the ink colour (progress is identity, not action). */
+.sh-steps { display: flex; align-items: center; gap: 5px; }
+.sh-steps span:not(.tk-eyebrow) {
+  width: 22px;
+  height: 7px;
+  border: 2px solid var(--tk-ink);
+  border-radius: 999px;
+  background: #fff;
+}
+.sh-steps span.on { background: var(--tk-brand); }
+.sh-steps .tk-eyebrow { margin-left: 5px; }
+
+.sh-entry-title { font-size: 30px; margin-top: 10px; }
+.sh-entry-sub { font-size: 14px; margin-top: 6px; }
+
+.sh-entry-art .tk-mascot { max-height: 124px; margin-left: auto; }
+
+/* Forms: tall targets (>= 52px), generous gaps, and the primary button as big as
+   a thumb. Everything is sized for one-handed use at a shelf, not for a desk. */
+.tk-app .sh-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 20px;
+}
+
+.tk-app .sh-form input[type="text"],
+.tk-app .sh-form input[type="email"],
+.tk-app .sh-form input[type="tel"],
+.tk-app .sh-form input[type="password"],
+.tk-app .sh-form select {
+  min-height: 54px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--tk-cream);
+  box-shadow: inset 0 2px 0 rgba(10, 10, 10, 0.06);
+  transition: background 120ms ease, box-shadow 120ms ease;
+}
+
+.tk-app .sh-form input:focus,
+.tk-app .sh-form select:focus {
+  outline: none;
+  background: #fff;
+  box-shadow: 3px 3px 0 0 var(--tk-ink);
+}
+
+.tk-app .sh-form .tk-btn {
+  min-height: 58px;
+  font-size: 18px;
+  border-radius: 16px;
+  margin-top: 2px;
+}
+
+.tk-app .sh-form .tk-linkbtn { font-size: 13.5px; font-weight: 700; padding: 8px 2px; color: var(--tk-ink); }
+
+.tk-app .sh-form .tk-check {
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 14px;
+  background: #fff;
+  font-size: 13px;
+}
+.tk-app .sh-form .tk-check input { width: 24px; height: 24px; }
+
+.sh-pw { position: relative; display: block; }
+.sh-pw input { padding-right: 84px !important; }
+
+.sh-pw-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  min-height: 38px;
+  padding: 0 12px;
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 10px;
+  background: #fff;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 12.5px;
+  color: var(--tk-ink);
+  cursor: pointer;
+}
+.sh-pw-toggle[aria-pressed="true"] { background: var(--tk-ink); color: var(--tk-cream); }
+.sh-pw-toggle:active { transform: translateY(-50%) scale(0.95); }
+
+/* The error is the one thing on these screens that must not be missed: it
+   shakes once on arrival, and only for people who have not asked for less. */
+@keyframes sh-shake {
+  0%, 100% { transform: none; }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+.tk-app .tk-pad > .tk-error { animation: sh-shake 320ms ease; font-size: 14px; }
+
+/* ---- motion preferences --------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-app .sh-rise,
+  .sh-prod,
+  .tk-app .tk-pad > .tk-error { animation: none; }
+  .sh-prod,
+  .sh-prod-photo img,
+  .sh-lockup li,
+  .tk-app .tk-navico,
+  .sh-ticket .tk-ctaline-ico,
+  .sh-ticket .tk-ctaline-go { transition: none; }
+}
+
+/* The "create an account" door under the sign-in form is the secondary path; two
+   yellow slabs on one screen would make the system's "press me" colour mean
+   nothing. */
+.tk-app .tk-pad > a.tk-btn.sm { background: #fff; }
+
+/* ---- home: prize cards (when the Drop items carry artwork) ---------------- */
+
+.sh-reward {
+  flex: none;
+  width: 178px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 3px solid var(--tk-ink);
+  border-radius: 18px;
+  box-shadow: 4px 4px 0 0 var(--tk-ink);
+  overflow: hidden;
+  animation: sh-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 200ms);
+}
+
+.sh-reward-art {
+  aspect-ratio: 880 / 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 3px solid var(--tk-ink);
+  background: color-mix(in srgb, var(--tk-brand) 14%, #fff);
+}
+.sh-reward-art img { width: 100%; height: 100%; object-fit: cover; display: block; user-select: none; }
+.sh-reward-star svg { width: 44px; height: 44px; }
+
+.sh-reward-text { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 12px 12px; flex: 1; justify-content: space-between; }
+.sh-reward-text b {
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 14.5px;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+.sh-reward-text .sh-prize-cost { min-width: 0; }
+
+@media (prefers-reduced-motion: reduce) { .sh-reward { animation: none; } }

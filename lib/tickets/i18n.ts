@@ -70,6 +70,8 @@ const es = {
   // yellow highlighter. The threshold home keeps the highlighter on a phrase —
   // that campaign's headline has no client name in it to paint.
   accHeroTitle: "¡Gana premios con {org}!",
+  // La parte del titular que va en el color de la marca. Se puede cambiar por campaña.
+  accHeroMark: "{org}",
   accHeroSub:
     "Compra, sube tu ticket y canjea. Tus puntos se acumulan compra tras compra.",
   accRateLabel: "Así suman tus puntos",
@@ -438,8 +440,45 @@ const es = {
   privacyNoteOcr:
     "Tu ticket contiene datos personales. Lo guardamos cifrado, lo lee un servicio de reconocimiento de texto para agilizar tu revisión, y lo ve el equipo de validación. No lo compartimos con nadie más.",
   // ---- showcase: brands, products, entry screens --------------------------
+  shPrizesTitle: "Lo que puedes canjear",
+  shPrizesNote: "Los premios cambian cada semana y las existencias son limitadas.",
+  shPts: "{n} pts",
+  shShowPw: "Mostrar",
+  shHidePw: "Ocultar",
+  shPwHint: "Mínimo 8 caracteres.",
+  shGalleryAria: "Productos participantes",
 
   // ---- journey: reading, celebration, tank, prizes ------------------------
+  jrFuelEyebrow: "Tu tanque",
+  jrFuelMissingGift: "Te faltan {points} pts para tu gift card de {value}",
+  jrFuelMissingItem: "Te faltan {points} pts para {name}",
+  jrFuelReadyGift: "¡Tanque lleno! Tu gift card de {value} ya es tuya",
+  jrFuelReadyItem: "¡Tanque lleno! Ya puedes canjear {name}",
+  jrFuelCta: "Ir a canjear",
+  jrFuelCanRedeem: "Ya te alcanza para canjear un premio hoy.",
+  jrReadTitle: "Leyendo tu ticket",
+  jrRead1: "Leyendo tu ticket…",
+  jrRead2: "Buscando productos participantes…",
+  jrRead3: "Validando compra y total…",
+  jrReadLong: "Ya casi. Revisando los últimos detalles…",
+  jrReadHonest:
+    "Si algo no cuadra, una persona del equipo lo revisa. Puedes salir de esta pantalla: tu ticket sigue en proceso.",
+  jrReadInReviewTitle: "Tu ticket está con el equipo",
+  jrReadInReview:
+    "Lo está revisando una persona. Te avisamos en menos de {hours} horas; tu tanque se llena en cuanto lo aprueben.",
+  jrReadAlt: "Tu ticket enviado",
+  jrClbFound: "Encontramos en tu ticket",
+  jrClbStore: "Ir a canjear",
+  jrGiftCard: "Gift card",
+  jrDeliveryVia: "Entrega digital vía {provider}",
+  jrDeliveryDigital: "Entrega digital",
+  jrCodeEyebrow: "Tu código de canje",
+  jrCodeCopy: "Copiar código",
+  jrCodeCopied: "¡Código copiado!",
+  jrCodeHowTitle: "Cómo la recibes",
+  jrCodeGiftTitle: "¡Tu gift card va en camino!",
+  jrHistPoints: "+{points} pts",
+  jrHistProducts: "Productos: {list}",
 
   // ---- live screen ---------------------------------------------------------
 } as const;
@@ -490,6 +529,7 @@ const en: Dict = {
   rulesLink: "Official rules",
 
   accHeroTitle: "Win prizes with {org}!",
+  accHeroMark: "{org}",
   accHeroSub:
     "Buy, upload your receipt, redeem. Your points add up purchase after purchase.",
   accRateLabel: "How your points add up",
@@ -792,8 +832,45 @@ const en: Dict = {
     "Your receipt holds personal data. We store it encrypted, a text-recognition service reads it to speed up your review, and the validation team sees it. We share it with nobody else.",
 
   // ---- showcase: brands, products, entry screens --------------------------
+  shPrizesTitle: "What you can redeem",
+  shPrizesNote: "Prizes change every week and stock is limited.",
+  shPts: "{n} pts",
+  shShowPw: "Show",
+  shHidePw: "Hide",
+  shPwHint: "At least 8 characters.",
+  shGalleryAria: "Participating products",
 
   // ---- journey: reading, celebration, tank, prizes ------------------------
+  jrFuelEyebrow: "Your tank",
+  jrFuelMissingGift: "{points} pts to go for your {value} gift card",
+  jrFuelMissingItem: "{points} pts to go for {name}",
+  jrFuelReadyGift: "Tank full! Your {value} gift card is yours",
+  jrFuelReadyItem: "Tank full! You can redeem {name} now",
+  jrFuelCta: "Go redeem",
+  jrFuelCanRedeem: "You already have enough to redeem a prize today.",
+  jrReadTitle: "Reading your receipt",
+  jrRead1: "Reading your receipt…",
+  jrRead2: "Looking for participating products…",
+  jrRead3: "Checking purchase and total…",
+  jrReadLong: "Almost there. Checking the last details…",
+  jrReadHonest:
+    "If something doesn't add up, a person on the team takes a look. You can leave this screen: your receipt keeps processing.",
+  jrReadInReviewTitle: "Your receipt is with the team",
+  jrReadInReview:
+    "A person is reviewing it. We'll let you know within {hours} hours; your tank fills the moment it's approved.",
+  jrReadAlt: "Your submitted receipt",
+  jrClbFound: "We found on your receipt",
+  jrClbStore: "Go redeem",
+  jrGiftCard: "Gift card",
+  jrDeliveryVia: "Delivered digitally via {provider}",
+  jrDeliveryDigital: "Delivered digitally",
+  jrCodeEyebrow: "Your redemption code",
+  jrCodeCopy: "Copy code",
+  jrCodeCopied: "Code copied!",
+  jrCodeHowTitle: "How you get it",
+  jrCodeGiftTitle: "Your gift card is on its way!",
+  jrHistPoints: "+{points} pts",
+  jrHistProducts: "Products: {list}",
 
   // ---- live screen ---------------------------------------------------------
 };
@@ -809,9 +886,11 @@ export const fill = (template: string, values: Record<string, string | number>) 
   );
 
 export const translator =
-  (locale: Locale) =>
+  (locale: Locale, overrides?: Partial<Record<Locale, Partial<Record<CopyKey, string>>>>) =>
   (key: CopyKey, values?: Record<string, string | number>): string => {
-    const template = COPY[locale][key];
+    // A campaign's own wording wins over the dictionary. The override is a
+    // template like any other, so `{org}` and friends still fill.
+    const template = overrides?.[locale]?.[key] ?? COPY[locale][key];
     return values ? fill(template, values) : template;
   };
 

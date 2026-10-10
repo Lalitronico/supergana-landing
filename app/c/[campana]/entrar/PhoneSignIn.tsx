@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { formatMxPhone, normalizeMxPhone } from "@/lib/platform/phone";
 import { useTickets } from "../TicketsShell";
+import { EntryHead } from "../showcase/EntryHead";
 
 /**
  * Sign-in for campaigns whose identity channel is the phone (0030).
@@ -170,24 +171,21 @@ export function PhoneSignIn() {
 
   return (
     <div className="tk-pad">
-      <div>
-        <div className="tk-eyebrow">{t("regStep", { n: step === "phone" ? 1 : 2 })}</div>
-        <h1 className="tk-h" style={{ fontSize: 28, marginTop: 6 }}>
-          {step === "phone" ? t("waTitle") : t("waCodeTitle")}
-        </h1>
-        <p className="tk-body" style={{ fontSize: 13.5, marginTop: 6 }}>
-          {step === "phone"
+      <EntryHead
+        step={step === "phone" ? 1 : 2}
+        title={step === "phone" ? t("waTitle") : t("waCodeTitle")}
+        sub={
+          step === "phone"
             ? t("waSub")
-            : t("waCodeSub", { phone: phone ? formatMxPhone(phone) : "" })}
-        </p>
-      </div>
+            : t("waCodeSub", { phone: phone ? formatMxPhone(phone) : "" })
+        }
+      />
 
       {error && <p className="tk-error">{error}</p>}
 
       {step === "phone" ? (
         <form
-          className="tk-card"
-          style={{ display: "flex", flexDirection: "column", gap: 14 }}
+          className="tk-card sh-form"
           onSubmit={sendCode}
         >
           <label className="tk-field">
@@ -196,6 +194,7 @@ export function PhoneSignIn() {
               type="tel"
               inputMode="tel"
               autoComplete="tel"
+              enterKeyHint="send"
               autoFocus
               value={typed}
               onChange={(e) => {
@@ -226,8 +225,7 @@ export function PhoneSignIn() {
         </form>
       ) : (
         <form
-          className="tk-card"
-          style={{ display: "flex", flexDirection: "column", gap: 14 }}
+          className="tk-card sh-form"
           onSubmit={confirm}
         >
           {/* The one place a code may appear on screen, and it is the SERVER
