@@ -99,7 +99,7 @@ const es = {
   // Sin número de dígitos en el copy: la longitud del OTP es configuración de
   // Supabase (6 a 10) y prometer "6" en pantalla se vuelve mentira sola.
   authSub: "Te mandamos un código de un solo uso a tu correo.",
-  authEmail: "Email",
+  authEmail: "Correo electrónico",
   authSend: "Enviar código",
   authSending: "Enviando…",
   authCodeTitle: "Revisa tu correo",

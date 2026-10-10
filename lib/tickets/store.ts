@@ -126,9 +126,11 @@ export const nextPrize = (snapshot: StoreSnapshot | null): NextPrize | null => {
     prize: target,
     points: snapshot.points,
     missing,
+    // Floored: rounding 597/600 up to "100%" drew a full tank (and a pulsing
+    // cap) three points short of the goal. 100 is reserved for "affordable".
     pct:
       target.pointsCost > 0
-        ? Math.min(100, Math.round((snapshot.points / target.pointsCost) * 100))
+        ? Math.min(100, Math.floor((snapshot.points / target.pointsCost) * 100))
         : 100,
     affordable: missing === 0,
   };

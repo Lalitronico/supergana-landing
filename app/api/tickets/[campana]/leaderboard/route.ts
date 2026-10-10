@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { resolveParticipant } from "@/lib/tickets/access";
 import { getCampaign, isVisible } from "@/lib/tickets/campaigns";
 import { POINTS_SPEND_KINDS } from "@/lib/tickets/config";
+import { resolveAvatar } from "@/lib/tickets/avatar";
 
 export const runtime = "nodejs";
 
@@ -96,7 +97,8 @@ export async function GET(
     top: ranked.slice(0, TOP).map((r, i) => ({
       rank: i + 1,
       alias: r.display,
-      avatar: r.avatar,
+      // Resolved like /me: the same participant is the same character everywhere.
+      avatar: resolveAvatar(r.avatar, r.participantId, campaign.theme.cast),
       points: r.points,
       isMe: r.participantId === meId,
     })),

@@ -30,7 +30,7 @@ function Reel({ digit, index }: { digit: number; index: number }) {
   const target = 10 + digit;
   const shift = go ? -(target / DIGITS.length) * 100 : 0;
   // Left reels lock first; the units reel keeps spinning a little longer.
-  const duration = 1.1 + index * 0.28;
+  const duration = 0.9 + index * 0.22;
 
   return (
     <span className="jr-reel" aria-hidden="true">

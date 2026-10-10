@@ -422,12 +422,9 @@ export default function PanelPage() {
       .join(" · ");
 
   const redemptions = store.snapshot?.redemptions ?? [];
-  const panelMember =
-    campaign.theme.cast.length > 0
-      ? (castMember(campaign.theme, me.participant?.avatar) ??
-        campaign.theme.cast.find((m) => m.brand === null) ??
-        campaign.theme.cast[0])
-      : null;
+  // Only the character the server resolved for this participant: no default
+  // assigned here, so nobody is silently shown as someone they did not pick.
+  const panelMember = castMember(campaign.theme, me.participant?.avatar);
   const identity = me.email || me.phone ? displayIdentity(me.email, me.phone) : null;
 
   const reward = me.rewards.find((r) => r.status !== "canceled") ?? null;
@@ -531,7 +528,11 @@ export default function PanelPage() {
         </div>
       )}
 
-      <LeaderboardCard data={board} />
+      {board && (
+        <section className="jr-pband yellow sg-halftone">
+          <LeaderboardCard data={board} />
+        </section>
+      )}
 
       {/* Gated on the address existing, not only on the reward. A campaign
           identified by phone has no address to verify and no reward mailed to
@@ -575,6 +576,7 @@ export default function PanelPage() {
         </div>
       )}
 
+      <section className="jr-pband pink sg-halftone">
       {me.receipts.length === 0 ? (
         <div className="tk-card">
           <p className="tk-body">{t("pnEmpty")}</p>
@@ -629,6 +631,8 @@ export default function PanelPage() {
           )}
         </div>
       )}
+
+      </section>
 
       <p className="tk-foot">{campaign.ocrEnabled ? t("jrPrivacyShort") : privacyNote}</p>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>

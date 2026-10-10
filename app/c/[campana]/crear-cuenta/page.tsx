@@ -15,7 +15,7 @@ import { PasswordField } from "../showcase/PasswordField";
  * person signed in and heading to the profile step.
  */
 export default function CreateAccountPage() {
-  const { campaign, t, base } = useTickets();
+  const { campaign, t, base, locale } = useTickets();
   const router = useRouter();
 
 /**
@@ -129,7 +129,7 @@ export default function CreateAccountPage() {
             autoFocus
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="maria@email.com"
+            placeholder={locale === "es" ? "maria@correo.com" : "maria@email.com"}
             required
           />
         </label>

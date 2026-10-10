@@ -15,9 +15,10 @@ type Gate = "loading" | "anon" | "forbidden" | "error" | "ready";
 const POLL_MS = 3000;
 const STAGE_W = 1920;
 const STAGE_H = 1080;
-const LANES = 6;
-/** Lane pitch in stage pixels; mirrors --lane in live.css. */
-const LANE_H = 58;
+/** Fewest lanes drawn: a lone racer still gets a track that looks like a race. */
+const MIN_LANES = 4;
+/** Height of the track in stage pixels; mirrors --track-h in live.css. */
+const TRACK_H = 586;
 
 /** Supergana's own cast, for tenants that ship no cast and no mascots. */
 const DEFAULT_CHARACTERS = [
@@ -186,9 +187,13 @@ function FeedRow({
     <li className={`lv-feed-item ${fresh ? "fresh" : ""} ${isTicket ? "ticket" : "redeem"}`}>
       <span className="lv-feed-icon">
         <Avatar figure={item.avatar} alias={item.alias} />
-        <span className="lv-feed-badge">
-          <Icon kind={isTicket ? "ticket" : "gift"} />
-        </span>
+        {isTicket && item.auto ? (
+          <span className="lv-feed-badge auto">AUTO</span>
+        ) : (
+          <span className="lv-feed-badge">
+            <Icon kind={isTicket ? "ticket" : "gift"} />
+          </span>
+        )}
       </span>
       <div className="lv-feed-body">
         <div className="lv-feed-who">
@@ -208,10 +213,7 @@ function FeedRow({
         ) : (
           <span className="lv-feed-pts redeem">Premio</span>
         )}
-        <span className="lv-feed-ago">
-          {item.kind === "ticket" && item.auto && <span className="lv-auto">AUTO</span>}
-          {ago(nowMs, item.at)}
-        </span>
+        <span className="lv-feed-ago">{ago(nowMs, item.at)}</span>
       </div>
     </li>
   );
@@ -439,14 +441,18 @@ export function LiveScreen({ slug }: { slug: string }) {
       ? { value: Math.max(1, Math.round(avg)), unit: " s" }
       : { value: Math.round(avg / 60), unit: " min" };
   const facts = buildFacts(data);
-  const mixTotal = data.mix.reduce((sum, b) => sum + b.cents, 0);
   const empty = counters.tickets === 0 && data.feed.length === 0;
   const origin = data.joinUrl.replace(/^https?:\/\//, "");
 
   // The race: distance is proportional to points, scaled so the leader stops a
   // little short of the flag until somebody earns more than they have.
   const leaderPoints = data.top[0]?.points ?? 0;
-  const goal = Math.max(leaderPoints * 1.12, 300);
+  const goal = Math.max(leaderPoints * 1.1, 400);
+  // Only lanes with a racer, never fewer than MIN_LANES; the lane height (and
+  // with it the avatar) follows, so four racers get big characters.
+  const laneCount = Math.max(MIN_LANES, data.top.length);
+  const laneH = TRACK_H / laneCount;
+  const maxCents = Math.max(1, ...data.mix.map((b) => b.cents));
 
   return (
     <div className={`lv-root ${theme.brandLight ? "brand-light" : ""}`} style={brandStyle}>
@@ -500,6 +506,26 @@ export function LiveScreen({ slug }: { slug: string }) {
 
         <div className="lv-flag" aria-hidden="true" />
 
+        {/* ---- KPI strip: low, so the race gets the board ---------------- */}
+        <div className="lv-kpis">
+          <Counter label="Tickets subidos" value={counters.tickets} tone="t-brand" />
+          <Counter label="Participantes" value={counters.participants} tone="t-blue" />
+          <Counter
+            label="Validación automática"
+            value={autoTime.value}
+            suffix={autoTime.unit}
+            tone="t-green"
+            empty={counters.autoAvgSeconds === null}
+            hint={
+              counters.autoAvgSeconds === null
+                ? "esperando el primero"
+                : `${counters.autoApproved} de ${counters.approved} tickets solos`
+            }
+          />
+          <Counter label="Puntos repartidos" value={counters.points} tone="t-pink" />
+          <Counter label="Premios canjeados" value={counters.redemptions} tone="t-purple" />
+        </div>
+
         <main className="lv-grid">
           {/* ---- column A: QR + brand mix --------------------------------- */}
           <section className="lv-col lv-col-a">
@@ -519,16 +545,12 @@ export function LiveScreen({ slug }: { slug: string }) {
             </div>
 
             <div className="lv-card lv-mix">
-              <div className="lv-card-title">
-                <span className="lv-card-icon">
-                  <Icon kind="ticket" />
-                </span>
-                Qué se está comprando
-              </div>
+              <div className="lv-card-title small">Qué se está comprando</div>
               <div className="lv-bars">
                 {data.mix.length === 0 && <p className="lv-muted">Sin marcas configuradas.</p>}
                 {data.mix.map((b) => {
-                  const share = mixTotal > 0 ? b.cents / mixTotal : 0;
+                  // Normalised against the leader: the biggest brand fills the lane.
+                  const share = b.cents / maxCents;
                   return (
                     <div className="lv-bar" key={b.brand}>
                       <span className="lv-bar-name">
@@ -539,8 +561,8 @@ export function LiveScreen({ slug }: { slug: string }) {
                           className="lv-bar-fill"
                           style={{ width: `${share * 100}%`, background: b.color }}
                         />
+                        <span className="lv-bar-num">{usd(b.cents)}</span>
                       </div>
-                      <span className="lv-bar-num">{usd(b.cents)}</span>
                     </div>
                   );
                 })}
@@ -550,29 +572,8 @@ export function LiveScreen({ slug }: { slug: string }) {
             </div>
           </section>
 
-          {/* ---- column B: counters + the race ---------------------------- */}
+          {/* ---- column B: the race, the protagonist ---------------------- */}
           <section className="lv-col lv-col-b">
-            <div className="lv-row lv-row-big">
-              <Counter label="Tickets subidos" value={counters.tickets} tone="t-brand" />
-              <Counter label="Participantes" value={counters.participants} tone="t-blue" />
-            </div>
-            <div className="lv-row lv-row-small">
-              <Counter
-                label="Validación automática"
-                value={autoTime.value}
-                suffix={autoTime.unit}
-                tone="t-green"
-                empty={counters.autoAvgSeconds === null}
-                hint={
-                  counters.autoAvgSeconds === null
-                    ? "esperando el primero"
-                    : `${counters.autoApproved} de ${counters.approved} tickets aprobados solos`
-                }
-              />
-              <Counter label="Puntos repartidos" value={counters.points} tone="t-pink" />
-              <Counter label="Premios canjeados" value={counters.redemptions} tone="t-purple" />
-            </div>
-
             <div className="lv-card lv-race">
               <div className="lv-race-head">
                 <div className="lv-card-title">
@@ -586,9 +587,12 @@ export function LiveScreen({ slug }: { slug: string }) {
                 <img className="lv-peek lv-peek-race" src={art(2)} alt="" aria-hidden="true" />
               </div>
 
-              <div className="lv-track" style={{ "--lanes": LANES } as CSSProperties}>
-                {Array.from({ length: LANES }, (_, i) => (
-                  <div className="lv-lane-line" key={i} style={{ top: i * LANE_H }}>
+              <div
+                className="lv-track"
+                style={{ "--lanes": laneCount, "--lane": `${laneH}px` } as CSSProperties}
+              >
+                {Array.from({ length: laneCount }, (_, i) => (
+                  <div className="lv-lane-line" key={i} style={{ top: i * laneH }}>
                     <span>{i + 1}</span>
                   </div>
                 ))}
@@ -614,14 +618,13 @@ export function LiveScreen({ slug }: { slug: string }) {
 
                 {data.top.map((row) => {
                   const p = Math.min(1, row.points / goal);
-                  const leaning = p > 0.55;
                   return (
                     <div
                       key={row.id}
                       className={`lv-racer ${passers.has(row.id) ? "pass" : ""} ${row.rank === 1 ? "lead" : ""}`}
-                      style={{ top: (row.rank - 1) * LANE_H, "--p": p } as CSSProperties}
+                      style={{ top: (row.rank - 1) * laneH, "--p": p } as CSSProperties}
                     >
-                      <div className={`lv-runner ${leaning ? "flip" : ""}`}>
+                      <div className="lv-runner">
                         <Avatar figure={row.avatar} alias={row.alias} className="big" />
                         <span className="lv-tag">
                           <b>{row.alias}</b>

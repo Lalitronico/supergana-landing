@@ -333,7 +333,9 @@ export function PrizeStore({
               <p className="jr-drophead-sub">{t("stDropCadence")}</p>
             </div>
             {host ? (
-              <CastFigure member={host} height={104} className="jr-drophead-art" alt="" />
+              <div className="jr-drophead-stage sg-rays">
+                <CastFigure member={host} height={158} className="jr-drophead-art" alt="" />
+              </div>
             ) : campaign.theme.mascots.ticket ? (
               <div className="tk-drophead-art">
                 <Mascot pose="ticket" />

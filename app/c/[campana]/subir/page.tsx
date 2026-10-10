@@ -15,6 +15,8 @@ import { StatusTimeline } from "../StatusTimeline";
 import { ApprovalCelebration } from "../ApprovalCelebration";
 import { Headline } from "../Headline";
 import { Mascot } from "../Mascot";
+import { CastFigure } from "../fiesta/CastFigure";
+import { castMember } from "@/lib/tickets/theme";
 import { NextPrizeProgress } from "../NextPrizeProgress";
 import { PrivacyPill } from "../PrivacyPill";
 import { ReadingTicket } from "../journey/ReadingTicket";
@@ -118,6 +120,13 @@ export default function UploadPage() {
 
   // The tenant's mascot for this screen, if it has one. Decoration only.
   const hasArt = Boolean(campaign.theme.mascots.ticket);
+  // The participant's own character beside the title; the cast's host when
+  // they have not picked one (or the campaign has no avatars at all).
+  const capMember =
+    castMember(campaign.theme, me?.participant?.avatar) ??
+    campaign.theme.cast.find((m) => m.brand === null) ??
+    campaign.theme.cast[0] ??
+    null;
 
   useEffect(() => {
     if (status === "anon") router.replace(`${base}entrar/`);
@@ -300,18 +309,23 @@ export default function UploadPage() {
   return (
     <div className="tk-pad">
       <ApprovalCelebration me={me} />
-      <div className={hasArt ? "tk-hero art" : undefined}>
-        <div>
+      <section className="jr-capband sg-halftone">
+      <div className="jr-caphero">
+        <div className="jr-caphero-text">
           <div className="tk-eyebrow">{t("regStep", { n: 3 })}</div>
-          <h1 className="tk-h" style={{ fontSize: 28, marginTop: 6 }}>
+          <h1 className="tk-h" style={{ fontSize: 30, marginTop: 6 }}>
             <Headline text={t("capTitle")} mark={t("capTitleMark")} as="brand" />
           </h1>
           <p className="tk-body" style={{ fontSize: 13.5, marginTop: 6 }}>{t("capSub")}</p>
         </div>
-        {hasArt && (
-          <div className="tk-hero-art">
-            <Mascot pose="ticket" />
-          </div>
+        {capMember ? (
+          <CastFigure member={capMember} height={128} className="jr-caphero-art" alt="" />
+        ) : (
+          hasArt && (
+            <div className="tk-hero-art">
+              <Mascot pose="ticket" />
+            </div>
+          )
         )}
       </div>
 
@@ -331,6 +345,7 @@ export default function UploadPage() {
       {!canSubmit && <p className="tk-error">{t("errClosed")}</p>}
       {error && <p className="tk-error">{error}</p>}
 
+      <div className="jr-capcard">
       <div className="tk-camera">
         <span className="tk-corner tl" />
         <span className="tk-corner tr" />
@@ -345,6 +360,7 @@ export default function UploadPage() {
         {/* The file name is a technical detail that sat on top of the receipt's
             barcode; once there is a photo, the photo is the whole message. */}
         {!preview && <div className="tk-hint">{t("capEmpty")}</div>}
+      </div>
       </div>
 
       {/*
@@ -420,6 +436,8 @@ export default function UploadPage() {
           {t("capPick")}
         </button>
       )}
+
+      </section>
 
       <PrivacyPill />
 

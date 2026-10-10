@@ -4,6 +4,7 @@ import { resolveStaff, staffDenialStatus } from "@/lib/tickets/access";
 import { getCampaign } from "@/lib/tickets/campaigns";
 import { POINTS_SPEND_KINDS } from "@/lib/tickets/config";
 import { productLabel } from "@/lib/tickets/productLabel";
+import { resolveAvatar } from "@/lib/tickets/avatar";
 import { brandTone, castForBrand, castMember, type CastMember } from "@/lib/tickets/theme";
 
 export const runtime = "nodejs";
@@ -25,7 +26,7 @@ export const runtime = "nodejs";
  */
 
 const FEED_SIZE = 12;
-const TOP_SIZE = 6;
+const TOP_SIZE = 5;
 const CACHE_MS = 2000;
 const PAGE = 1000;
 const MAX_ROWS = 5000;
@@ -169,16 +170,6 @@ const publicName = (p: ParticipantRow | undefined): string => {
   return initials ? `${initials}.` : "—";
 };
 
-/** Stable pseudo-random pick, so a participant with no chosen character keeps the same one. */
-const hashOf = (text: string): number => {
-  let h = 2166136261;
-  for (let i = 0; i < text.length; i++) {
-    h ^= text.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-};
-
 const figureOf = (member: CastMember): LiveFigure => ({
   id: member.id,
   name: member.name,
@@ -290,9 +281,11 @@ export async function GET(
     // cast (hash of their id), else none: the screen then draws an initial.
     const cast = campaign.theme.cast;
     const avatarOf = (participantId: string): LiveFigure | null => {
-      const picked = castMember(campaign.theme, byParticipant.get(participantId)?.avatar);
-      if (picked) return figureOf(picked);
-      return cast.length ? figureOf(cast[hashOf(participantId) % cast.length]) : null;
+      // The shared rule (lib/tickets/avatar.ts): the same participant gets the
+      // same character here as on their own panel.
+      const id = resolveAvatar(byParticipant.get(participantId)?.avatar, participantId, cast);
+      const member = castMember(campaign.theme, id);
+      return member ? figureOf(member) : null;
     };
 
     // --- ranking: points EARNED, so redeeming never drops anyone ----------

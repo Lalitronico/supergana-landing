@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { nextPrize, prizeDetail, prizeName, type StorePrize } from "@/lib/tickets/store";
 import { fuelNextLine } from "../journey/fuelCopy";
+import { brandOfLabel } from "@/lib/tickets/brandOf";
+import { castForBrand } from "@/lib/tickets/theme";
 import { Confetti } from "../Confetti";
 import { Mascot } from "../Mascot";
 import { CastFigure } from "../fiesta/CastFigure";
@@ -63,7 +65,14 @@ export function RedemptionCode({
   const balance = snapshot?.points ?? 0;
   const next = nextPrize(snapshot);
   const fmt = (n: number) => n.toLocaleString(locale === "en" ? "en-US" : "es-MX");
-  const host = campaign.theme.cast.find((m) => m.brand === null) ?? campaign.theme.cast[0] ?? null;
+  // Who jumps on the ticket: the character of the prize's brand when the prize
+  // names one ("Sidral Mundet 1.5 L gratis"), else the cast's host (a gas gift
+  // card belongs to nobody in particular).
+  const host =
+    castForBrand(campaign.theme, brandOfLabel(prize, campaign.brands)?.name) ??
+    campaign.theme.cast.find((m) => m.brand === null) ??
+    campaign.theme.cast[0] ??
+    null;
 
   return (
     <div className="jr-bands">
@@ -77,7 +86,7 @@ export function RedemptionCode({
             {t("jrCodeDone")}
           </h1>
           {host ? (
-            <CastFigure member={host} height={120} className="jr-code-cast" alt="" />
+            <CastFigure member={host} height={168} bob={false} className="jr-code-cast" alt="" />
           ) : (
             <Mascot pose="celebrate" className="tk-codemascot" />
           )}

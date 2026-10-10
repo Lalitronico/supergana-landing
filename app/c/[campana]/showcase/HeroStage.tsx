@@ -34,22 +34,22 @@ export function HeroStage({ org }: { org: string }) {
 
       <div className="sh-stage" aria-hidden="true">
         <div className="sh-stage-floor" />
+        <div className="sh-pop sh-slot pump" style={pop(1)}>
+          <GasPump digits={`+${rate}`} height={232} />
+        </div>
         {others[2] && (
           <div className="sh-pop sh-slot s4" style={pop(4)}>
-            <CastFigure member={others[2]} height={118} delay={900} alt="" />
+            <CastFigure member={others[2]} height={150} delay={900} alt="" />
           </div>
         )}
         {others[0] && (
           <div className="sh-pop sh-slot s2" style={pop(2)}>
-            <CastFigure member={others[0]} height={142} delay={400} alt="" />
+            <CastFigure member={others[0]} height={162} delay={400} alt="" />
           </div>
         )}
-        <div className="sh-pop sh-slot pump" style={pop(1)}>
-          <GasPump digits={`+${rate}`} height={176} />
-        </div>
         {host ? (
           <div className="sh-pop sh-slot s1" style={pop(0)}>
-            <CastFigure member={host} height={166} alt="" />
+            <CastFigure member={host} height={190} alt="" />
           </div>
         ) : (
           hasMascot && (
@@ -60,7 +60,7 @@ export function HeroStage({ org }: { org: string }) {
         )}
         {others[1] && (
           <div className="sh-pop sh-slot s3" style={pop(3)}>
-            <CastFigure member={others[1]} height={104} delay={700} alt="" />
+            <CastFigure member={others[1]} height={152} delay={700} alt="" />
           </div>
         )}
       </div>

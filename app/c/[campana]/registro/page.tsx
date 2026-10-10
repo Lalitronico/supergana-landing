@@ -188,7 +188,7 @@ function ProfileForm({
         onSubmit={submit}
       >
         {cast.length > 0 && (
-          <CharacterPicker cast={cast} value={avatar} onChange={setAvatar} alias={alias} />
+          <CharacterPicker cast={cast} value={avatar} onChange={setAvatar} alias={alias.trim() || firstName} />
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

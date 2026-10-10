@@ -26,6 +26,7 @@ export function CharacterPicker({
   cast: CastMember[];
   value: string | null;
   onChange: (id: string) => void;
+  /** What the preview prints: the nickname, or the first name while the nickname is empty. */
   alias: string;
 }) {
   const { t } = useTickets();

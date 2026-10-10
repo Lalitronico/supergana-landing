@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { resolveParticipant } from "@/lib/tickets/access";
 import { getCampaign, isVisible, mayRehearse } from "@/lib/tickets/campaigns";
 import { profileSchemaFor } from "@/lib/tickets/schema";
-import { parseAvatarChoice } from "@/lib/tickets/avatar";
+import { parseAvatarChoice, resolveAvatar } from "@/lib/tickets/avatar";
 import { POINTS_SPEND_KINDS } from "@/lib/tickets/config";
 import type { ReceiptRow, RewardRow } from "@/lib/tickets/schema";
 
@@ -133,7 +133,13 @@ export async function GET(
       locale: ctx.participant.locale,
       // Absent on a project where 0043 has not run; the cast id the participant
       // picked, drawn client-side from the theme.
-      avatar: (ctx.participant as { avatar?: string | null }).avatar ?? null,
+      // Resolved here, once: the pick, or a stable one by participant id, so the
+      // panel, the board and the live screen all show the same character.
+      avatar: resolveAvatar(
+        (ctx.participant as { avatar?: string | null }).avatar ?? null,
+        ctx.participant.id,
+        campaign.theme.cast,
+      ),
       emailVerified: ctx.participant.email_verified_at !== null,
     },
     receipts: receiptRows.map((r) => ({

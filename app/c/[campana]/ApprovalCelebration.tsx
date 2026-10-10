@@ -54,9 +54,16 @@ export function ApprovalCelebration({ me }: { me: Me | null }) {
         const flipped = me.receipts.filter(
           (r) => prev.current!.open.has(r.id) && r.status === "approved",
         );
+        // The balance difference is the usual answer, but the ledger row and the
+        // receipt's status are not written in one instant: a poll can land
+        // between them and see the new balance before it sees the approval,
+        // which printed "+0". The receipts carry what each one credited, so
+        // fall back to that and derive the starting balance from it.
+        const credited = flipped.reduce((sum, r) => sum + (r.points ?? 0), 0);
+        const gained = Math.max(0, me.points - prev.current.points) || credited;
         setShow({
-          points: Math.max(0, me.points - prev.current.points),
-          fromPoints: prev.current.points,
+          points: gained,
+          fromPoints: Math.max(0, me.points - gained),
           gotReward: me.rewards.length > prev.current.rewards,
           products: [...new Set(flipped.flatMap((r) => r.products ?? []))],
         });
@@ -98,7 +105,7 @@ export function ApprovalCelebration({ me }: { me: Me | null }) {
       aria-label={t("clbTitle")}
       style={{
         ["--rays-a" as string]: rays,
-        ["--rays-b" as string]: `color-mix(in srgb, ${rays} 30%, #ffd93d)`,
+        ["--rays-b" as string]: `color-mix(in oklch, ${rays} 55%, #ffffff)`,
       }}
     >
       <div className="jr-party-rays sg-rays" aria-hidden="true" />

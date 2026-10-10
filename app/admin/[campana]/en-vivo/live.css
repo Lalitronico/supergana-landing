@@ -27,7 +27,7 @@
   --lv-body: var(--font-inter), Inter, "Segoe UI", system-ui, sans-serif;
   --lv-shadow: 6px 6px 0 0 var(--lv-ink);
   --lv-border: 4px solid var(--lv-ink);
-  --lane: 58px;
+  --track-h: 586px;
 
   position: fixed;
   inset: 0;
@@ -203,7 +203,7 @@
 /* Checkered-flag strip: it is a race. */
 .lv-flag {
   height: 20px;
-  margin: 6px 0 22px;
+  margin: 6px 0 16px;
   border: 3px solid var(--lv-ink);
   border-radius: 4px;
   background-color: #fff;
@@ -220,7 +220,7 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: 540px 1fr 520px;
+  grid-template-columns: 440px 1fr 440px;
   gap: 28px;
 }
 .lv-col {
@@ -265,9 +265,9 @@
 /* Characters as die-cut stickers: white outline, hard shadow, tilted. */
 .lv-peek {
   position: absolute;
-  height: 118px;
+  height: 104px;
   width: auto;
-  max-width: 150px;
+  max-width: 130px;
   object-fit: contain;
   transform: rotate(8deg);
   filter:
@@ -283,24 +283,24 @@
   background-color: var(--lv-yellow);
   background-image: radial-gradient(rgba(10, 10, 10, 0.14) 1.8px, transparent 2px);
   background-size: 14px 14px;
-  padding: 20px 24px 22px;
+  padding: 16px 20px 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   overflow: visible;
 }
 .lv-qr-kicker {
   font-family: var(--lv-display);
   font-weight: 800;
-  font-size: 42px;
+  font-size: 40px;
   letter-spacing: -0.04em;
   line-height: 1;
 }
 .lv-qr-frame {
-  width: 282px;
-  height: 282px;
-  padding: 14px;
+  width: 216px;
+  height: 216px;
+  padding: 12px;
   background: #fff;
   border: var(--lv-border);
   border-radius: 18px;
@@ -316,8 +316,8 @@
 .lv-qr-url {
   font-family: var(--lv-display);
   font-weight: 800;
-  font-size: 25px;
-  padding: 8px 20px;
+  font-size: 24px;
+  padding: 6px 18px;
   background: var(--lv-ink);
   color: var(--lv-cream);
   border-radius: 999px;
@@ -326,21 +326,28 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.lv-qr .lv-peek { right: -26px; top: -72px; height: 130px; }
+.lv-qr .lv-peek { right: -22px; top: -40px; height: 108px; }
 
-/* ---- counters -------------------------------------------------------- */
-.lv-row { display: grid; gap: 22px; }
-.lv-row-big { grid-template-columns: 1.3fr 1fr; height: 160px; }
-.lv-row-small { grid-template-columns: repeat(3, 1fr); height: 172px; }
+/* ---- KPI strip (low, so the race gets the board) ----------------------- */
+.lv-kpis {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 22px;
+  height: 104px;
+  margin-bottom: 20px;
+}
 .lv-counter {
-  padding: 14px 22px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  padding: 10px 20px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "label value" "hint value";
+  align-items: center;
+  column-gap: 12px;
   overflow: hidden;
   /* Halftone on every colour tile: print texture, no stars. */
   background-image: radial-gradient(rgba(10, 10, 10, 0.13) 1.6px, transparent 1.8px);
   background-size: 12px 12px;
+  box-shadow: 5px 5px 0 0 var(--lv-ink);
 }
 .lv-counter.t-brand { background-color: var(--lv-brand); }
 .lv-counter.t-blue { background-color: var(--lv-blue); color: #fff; }
@@ -349,29 +356,20 @@
 .lv-counter.t-purple { background-color: var(--lv-purple); color: #fff; }
 /* A pale tenant colour carries ink text, never white. */
 .lv-root:not(.brand-light) .lv-counter.t-brand { color: #fff; }
-.lv-counter-label { font-weight: 800; font-size: 22px; line-height: 1.1; }
+.lv-counter-label { grid-area: label; font-weight: 800; font-size: 21px; line-height: 1.1; align-self: end; }
 .lv-counter-value {
+  grid-area: value;
   font-family: var(--lv-display);
   font-weight: 800;
-  font-size: 96px;
+  font-size: 68px;
   letter-spacing: -0.05em;
-  line-height: 0.9;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
   animation: lv-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
 }
-.lv-row-big .lv-counter.t-brand .lv-counter-value {
-  font-size: 118px;
-  text-shadow: 5px 5px 0 var(--lv-ink);
-  color: #fff;
-}
-.lv-root.brand-light .lv-row-big .lv-counter.t-brand .lv-counter-value {
-  text-shadow: 5px 5px 0 rgba(255, 255, 255, 0.7);
-  color: var(--lv-ink);
-}
-.lv-row-small .lv-counter-value { font-size: 58px; }
 .lv-counter-value.empty { opacity: 0.55; }
-.lv-counter-suffix { font-size: 0.55em; margin-left: 4px; }
-.lv-counter-hint { font-size: 18px; font-weight: 700; line-height: 1.1; }
+.lv-counter-suffix { font-size: 0.5em; margin-left: 3px; }
+.lv-counter-hint { grid-area: hint; font-size: 18px; font-weight: 700; line-height: 1.1; align-self: start; }
 
 /* ---- the race -------------------------------------------------------- */
 .lv-race {
@@ -393,11 +391,11 @@
   height: 46px;
 }
 .lv-race-sub { font-weight: 700; font-size: 20px; color: var(--lv-ink-soft); }
-.lv-peek-race { right: 6px; top: -48px; height: 100px; }
+.lv-peek-race { right: 8px; top: -46px; height: 104px; }
 
 .lv-track {
   position: relative;
-  height: calc(var(--lane) * var(--lanes));
+  height: var(--track-h);
   background: var(--lv-ink);
   border: 4px solid var(--lv-ink);
   border-radius: 16px;
@@ -413,13 +411,13 @@
 .lv-lane-line:last-of-type { border-bottom: none; }
 .lv-lane-line span {
   position: absolute;
-  left: 10px;
+  left: 12px;
   top: 50%;
   transform: translateY(-50%);
   font-family: var(--lv-display);
   font-weight: 800;
-  font-size: 22px;
-  color: rgba(250, 247, 240, 0.4);
+  font-size: 30px;
+  color: rgba(250, 247, 240, 0.35);
 }
 .lv-finish {
   position: absolute;
@@ -437,16 +435,19 @@
   left: 0;
   right: 0;
   height: var(--lane);
-  transition: top 0.9s cubic-bezier(0.3, 1.1, 0.3, 1);
+  transition: top 0.9s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .lv-runner {
+  /* Avatar size follows the lane: four racers get big characters. */
+  --av: min(96px, calc(var(--lane) - 54px));
   position: absolute;
-  top: 2px;
-  width: 54px;
-  height: 54px;
-  /* Distance is proportional to points: --p is 0..1 of the open track. */
-  left: calc(46px + (100% - 46px - 56px - 76px) * var(--p));
-  transition: left 1.6s cubic-bezier(0.3, 0.9, 0.3, 1);
+  top: 6px;
+  width: var(--av);
+  height: var(--av);
+  /* Distance is proportional to points: --p runs 0..1 from the start line to
+     the flag, with room at both ends for the name tag centred under the face. */
+  left: calc(90px + (100% - 90px - 56px - var(--av) - 90px) * var(--p));
+  transition: left 900ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .lv-avatar {
   display: grid;
@@ -461,28 +462,29 @@
 }
 .lv-avatar img { width: 100%; height: 100%; object-fit: contain; }
 .lv-avatar b { font-family: var(--lv-display); font-weight: 800; font-size: 26px; }
+.lv-runner .lv-avatar { width: var(--av); height: var(--av); border-width: 4px; }
+.lv-runner .lv-avatar b { font-size: 44px; }
 .lv-racer.lead .lv-avatar { background: var(--lv-yellow); box-shadow: 0 0 0 4px var(--lv-yellow-soft); }
 .lv-tag {
+  /* Nickname and points under the avatar, centred on it. */
   position: absolute;
-  top: 50%;
-  left: calc(100% + 8px);
-  transform: translateY(-50%);
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 3px 12px 4px;
+  padding: 2px 12px 3px;
   background: var(--lv-yellow);
   border: 3px solid var(--lv-ink);
   border-radius: 999px;
   white-space: nowrap;
   font-family: var(--lv-display);
-  font-size: 22px;
+  font-size: 23px;
   line-height: 1.1;
 }
-.lv-tag b { font-weight: 800; max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.lv-tag b { font-weight: 800; max-width: 170px; overflow: hidden; text-overflow: ellipsis; }
 .lv-tag i { font-style: normal; font-weight: 800; background: var(--lv-ink); color: var(--lv-yellow); padding: 0 8px; border-radius: 999px; }
-/* Near the flag the tag flips to the other side of the avatar. */
-.lv-runner.flip .lv-tag { left: auto; right: calc(100% + 8px); }
 .lv-racer.pass .lv-avatar { animation: lv-passing 0.7s ease-in-out 4; }
 .lv-up {
   position: absolute;
@@ -560,32 +562,33 @@
 .lv-mix {
   flex: 1;
   min-height: 0;
-  padding: 16px 24px 12px;
+  padding: 12px 20px 12px;
   display: flex;
   flex-direction: column;
   overflow: visible;
   background-image: repeating-linear-gradient(-45deg, #fff 0 16px, #f6f1e4 16px 32px);
 }
+.lv-card-title.small { font-size: 24px; }
 .lv-bars {
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  margin-top: 10px;
+  margin-top: 6px;
 }
 .lv-bar {
   display: grid;
-  grid-template-columns: 176px 1fr 84px;
+  grid-template-columns: 124px 1fr;
   align-items: center;
-  gap: 12px;
-  height: 40px;
+  gap: 10px;
+  height: 42px;
 }
 .lv-bar-name { display: flex; align-items: center; min-width: 0; }
-.lv-brand-logo { max-height: 38px; max-width: 170px; width: auto; object-fit: contain; }
+.lv-brand-logo { max-height: 42px; max-width: 124px; width: auto; object-fit: contain; }
 .lv-brand-name {
   font-family: var(--lv-display);
   font-weight: 800;
-  font-size: 23px;
+  font-size: 22px;
   letter-spacing: -0.02em;
   line-height: 1;
   white-space: nowrap;
@@ -593,7 +596,8 @@
   text-overflow: ellipsis;
 }
 .lv-bar-track {
-  height: 28px;
+  position: relative;
+  height: 36px;
   background: var(--lv-cream);
   border: 3px solid var(--lv-ink);
   border-radius: 999px;
@@ -607,14 +611,23 @@
 }
 .lv-bar-fill[style*="width: 0%"] { border-right-width: 0; }
 .lv-bar-num {
+  /* The value sits INSIDE the lane, on a white chip so it reads on any brand colour. */
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 0 10px 1px;
+  background: #fff;
+  border: 2px solid var(--lv-ink);
+  border-radius: 999px;
   font-family: var(--lv-display);
   font-weight: 800;
-  font-size: 28px;
-  letter-spacing: -0.03em;
-  text-align: right;
+  font-size: 22px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
   font-variant-numeric: tabular-nums;
 }
-.lv-peek-mix { right: -6px; top: -56px; height: 92px; transform: rotate(-7deg); }
+.lv-peek-mix { right: -4px; top: -36px; height: 84px; transform: rotate(-7deg); }
 
 /* ---- feed ------------------------------------------------------------ */
 .lv-feed {
@@ -636,7 +649,7 @@
   border-radius: 999px;
 }
 .lv-feed-title .lv-card-icon { background: var(--lv-pink); }
-.lv-peek-feed { right: 10px; top: -66px; height: 112px; }
+.lv-peek-feed { right: 8px; top: -44px; height: 100px; }
 .lv-feed::after {
   content: "";
   position: absolute;
@@ -661,8 +674,8 @@
   display: grid;
   grid-template-columns: 58px 1fr auto;
   align-items: center;
-  gap: 14px;
-  padding: 10px 14px 10px 10px;
+  gap: 12px;
+  padding: 10px 12px 14px 10px;
   background: var(--lv-cream);
   border: 3px solid var(--lv-ink);
   border-radius: 16px;
@@ -673,6 +686,22 @@
 .lv-feed-icon { position: relative; width: 58px; height: 58px; }
 .lv-feed-icon .lv-avatar { width: 58px; height: 58px; background: var(--lv-green); }
 .lv-feed-item.redeem .lv-feed-icon .lv-avatar { background: var(--lv-pink); }
+.lv-feed-badge.auto {
+  left: 50%;
+  right: auto;
+  bottom: -10px;
+  transform: translateX(-50%);
+  width: auto;
+  height: auto;
+  padding: 0 7px;
+  background: var(--lv-green);
+  border-radius: 8px;
+  border-width: 2px;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
 .lv-feed-badge {
   position: absolute;
   right: -8px;
@@ -693,7 +722,7 @@
   white-space: nowrap;
   font-family: var(--lv-display);
   font-weight: 800;
-  font-size: 27px;
+  font-size: 25px;
   letter-spacing: -0.02em;
   line-height: 1.05;
 }
@@ -710,9 +739,9 @@
 .lv-feed-pts {
   font-family: var(--lv-display);
   font-weight: 800;
-  font-size: 26px;
+  font-size: 23px;
   letter-spacing: -0.02em;
-  padding: 3px 12px;
+  padding: 2px 10px;
   background: var(--lv-ink);
   color: var(--lv-yellow);
   border-radius: 999px;
@@ -810,9 +839,10 @@
 .lv-banner-main span {
   background: var(--lv-ink);
   color: var(--lv-yellow);
-  font-size: 34px;
-  padding: 0 18px 3px;
-  border-radius: 999px;
+  font-size: 32px;
+  line-height: 1.1;
+  padding: 2px 18px 5px;
+  border-radius: 22px;
 }
 
 /* ---- gate ------------------------------------------------------------ */

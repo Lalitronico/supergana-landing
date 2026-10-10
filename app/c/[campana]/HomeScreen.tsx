@@ -287,7 +287,11 @@ function AccumulationHome({
     <div className="sh-home">
       <section className="sh-sec sh-sec-hero">
         <HeroStage org={org} />
+      </section>
 
+      <LogoMarquee brands={campaign.brands} />
+
+      <section className="sh-sec sh-sec-cta">
         <div className="tk-ticket sh-ticket sh-rise" style={rise(3)}>
           <div className="top">
             <div className="tk-eyebrow">{t("accRateLabel")}</div>
@@ -314,8 +318,6 @@ function AccumulationHome({
         <NextPrizeProgress />
         <AccountDoors />
       </section>
-
-      <LogoMarquee brands={campaign.brands} />
 
       {parade && (
         <section className="sh-sec sh-sec-yellow">

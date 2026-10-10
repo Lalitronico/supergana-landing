@@ -27,7 +27,7 @@ type Mode = "password" | "otp-email" | "otp-code";
 const POST_LOGIN = new Set(["panel", "premios", "subir"]);
 
 export function EmailSignIn() {
-  const { t, base } = useTickets();
+  const { t, base, locale } = useTickets();
   const router = useRouter();
 
   // Resolved at navigation time rather than held in state: reading it here
@@ -183,7 +183,7 @@ export function EmailSignIn() {
               autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="maria@email.com"
+              placeholder={locale === "es" ? "maria@correo.com" : "maria@email.com"}
               required
             />
           </label>
@@ -228,7 +228,7 @@ export function EmailSignIn() {
               autoFocus
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="maria@email.com"
+              placeholder={locale === "es" ? "maria@correo.com" : "maria@email.com"}
               required
             />
           </label>

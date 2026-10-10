@@ -110,7 +110,7 @@ a.tk-fuelcard {
 .tk-fuel-of { margin-top: 4px; font-size: 11.5px; font-weight: 600; color: rgba(255, 255, 255, 0.72); }
 
 .tk-fuel-go {
-  white-space: nowrap;
+  max-width: 100%;
   display: inline-block;
   margin-top: 10px;
   padding: 7px 14px;
@@ -1069,4 +1069,156 @@ a.tk-fuelcard {
   .jr-clip, .jr-party-cast, .jr-pop, .jr-party-card, .jr-pump, .jr-chip, .jr-flip, .tk-code-tile, .jr-spinner { animation: none; }
   .jr-reel-col { transition: none; }
   .jr-steps li.now .jr-step-dot { animation: none; }
+}
+
+/* ======================================================================
+   Round 3: bigger, louder, more colour
+   ====================================================================== */
+
+/* ---- Celebration: a big character with a springy entrance ---- */
+.jr-party-body { --jr-cast-h: 220px; }
+.jr-party-stage { margin-bottom: -28px; }
+.jr-party-cast {
+  animation: jr-cast-spring 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both;
+  transform-origin: 50% 100%;
+}
+.jr-pop { animation: jr-cast-spring 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both; transform-origin: 50% 100%; }
+@keyframes jr-cast-spring {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* The pump display fills the card: it is the number the person came for. */
+.jr-pump { width: 100%; justify-content: center; padding: 10px 14px; }
+.jr-pump-plus { font-size: 46px; }
+.jr-reel { font-size: 54px; }
+.jr-pump-unit { font-size: 15px; margin-bottom: 9px; }
+.jr-reel-col { will-change: transform; }
+
+.jr-fuelcard.compact .tk-tank,
+.jr-party .tk-tank.compact { max-width: 120px; }
+
+/* ---- Reading: a thin yellow scanner line, a swaying lens, popping checks ---- */
+.jr-scan {
+  height: 4px;
+  top: 0;
+  background: var(--sg-yellow);
+  border-bottom: 0;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1.5px var(--tk-ink), 0 0 12px 2px color-mix(in srgb, var(--sg-yellow) 80%, transparent);
+  animation: jr-scanline 1.4s ease-in-out infinite alternate;
+}
+@keyframes jr-scanline {
+  from { top: 2%; }
+  to { top: calc(98% - 4px); }
+}
+
+.jr-lens {
+  animation: jr-lens 3.6s ease-in-out infinite alternate, jr-sway 1.1s ease-in-out infinite alternate;
+}
+@keyframes jr-sway {
+  from { translate: -6px 0; }
+  to { translate: 6px 0; }
+}
+
+.jr-steps li.done .jr-step-dot { animation: jr-checkpop 0.25s ease-out both; }
+@keyframes jr-checkpop {
+  0% { transform: scale(0); }
+  70% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* ---- Upload: a colour band with the ticket frame on a white card ---- */
+.jr-capband {
+  margin: -20px -18px 0;
+  padding: 20px 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background-color: var(--sg-pink);
+  --dots: rgba(255, 255, 255, 0.4);
+  border-bottom: 3px solid var(--tk-ink);
+}
+
+.jr-caphero { display: flex; align-items: flex-end; justify-content: space-between; gap: 6px; }
+.jr-caphero-text { min-width: 0; flex: 1; }
+.jr-caphero-art { flex: none; margin-bottom: -4px; }
+.jr-capband .tk-eyebrow { color: var(--tk-ink); }
+
+.jr-capcard {
+  padding: 12px;
+  background: #fff;
+  border: 3px solid var(--tk-ink);
+  border-radius: 20px;
+  box-shadow: 6px 6px 0 0 var(--tk-ink);
+}
+
+/* ---- Panel: alternating colour bands ---- */
+.jr-pband {
+  margin-inline: -18px;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  border-block: 3px solid var(--tk-ink);
+}
+.jr-pband.yellow { background-color: var(--sg-yellow); --dots: rgba(10, 10, 10, 0.12); }
+.jr-pband.pink { background-color: var(--sg-pink); --dots: rgba(255, 255, 255, 0.4); }
+
+/* ---- Prizes header: a bigger character on a sunburst disc ---- */
+.jr-drophead { min-height: 150px; }
+.jr-drophead-stage {
+  --rays-a: var(--sg-blue);
+  --rays-b: #5cb6ff;
+  flex: none;
+  position: relative;
+  width: 150px;
+  height: 150px;
+  margin: 0 -6px -6px 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  border: 3px solid #fff;
+  border-radius: 50% 50% 0 0;
+}
+.jr-drophead-stage .jr-drophead-art { margin: 0; }
+
+/* ---- Code: the prize's character jumping on the ticket ---- */
+.jr-code-cast {
+  margin-block: -6px -26px;
+  position: relative;
+  z-index: 4;
+  animation: jr-jump 1.1s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+@keyframes jr-jump {
+  0%, 100% { transform: translateY(0) scale(1.03, 0.97); }
+  45% { transform: translateY(-16px) scale(0.98, 1.03); }
+}
+.codepage .tk-codehead { align-items: flex-end; }
+
+@media (max-height: 780px) {
+  .jr-party-body { --jr-cast-h: 150px; }
+  .jr-reel { font-size: 42px; }
+  .jr-pump-plus { font-size: 36px; }
+  .jr-party .tk-tank.compact { max-width: 96px; }
+  .jr-party-stage { margin-bottom: -22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jr-party-cast, .jr-pop, .jr-code-cast, .jr-steps li.done .jr-step-dot { animation: none; }
+  .jr-scan { animation: none; top: 40%; }
+  .jr-lens { animation: none; }
+}
+
+@media (max-height: 880px) and (min-height: 781px) {
+  .jr-party-body { --jr-cast-h: 190px; }
+}
+
+/* Narrow phones: a smaller jerrycan leaves the copy (and its button) room. */
+@media (max-width: 380px) {
+  .tk-tank { max-width: 118px; }
+  .tk-fuelcard { gap: 12px; }
 }

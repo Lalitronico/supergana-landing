@@ -99,7 +99,7 @@ export function BrandParade({
                     {t("shParadeBack")}
                   </button>
                 </div>
-                <ul className="sh-skus">
+                <ul className={skus.length <= 2 ? "sh-skus few" : "sh-skus"}>
                   {skus.map((p) => (
                     <li key={`${p.name}-${p.size}`}>
                       {p.imageUrl && <SafeImg src={p.imageUrl} alt="" fallback={null} />}

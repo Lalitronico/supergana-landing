@@ -566,7 +566,8 @@
   font-size: 17px;
   line-height: 1;
 }
-.sh-faq details[open] summary::after { content: "2"; }
+.sh-faq summary::after { transition: transform 200ms ease; }
+.sh-faq details[open] summary::after { transform: rotate(45deg); }
 .sh-faq details p { padding: 0 14px 14px; font-size: 13.5px; line-height: 1.5; color: var(--tk-ink-soft); }
 
 @media (prefers-reduced-motion: reduce) {
@@ -661,7 +662,7 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 16px 18px 22px;
+  padding: 16px 18px 0;
 }
 
 .sh-hero { position: relative; display: flex; flex-direction: column; gap: 12px; }
@@ -681,6 +682,31 @@
   pointer-events: none;
 }
 .sh-sec-hero > * { position: relative; z-index: 1; }
+
+/* The call to action has its own band under the marquee: sky blue with white
+   dots, so the ticket stays on the hero's colour without the two touching. */
+.sh-sec-cta {
+  background-color: var(--sg-blue);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.3) 1.5px, transparent 1.8px);
+  background-size: 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 18px 22px;
+}
+.sh-sec-cta .sh-doors { gap: 10px; }
+.sh-sec-cta .sh-doors .tk-foot { color: #fff; font-weight: 800; font-size: 12.5px; text-shadow: 1px 1px 0 var(--sg-ink); }
+.sh-sec-cta .sh-doors .tk-linkbtn {
+  background: #fff;
+  color: var(--sg-ink);
+  border: 2.5px solid var(--sg-ink);
+  border-radius: 999px;
+  padding: 8px 14px;
+  text-decoration: none;
+  font-weight: 800;
+  box-shadow: 2px 2px 0 0 var(--sg-ink);
+}
+.sh-sec-cta .sh-doors .tk-linkbtn:active { transform: translate(1px, 1px); box-shadow: 1px 1px 0 0 var(--sg-ink); }
 @keyframes sh-spin { to { transform: rotate(360deg); } }
 
 /* The billboard: white letters, a thick ink outline and a hard drop, the
@@ -728,7 +754,7 @@
   transform: rotate(-0.6deg);
 }
 
-.sh-stage { position: relative; z-index: 1; height: 196px; margin: 2px -18px 0; }
+.sh-stage { position: relative; z-index: 1; height: 232px; margin: 2px -18px 0; }
 
 /* The forecourt: a checkered kerb the characters stand on. */
 .sh-stage-floor {
@@ -742,13 +768,17 @@
   background: conic-gradient(var(--sg-ink) 25%, var(--sg-cream) 0 50%, var(--sg-ink) 0 75%, var(--sg-cream) 0) 0 0 / 18px 18px;
 }
 
-.sh-slot { position: absolute; bottom: 12px; }
+.sh-slot { position: absolute; bottom: 14px; }
+/* Placement is by slot so nobody is cut by the edge or hidden by the pump: the
+   host stands left, the pump rises behind the middle (its dial clears every
+   head), the second character stands in front of the pump, the third on the
+   right, and the fourth peeks from behind between them. */
 .sh-slot.s1 { left: 6px; z-index: 3; }
 .sh-slot.s1.mascot { width: 44%; }
-.sh-slot.pump { left: calc(50% - 64px); z-index: 2; bottom: 8px; }
-.sh-slot.s2 { right: 4px; z-index: 3; }
-.sh-slot.s3 { left: 15%; z-index: 4; bottom: 2px; }
-.sh-slot.s4 { right: 25%; z-index: 1; bottom: 14px; }
+.sh-slot.pump { left: calc(50% - 58px); bottom: 12px; z-index: 1; }
+.sh-slot.s3 { left: calc(50% - 62px); z-index: 4; bottom: 10px; }
+.sh-slot.s2 { right: 6px; z-index: 3; }
+.sh-slot.s4 { right: 92px; z-index: 2; bottom: 26px; }
 
 /* Entrance: each character springs up from below with a little overshoot, in
    sequence. The idle bob lives on the inner image, so the two never fight over
@@ -971,7 +1001,12 @@
   line-height: 1.2;
 }
 .sh-skus li:first-child { border-top: 0; }
-.sh-skus img { width: 34px; height: 34px; object-fit: contain; flex: none; }
+.sh-skus img { width: 44px; height: 44px; min-width: 44px; object-fit: contain; flex: none; }
+
+/* One or two SKUs would leave the back mostly blank: show each as a big photo. */
+.sh-skus.few { display: flex; flex-direction: column; justify-content: center; gap: 6px; padding-top: 10px; }
+.sh-skus.few li { flex-direction: column; text-align: center; border-top: 0; min-height: 0; padding: 4px 0; font-size: 15px; }
+.sh-skus.few img { width: auto; height: 130px; min-width: 0; max-width: 100%; filter: drop-shadow(0 5px 0 rgba(10, 10, 10, 0.16)); }
 
 /* ---- road --------------------------------------------------------------------- */
 
@@ -1124,7 +1159,7 @@
 .sh-pick-title { padding: 0; font-family: var(--tk-display); font-weight: 800; font-size: 19px; letter-spacing: -0.02em; }
 .sh-pick-sub { margin: 2px 0 12px; font-size: 13px; font-weight: 600; color: var(--tk-ink-soft); }
 
-.sh-pick-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 8px; }
+.sh-pick-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 8px; }
 
 .sh-pick-item {
   position: relative;
@@ -1156,21 +1191,21 @@
 }
 .sh-pick-bust img { width: 100%; height: 100%; object-fit: cover; object-position: center top; user-select: none; }
 
-.sh-pick-name { font-weight: 700; font-size: 11.5px; line-height: 1; color: var(--tk-ink-soft); }
+.sh-pick-name { margin-top: 9px; font-weight: 700; font-size: 11.5px; line-height: 1; color: var(--tk-ink-soft); }
 
 .sh-pick-item:active .sh-pick-bust { transform: scale(0.94); }
 
 /* The chosen one pops: bigger, a harder shadow, a ring, and a single bounce. */
 .sh-pick-item.on .sh-pick-bust {
-  transform: scale(1.14);
-  box-shadow: 0 0 0 3px var(--sg-cream), 0 0 0 6px var(--sg-ink), 4px 5px 0 6px var(--sg-ink);
+  transform: scale(1.1);
+  box-shadow: 0 0 0 3px var(--sg-cream), 0 0 0 6px var(--sg-ink);
   animation: sh-bounce 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .sh-pick-item.on .sh-pick-name { font-weight: 800; color: var(--tk-ink); }
 @keyframes sh-bounce {
   0% { transform: scale(0.9) translateY(0); }
   40% { transform: scale(1.22) translateY(-8px); }
-  100% { transform: scale(1.14) translateY(0); }
+  100% { transform: scale(1.1) translateY(0); }
 }
 
 .sh-pick-preview { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin-top: 14px; }
@@ -1194,4 +1229,11 @@
 }
 
 .sh-pick-item.on { z-index: 1; }
-.sh-pick-item.on .sh-pick-name { margin-top: 8px; position: relative; }
+.sh-pick-item.on .sh-pick-name { position: relative; }
+
+/* On a phone-height screen the rate note under "$1 = 10 puntos" is what pushes the
+   press-me stub below the fold; the equation itself and the FAQ say the same. */
+@media (max-height: 900px) {
+  .sh-ticket .top .tk-foot { display: none; }
+  .sh-ticket .top { padding-bottom: 14px; }
+}

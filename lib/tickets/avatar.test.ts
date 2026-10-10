@@ -25,3 +25,28 @@ test("anything outside the cast is refused", () => {
   // A campaign with no cast accepts no avatar at all.
   assert.deepEqual(parseAvatarChoice([], "oso"), { kind: "invalid" });
 });
+
+import { resolveAvatar } from "./avatar.ts";
+
+test("resolveAvatar keeps a valid choice", () => {
+  assert.equal(resolveAvatar("dino", "any-id", cast), "dino");
+});
+
+test("resolveAvatar falls back to a stable pick from the cast", () => {
+  const first = resolveAvatar(null, "participant-1", cast);
+  assert.ok(first === "oso" || first === "dino");
+  // Same key, same character, every time and for every kind of "no choice".
+  assert.equal(resolveAvatar(undefined, "participant-1", cast), first);
+  assert.equal(resolveAvatar("removed-from-cast", "participant-1", cast), first);
+});
+
+test("resolveAvatar spreads participants across the cast", () => {
+  const seen = new Set<string | null>();
+  for (let i = 0; i < 40; i += 1) seen.add(resolveAvatar(null, `id-${i}`, cast));
+  assert.deepEqual([...seen].sort(), ["dino", "oso"]);
+});
+
+test("resolveAvatar is null without a cast", () => {
+  assert.equal(resolveAvatar("oso", "x", []), null);
+  assert.equal(resolveAvatar(null, "x", []), null);
+});
