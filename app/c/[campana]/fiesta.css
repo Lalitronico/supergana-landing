@@ -57,3 +57,22 @@
   white-space: nowrap;
 }
 .sg-wordmark .sg-dot { color: var(--sg-red); }
+
+/* Cast members on stage (fiesta/CastFigure.tsx). */
+.sg-cast {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+  filter: drop-shadow(3px 4px 0 rgba(10, 10, 10, 0.18));
+  user-select: none;
+  -webkit-user-drag: none;
+}
+@keyframes sg-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-5px) rotate(1deg); }
+}
+.sg-bob { animation: sg-bob 3.1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .sg-bob { animation: none; }
+}

@@ -136,3 +136,18 @@ test("brand tone: a light brand is drawn as a marker, a dark one as text", () =>
   assert.equal(brandTone(parseOrgTheme({ brand: "#0098E0" })), "dark");
   assert.equal(brandTone(parseOrgTheme({})), null);
 });
+
+import { castForBrand } from "./theme.ts";
+
+test("castForBrand: matches the brand across accents, case and punctuation", () => {
+  const theme = parseOrgTheme({
+    cast: [
+      { id: "lince", image: "/brands/x/l.webp", brand: "Sangría Señorial" },
+      { id: "goblin", image: "/brands/x/g.webp", brand: "D'Gari" },
+    ],
+  });
+  assert.equal(castForBrand(theme, "SANGRIA SENORIAL")?.id, "lince");
+  assert.equal(castForBrand(theme, "dgari")?.id, "goblin");
+  assert.equal(castForBrand(theme, "Jarritos"), null);
+  assert.equal(castForBrand(theme, null), null);
+});

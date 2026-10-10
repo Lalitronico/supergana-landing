@@ -158,6 +158,18 @@ export const parseOrgTheme = (raw: unknown): OrgTheme => {
   };
 };
 
+/**
+ * The character who holds a given brand, for "the cast member of what you
+ * bought". Accent- and case-insensitive, because the brand name in the cast
+ * and in `config.brands` / `products.brand` are typed by different people.
+ */
+export const castForBrand = (theme: OrgTheme, brand: string | null | undefined): CastMember | null => {
+  if (!brand) return null;
+  const key = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]/gi, "").toLowerCase();
+  const wanted = key(brand);
+  return theme.cast.find((m) => m.brand !== null && key(m.brand) === wanted) ?? null;
+};
+
 /** The cast member a participant picked, if it still exists in the theme. */
 export const castMember = (theme: OrgTheme, id: string | null | undefined): CastMember | null =>
   (id && theme.cast.find((m) => m.id === id)) || null;
