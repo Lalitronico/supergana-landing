@@ -14,6 +14,10 @@ export interface MeReceipt {
   eligible_cents: number | null;
   reject_reason: string | null;
   reviewed_at: string | null;
+  /** Points this receipt credited; null until it is approved. */
+  points?: number | null;
+  /** Catalog products read on it (approved receipts only). */
+  products?: string[];
 }
 
 export interface MeReward {
@@ -75,6 +79,10 @@ interface MeState {
   me: Me | null;
 }
 
+const FAST_POLL_MS = 2_500;
+const FAST_POLL_WINDOW_MS = 90_000;
+const SLOW_POLL_MS = 20_000;
+
 export function useMe(slug: string) {
   const [state, setState] = useState<MeState>({ status: "loading", me: null });
 
@@ -123,25 +131,49 @@ export function useMe(slug: string) {
     };
   }, [fetchMe]);
 
-  // While a receipt is awaiting review, poll gently so a screen left open still
-  // learns the verdict. Hidden tabs skip the tick; settled claims stop it.
+  // While a receipt is awaiting review the screen keeps asking for the verdict.
+  // Two speeds: right after an upload the OCR usually answers within seconds, so
+  // for the first ~90 s of a receipt's life the poll runs every 2.5 s and the
+  // approval lands while the person is still looking at the "reading" screen.
+  // Past that the wait is probably a human review, and 20 s is plenty.
+  // Hidden tabs skip the tick; settled claims stop it.
   const hasOpenReceipt =
     state.me?.receipts.some(
       (r) => r.status === "received" || r.status === "in_review",
     ) ?? false;
 
+  // When THIS browser first saw each receipt in flight. Measured with the local
+  // clock on purpose: comparing against the server's `submitted_at` would make
+  // a phone with a skewed clock poll fast forever or never.
+  const firstSeen = useRef<Map<string, number>>(new Map());
+  // The tick reads the latest receipts through a ref so the interval is not torn
+  // down and rebuilt on every response.
+  const receiptsRef = useRef<MeReceipt[]>([]);
+  useEffect(() => {
+    receiptsRef.current = state.me?.receipts ?? [];
+  }, [state.me]);
+
   useEffect(() => {
     if (!hasOpenReceipt) return;
     let alive = true;
+    let lastFetch = Date.now();
     const timer = setInterval(() => {
       if (document.visibilityState !== "visible") return;
+      const now = Date.now();
+      const open = receiptsRef.current.filter(
+        (r) => r.status === "received" || r.status === "in_review",
+      );
+      for (const r of open) if (!firstSeen.current.has(r.id)) firstSeen.current.set(r.id, now);
+      const fast = open.some((r) => now - (firstSeen.current.get(r.id) ?? now) < FAST_POLL_WINDOW_MS);
+      if (!fast && now - lastFetch < SLOW_POLL_MS) return;
+      lastFetch = now;
       fetchMe().then((next) => {
         if (!alive) return;
         setState((prev) =>
           next.status === "error" && prev.status !== "error" ? prev : next,
         );
       });
-    }, 20_000);
+    }, FAST_POLL_MS);
     return () => {
       alive = false;
       clearInterval(timer);
@@ -186,6 +218,13 @@ export function useMe(slug: string) {
       // change is worth a request.
       if (userId === lastUserId.current) return;
       lastUserId.current = userId;
+      // "loading" BEFORE the request, not after it. The screen that signed in
+      // navigates the moment signIn resolves, and the gated screen it lands on
+      // (registro, panel, subir) redirects on "anon" in its first effect. With
+      // the old identity's status still in state, a brand-new account bounced
+      // from crear-cuenta → registro → entrar: signed in, and told to sign in.
+      // Gated screens already wait on "loading", so this is all they need.
+      setState({ status: "loading", me: null });
       void reload();
     });
     return () => data.subscription.unsubscribe();

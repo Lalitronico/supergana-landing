@@ -56,13 +56,54 @@ export async function GET(
       .order("created_at", { ascending: false }),
     db
       .from("points_entries")
-      .select("points, kind")
+      .select("points, kind, receipt_id")
       .eq("participant_id", ctx.participant.id),
   ]);
 
+  // What was read on the participant's OWN approved receipts, for the
+  // celebration ("we found Jarritos Tamarindo on your ticket"). Only the
+  // catalog product names go out — the same names the public campaign endpoint
+  // already lists — never the raw line text or amounts, which are the
+  // receipt's personal contents. Scoped by receipt ids that were just read for
+  // this participant, so there is no way to ask for someone else's.
+  const receiptRows = (receipts.data ?? []) as Partial<ReceiptRow>[];
+  const productsByReceipt = new Map<string, string[]>();
+  const approvedIds = receiptRows.filter((r) => r.status === "approved" && r.id).map((r) => r.id!);
+  if (approvedIds.length > 0) {
+    const { data: items } = await db
+      .from("receipt_items")
+      .select("receipt_id, products(brand, name, size)")
+      .in("receipt_id", approvedIds);
+    for (const row of (items ?? []) as unknown as {
+      receipt_id: string;
+      products: { brand: string; name: string; size: string | null } | null;
+    }[]) {
+      if (!row.products) continue;
+      const { brand, name, size } = row.products;
+      // "Jarritos Tamarindo 1.5 L" — brand and size are each dropped when the
+      // catalog name already carries them, so the label is never "Jarritos
+      // Jarritos Tamarindo 1.5 L 1.5 L".
+      const has = (needle: string | null) =>
+        needle !== null && name.toLowerCase().includes(needle.toLowerCase());
+      const label = [has(brand) ? null : brand, name, has(size) ? null : size]
+        .filter(Boolean)
+        .join(" ");
+      const list = productsByReceipt.get(row.receipt_id) ?? [];
+      if (!list.includes(label)) list.push(label);
+      productsByReceipt.set(row.receipt_id, list);
+    }
+  }
+
   // The balance is a SUM over the ledger, computed here and nowhere else the
   // client can see — a mutable balance column is how history and total drift.
-  const ledger = (points.data ?? []) as { points: number; kind: string }[];
+  const ledger = (points.data ?? []) as { points: number; kind: string; receipt_id: string | null }[];
+  // Points each receipt credited, so the history can say "+150 pts" beside it.
+  const pointsByReceipt = new Map<string, number>();
+  for (const e of ledger) {
+    if (e.kind === "purchase" && e.receipt_id) {
+      pointsByReceipt.set(e.receipt_id, (pointsByReceipt.get(e.receipt_id) ?? 0) + e.points);
+    }
+  }
   const pointsBalance = ledger.reduce((sum, e) => sum + e.points, 0);
   // The race total the leaderboard ranks on: everything except spending, so
   // redeeming a prize costs balance and never position.
@@ -85,7 +126,11 @@ export async function GET(
       locale: ctx.participant.locale,
       emailVerified: ctx.participant.email_verified_at !== null,
     },
-    receipts: (receipts.data ?? []) as Partial<ReceiptRow>[],
+    receipts: receiptRows.map((r) => ({
+      ...r,
+      points: r.id ? (pointsByReceipt.get(r.id) ?? null) : null,
+      products: r.id ? (productsByReceipt.get(r.id) ?? []) : [],
+    })),
     rewards: (rewards.data ?? []) as Partial<RewardRow>[],
     points: pointsBalance,
     pointsEarned,

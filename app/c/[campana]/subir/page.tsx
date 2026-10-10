@@ -17,6 +17,7 @@ import { Headline } from "../Headline";
 import { Mascot } from "../Mascot";
 import { NextPrizeProgress } from "../NextPrizeProgress";
 import { PrivacyPill } from "../PrivacyPill";
+import { ReadingTicket } from "../journey/ReadingTicket";
 import { currentClaim } from "../useMe";
 
 
@@ -102,6 +103,10 @@ export default function UploadPage() {
   const { status, me, reload } = useSession();
   const fileInput = useRef<HTMLInputElement>(null);
   const previewRef = useRef<string | null>(null);
+  // The photo that was just sent, kept for the "reading" screen. `choose(null)`
+  // revokes the preview URL, so this is a second URL over the same bytes.
+  const sentRef = useRef<string | null>(null);
+  const [sentPhoto, setSentPhoto] = useState<string | null>(null);
 
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -125,6 +130,7 @@ export default function UploadPage() {
   // has no business running during render.
   useEffect(() => () => {
     if (previewRef.current) URL.revokeObjectURL(previewRef.current);
+    if (sentRef.current) URL.revokeObjectURL(sentRef.current);
   }, []);
 
   const choose = (next: File | null) => {
@@ -215,6 +221,9 @@ export default function UploadPage() {
         return;
       }
 
+      if (sentRef.current) URL.revokeObjectURL(sentRef.current);
+      sentRef.current = URL.createObjectURL(upload);
+      setSentPhoto(sentRef.current);
       choose(null);
       await reload();
     } catch {
@@ -246,16 +255,27 @@ export default function UploadPage() {
         {/* First child in every branch, so React keeps it mounted across the
             in-flight → approved re-render — the exact moment it exists for. */}
         <ApprovalCelebration me={me} />
-        <div>
-          <div className="tk-eyebrow">{t("regStep", { n: 3 })}</div>
-          <h1 className="tk-h" style={{ fontSize: 26, marginTop: 6 }}>{t("prcTitle")}</h1>
-          <p className="tk-body" style={{ fontSize: 13.5, marginTop: 6 }}>
-            {t("prcSub", { hours: campaign.reviewSlaHours })}
-          </p>
-        </div>
-        <div className="tk-card">
-          <StatusTimeline status={openReceipt.status} />
-        </div>
+        {campaign.ocrEnabled ? (
+          // The automatic read is on: the wait is seconds, and it is shown.
+          <ReadingTicket
+            photoUrl={sentPhoto}
+            status={openReceipt.status}
+            submittedAt={openReceipt.submitted_at}
+          />
+        ) : (
+          <>
+            <div>
+              <div className="tk-eyebrow">{t("regStep", { n: 3 })}</div>
+              <h1 className="tk-h" style={{ fontSize: 26, marginTop: 6 }}>{t("prcTitle")}</h1>
+              <p className="tk-body" style={{ fontSize: 13.5, marginTop: 6 }}>
+                {t("prcSub", { hours: campaign.reviewSlaHours })}
+              </p>
+            </div>
+            <div className="tk-card">
+              <StatusTimeline status={openReceipt.status} />
+            </div>
+          </>
+        )}
 
         {/* What the points will be worth once the review lands. A wait with a
             destination is a different wait. */}

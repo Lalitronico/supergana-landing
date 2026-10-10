@@ -1,11 +1,12 @@
 "use client";
 
-import { nextPrize } from "@/lib/tickets/store";
+import { useState } from "react";
+import { nextPrize, prizeDetail, prizeName, type StorePrize } from "@/lib/tickets/store";
 import { Confetti } from "../Confetti";
 import { Mascot } from "../Mascot";
 import { useStoreState, useTickets } from "../TicketsShell";
-import { isPhysicalPrize, PrizeIcon } from "./PrizeIcon";
-import type { PrizeKind } from "@/lib/tickets/store";
+import { isPhysicalPrize } from "./PrizeIcon";
+import { PrizeArt } from "./PrizeArt";
 
 /**
  * The code, as the prize it is.
@@ -28,36 +29,56 @@ import type { PrizeKind } from "@/lib/tickets/store";
  */
 export function RedemptionCode({
   code,
-  prize,
-  kind,
+  prize: won,
   onBack,
 }: {
   code: string;
-  prize: string;
-  kind: PrizeKind;
+  prize: StorePrize;
   onBack: () => void;
 }) {
   const { campaign, locale, t } = useTickets();
   const { snapshot } = useStoreState();
 
+  const kind = won.kind;
+  const prize = prizeName(won, locale);
+  const detail = prizeDetail(won, locale);
+  const gift = kind === "giftcard";
   const physical = isPhysicalPrize(kind);
+  const [copied, setCopied] = useState(false);
+
+  // Copy is a convenience, never a requirement: the code is on screen in big
+  // tiles either way, so a browser that refuses the clipboard (plain http on a
+  // LAN, an in-app webview) just leaves the button doing nothing visible.
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    } catch {
+      /* the tiles are the fallback */
+    }
+  };
   const balance = snapshot?.points ?? 0;
   const next = nextPrize(snapshot);
   const fmt = (n: number) => n.toLocaleString(locale === "en" ? "en-US" : "es-MX");
 
   return (
     <>
+      {/* Over the whole app frame, not the heading's box: a burst thrown from
+          a 60px strip has nowhere to go. */}
+      <Confetti burst className="over" />
       <div className="tk-codewrap">
-        <Confetti />
         <div className="tk-codehead">
-          <h1 className="tk-h" style={{ fontSize: 30 }}>{t("stRedeemedTitle")}</h1>
+          <h1 className="tk-h" style={{ fontSize: 30 }}>
+            {t(gift ? "jrCodeGiftTitle" : "stRedeemedTitle")}
+          </h1>
           <Mascot pose="celebrate" className="tk-codemascot" />
         </div>
       </div>
 
       {/* The golden ticket. Rotated a hair, like every other object in this
           system that is meant to feel handled rather than rendered. */}
-      <div className="tk-goldticket">
+      <div className={["tk-goldticket", gift ? "jr-gold-gift" : null].filter(Boolean).join(" ")}>
         <span className="tk-kindbadge">
           {t(physical ? "stKindPhysical" : "stKindDigital")}
         </span>
@@ -65,18 +86,19 @@ export function RedemptionCode({
         <p className="tk-goldticket-prize">{prize}</p>
         <p className="tk-goldticket-org">{campaign.orgName}</p>
 
-        {/* The tenant's character on its own ticket, which is what the mockup
-            draws. Falls back to the kind icon, so an unthemed campaign still
-            gets a picture of what it just won rather than a gap. */}
-        {campaign.theme.mascots.ticket ? (
-          <Mascot pose="ticket" bob={false} className="tk-goldticket-art" />
-        ) : (
-          <PrizeIcon kind={kind} className="big" />
+        {/* The prize's own picture — the real art when the data has it, a drawn
+            gift card or the kind icon when it does not — so the ticket shows
+            what was just won rather than a generic mascot. */}
+        <PrizeArt prize={won} wide />
+        {detail.provider && (
+          <p className="jr-prize-meta" style={{ textAlign: "center" }}>
+            {t("jrDeliveryVia", { provider: detail.provider })}
+          </p>
         )}
 
         <div className="tk-goldticket-rip" />
 
-        <div className="tk-eyebrow" style={{ textAlign: "center" }}>{t("stCodeLabel")}</div>
+        <div className="tk-eyebrow" style={{ textAlign: "center" }}>{t(gift ? "jrCodeEyebrow" : "stCodeLabel")}</div>
 
         {/* One element carries the whole code for a screen reader; the tiles are
             decoration around it. Read character by character it would be
@@ -88,6 +110,10 @@ export function RedemptionCode({
             </span>
           ))}
         </div>
+
+        <button type="button" className="jr-copy" onClick={() => void copy()}>
+          {copied ? t("jrCodeCopied") : t("jrCodeCopy")}
+        </button>
       </div>
 
       <div className="tk-card tk-collect">
@@ -106,9 +132,12 @@ export function RedemptionCode({
           )}
         </span>
         <div>
-          <b>{t(physical ? "stShowTitle" : "stDigitalTitle")}</b>
+          <b>{t(physical ? "stShowTitle" : gift ? "jrCodeHowTitle" : "stDigitalTitle")}</b>
+          {/* The operator's own delivery note wins over the generic line: it is
+              the one that is true for this prize ("al correo registrado, vía
+              Tremendous"). */}
           <p className="tk-foot" style={{ marginTop: 4 }}>
-            {t(physical ? "stShowSub" : "stDigitalSub")}
+            {detail.delivery ?? t(physical ? "stShowSub" : "stDigitalSub")}
           </p>
         </div>
       </div>

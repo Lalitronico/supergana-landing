@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { nextPrize, prizeName } from "@/lib/tickets/store";
+import { nextPrize, prizeName, redemptionHoldsStock } from "@/lib/tickets/store";
 import { useStoreState, useTickets } from "./TicketsShell";
+import { FuelGauge } from "./journey/FuelGauge";
+import { fuelGoal } from "./journey/fuelCopy";
 
 /**
  * How far the balance is from the next prize it can actually claim.
@@ -19,10 +21,14 @@ import { useStoreState, useTickets } from "./TicketsShell";
 export function NextPrizeProgress({
   /** Inside the approval modal: no link out, tighter type, no card chrome. */
   compact = false,
+  fromPoints,
 }: {
   compact?: boolean;
+  /** Fuel gauge only: the balance before the points that just arrived, so the
+   *  needle starts where the person last saw it and visibly climbs. */
+  fromPoints?: number;
 }) {
-  const { locale, t, base } = useTickets();
+  const { campaign, locale, t, base, money } = useTickets();
   const { status, snapshot } = useStoreState();
 
   if (status !== "ready") return null;
@@ -43,6 +49,54 @@ export function NextPrizeProgress({
 
   const name = prizeName(next.prize, locale);
   const fmt = (n: number) => n.toLocaleString(locale === "en" ? "en-US" : "es-MX");
+
+  // Opt-in by data (`config.progress_meter = "fuel"`): the same number, drawn
+  // as a dashboard gauge. Every other campaign keeps the bar below.
+  if (campaign.progressMeter === "fuel") {
+    const fromPct =
+      fromPoints !== undefined && next.prize.pointsCost > 0
+        ? Math.min(100, Math.round((fromPoints / next.prize.pointsCost) * 100))
+        : undefined;
+
+    // The tank points at the next prize the balance does NOT reach yet, so a
+    // person who already affords something would read "te faltan 222 pts" and
+    // miss that the shelf has something for them today. Say so.
+    const claimed = new Set(
+      (snapshot?.redemptions ?? []).filter((r) => redemptionHoldsStock(r.status)).map((r) => r.dropItemId),
+    );
+    const redeemableNow =
+      !next.affordable &&
+      (snapshot?.drop?.items ?? []).some(
+        (item) => item.remaining > 0 && !claimed.has(item.id) && item.pointsCost <= next.points,
+      );
+
+    const fuel = (
+      <>
+        <div className="tk-eyebrow">{t("jrFuelEyebrow")}</div>
+        <FuelGauge
+          pct={next.pct}
+          fromPct={fromPct}
+          compact={compact}
+          ariaLabel={t("npAria", { name, pct: next.pct })}
+        />
+        <p className="tk-fuel-goal">{fuelGoal({ next, t, locale, money })}</p>
+        {redeemableNow && <p className="tk-fuel-now">{t("jrFuelCanRedeem")}</p>}
+        <p className="tk-fuel-of">
+          {t("npOf", { points: fmt(next.points), cost: fmt(next.prize.pointsCost) })}
+        </p>
+        {!compact && (
+          <span className="tk-fuel-go">{t("jrFuelCta")} →</span>
+        )}
+      </>
+    );
+
+    if (compact) return <div className="tk-nextprize tk-fuelcard compact">{fuel}</div>;
+    return (
+      <Link href={`${base}premios/`} className="tk-card tk-nextprize tk-fuelcard link">
+        {fuel}
+      </Link>
+    );
+  }
 
   const body = (
     <>

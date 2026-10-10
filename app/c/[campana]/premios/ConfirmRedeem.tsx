@@ -1,9 +1,10 @@
 "use client";
 
-import { prizeName, type StorePrize } from "@/lib/tickets/store";
+import { prizeDetail, prizeName, type StorePrize } from "@/lib/tickets/store";
 import { Mascot } from "../Mascot";
 import { useTickets } from "../TicketsShell";
-import { isPhysicalPrize, PrizeIcon } from "./PrizeIcon";
+import { isPhysicalPrize } from "./PrizeIcon";
+import { PrizeArt } from "./PrizeArt";
 
 /**
  * The two-step confirmation, given the drama it deserves.
@@ -36,6 +37,7 @@ export function ConfirmRedeem({
   const { locale, t } = useTickets();
   const fmt = (n: number) => n.toLocaleString(locale === "en" ? "en-US" : "es-MX");
   const after = points - prize.pointsCost;
+  const detail = prizeDetail(prize, locale);
 
   return (
     <div
@@ -54,9 +56,14 @@ export function ConfirmRedeem({
               the one element here that is about time running out. */}
           <span className="tk-stockstamp">{t("stLeft", { left: prize.remaining })}</span>
 
-          <PrizeIcon kind={prize.kind} className="big" />
+          <PrizeArt prize={prize} wide />
 
           <p className="tk-confirmticket-prize">{prizeName(prize, locale)}</p>
+          {detail.provider && (
+            <p className="jr-prize-meta" style={{ textAlign: "center" }}>
+              {t("jrDeliveryVia", { provider: detail.provider })}
+            </p>
+          )}
           <p className="tk-confirmticket-cost">
             {t("stCost", { points: fmt(prize.pointsCost) })}
           </p>

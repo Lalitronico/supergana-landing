@@ -6,6 +6,7 @@
 
 import type { Locale } from "./config.ts";
 import type { CopyKey } from "./i18n.ts";
+import { asAssetUrl } from "./theme.ts";
 
 export const DROP_STATUSES = ["scheduled", "open", "closed"] as const;
 export type DropStatus = (typeof DROP_STATUSES)[number];
@@ -189,4 +190,47 @@ export const REDEEM_ERROR_ES: Record<string, string> = {
   bad_status: "Ese canje ya no está confirmado.",
   store_unavailable:
     "La tienda todavía no existe en la base: faltan las migraciones 0013 y 0014.",
+};
+
+// ---------------------------------------------------------------------------
+// What a prize carries in `detail`
+// ---------------------------------------------------------------------------
+//
+// `detail` is free-form JSON an operator writes per Drop item, so every reader
+// below treats it as hostile-by-accident: wrong types become "absent", never a
+// crash and never a string interpolated into the page unchecked. Flags that are
+// the operator's own bookkeeping (`demo`, `placeholder`) are deliberately not
+// exposed here — there is no helper that returns them, so no screen can print
+// one to a participant.
+
+export interface PrizeDetail {
+  /** Validated by `asAssetUrl`; null when absent or not a safe URL. */
+  imageUrl: string | null;
+  /** Face value in cents, for gift cards. */
+  valueCents: number | null;
+  /** Who delivers it ("Tremendous"). Printed as "Entrega digital vía X". */
+  provider: string | null;
+  /** How the participant receives it, in the operator's own words. */
+  delivery: string | null;
+}
+
+const asText = (value: unknown, max: number): string | null =>
+  typeof value === "string" && value.trim() ? value.trim().slice(0, max) : null;
+
+export const prizeDetail = (
+  prize: { detail: Record<string, unknown> | null | undefined },
+  locale: Locale,
+): PrizeDetail => {
+  const d = prize.detail ?? {};
+  const cents = d.value_cents;
+  return {
+    imageUrl: asAssetUrl(d.image_url),
+    valueCents:
+      typeof cents === "number" && Number.isFinite(cents) && cents > 0 ? Math.round(cents) : null,
+    provider: asText(d.provider, 40),
+    // `entrega_en` is optional: a campaign that only wrote Spanish shows it in
+    // both languages rather than hiding the delivery note from English readers.
+    delivery:
+      (locale === "en" ? asText(d.entrega_en, 200) : null) ?? asText(d.entrega, 200),
+  };
 };

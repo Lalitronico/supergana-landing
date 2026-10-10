@@ -187,9 +187,14 @@ function LeaderboardCard({ slug }: { slug: string }) {
         <>
           <div className="tk-hist">
             {data.top.map((row) => (
-              <div className="tk-hist-item" key={row.rank}>
-                <div className="meta" style={{ flexDirection: "row", alignItems: "baseline", gap: 8 }}>
-                  <b style={{ fontFamily: "var(--tk-display)", minWidth: 26 }}>#{row.rank}</b>
+              <div className={["tk-hist-item", "jr-lb-row", row.isMe ? "me" : null].filter(Boolean).join(" ")} key={row.rank}>
+                <div className="meta" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  {/* The podium gets a medal chip; the rest keep a plain number.
+                      Colour carries rank only as redundancy — the number is
+                      always printed. */}
+                  <b className={["jr-rank", row.rank <= 3 ? `p${row.rank}` : null].filter(Boolean).join(" ")}>
+                    {row.rank}
+                  </b>
                   <b>{row.alias}</b>
                   {row.isMe && <span className="tk-pill ok">{t("lbYou")}</span>}
                 </div>
@@ -477,13 +482,21 @@ export default function PanelPage() {
                       "Recibido" next to a RECHAZADO pill. Nothing is better
                       than a contradiction. */}
                   {detailOf(receipt) && <span>{detailOf(receipt)}</span>}
+                  {(receipt.products?.length ?? 0) > 0 && (
+                    <span>{t("jrHistProducts", { list: receipt.products!.slice(0, 3).join(", ") })}</span>
+                  )}
                   {receipt.reject_reason && (
                     <span>{t("pnRejected", { reason: receipt.reject_reason })}</span>
                   )}
                 </div>
-                <span className={`tk-pill ${RECEIPT_PILL[receipt.status]}`}>
-                  {t(RECEIPT_STATUS_KEY[receipt.status])}
-                </span>
+                <div className="jr-hist-right">
+                  <span className={`tk-pill ${RECEIPT_PILL[receipt.status]}`}>
+                    {t(RECEIPT_STATUS_KEY[receipt.status])}
+                  </span>
+                  {receipt.status === "approved" && (receipt.points ?? 0) > 0 && (
+                    <b className="jr-hist-pts">{t("jrHistPoints", { points: receipt.points ?? 0 })}</b>
+                  )}
+                </div>
               </div>
             ))}
           </div>

@@ -1,1 +1,554 @@
-/* Journey layer: receipt reading, celebration, fuel tank, prize cards. Loaded after tickets.css. */
+/* Journey layer: receipt reading, celebration, fuel tank, prize cards. Loaded after tickets.css.
+
+   Same rules as the rest of the module: scoped under .tk-app by the shell,
+   tenant colour only through --tk-brand / --tk-brand-ink, yellow stays the
+   action colour, 3px ink lines and hard offset shadows. Nothing here knows which
+   tenant it is drawing for. */
+
+/* ======================================================================
+   Fuel gauge: the "progress meter" when config.progress_meter = "fuel"
+   ====================================================================== */
+
+.tk-fuelcard {
+  text-align: center;
+  /* A faint wash of the brand at the top, like light on a dashboard. */
+  background: radial-gradient(120% 90% at 50% 0%, var(--tk-brand-soft), #fff 62%);
+}
+
+.tk-fuelcard.compact {
+  background: none;
+  padding: 0;
+  margin-top: 10px;
+}
+
+.tk-fuel {
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  margin: 4px auto 0;
+  overflow: visible;
+}
+
+.tk-fuel.compact { max-width: 230px; }
+
+.tk-fuel-plate {
+  fill: #fff;
+  stroke: var(--tk-ink);
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+
+.tk-fuel-rim { fill: none; stroke: var(--tk-ink); stroke-width: 24; stroke-linecap: round; }
+.tk-fuel-track { fill: none; stroke: var(--tk-cream-deep); stroke-width: 17; }
+.tk-fuel-reserve { fill: none; stroke: var(--tk-red); stroke-width: 17; }
+
+.tk-fuel-fill {
+  fill: none;
+  stroke: var(--tk-brand);
+  stroke-width: 17;
+  /* The sweep: long, with a soft landing. The needle uses an overshoot curve of
+     its own; the fill must not, or it would paint past where the needle ends. */
+  transition: stroke-dashoffset 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.tk-fuel-tick { stroke: var(--tk-ink); stroke-width: 2; stroke-linecap: round; opacity: 0.55; }
+.tk-fuel-tick.major { stroke-width: 3.2; opacity: 1; }
+
+.tk-fuel-letter {
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 15px;
+  fill: var(--tk-ink);
+}
+
+.tk-fuel-drop { fill: var(--tk-yellow); stroke: var(--tk-ink); stroke-width: 2.2; stroke-linejoin: round; }
+
+.tk-fuel-needle {
+  transform-box: view-box;
+  transform-origin: 120px 122px;
+  transition: transform 1.4s cubic-bezier(0.34, 1.42, 0.5, 1);
+}
+
+.tk-fuel-needle path {
+  fill: var(--tk-red);
+  stroke: var(--tk-ink);
+  stroke-width: 2.6;
+  stroke-linejoin: round;
+  transform-box: view-box;
+  transform-origin: 120px 122px;
+  /* A real needle never quite rests. */
+  animation: jr-needle-idle 2.6s ease-in-out 2s infinite;
+}
+
+.tk-fuel-hub { fill: var(--tk-yellow); stroke: var(--tk-ink); stroke-width: 3; }
+.tk-fuel-pin { fill: var(--tk-ink); }
+
+.tk-fuel.full .tk-fuel-hub {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: tk-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes jr-needle-idle {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(1.4deg); }
+}
+
+.tk-fuel-goal {
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 18px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin-top: 10px;
+  text-wrap: balance;
+}
+
+.tk-fuel-goal b {
+  color: var(--tk-brand-ink);
+  font-size: 1.28em;
+  letter-spacing: -0.03em;
+}
+
+.tk-fuelcard.compact .tk-fuel-goal { font-size: 15.5px; margin-top: 6px; }
+
+.tk-fuel-of {
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tk-ink-mute);
+}
+
+.tk-fuel-go {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 7px 16px;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 13px;
+  background: var(--tk-yellow);
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 999px;
+  box-shadow: 2px 2px 0 0 var(--tk-ink);
+}
+
+.tk-modal .tk-fuelcard.compact { margin-top: 12px; }
+
+/* ======================================================================
+   Reading the receipt
+   ====================================================================== */
+
+.jr-read { display: flex; flex-direction: column; gap: 18px; }
+
+/* The photo, on a clipboard: the person's own ticket stays the hero of the wait. */
+.jr-clip {
+  position: relative;
+  align-self: center;
+  width: min(62%, 232px);
+  padding: 22px 10px 10px;
+  background: var(--tk-yellow);
+  border: 3px solid var(--tk-ink);
+  border-radius: 16px;
+  box-shadow: var(--tk-shadow-lg);
+  transform: rotate(-1.6deg);
+  animation: jr-clip-in 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+.jr-clip::before {
+  content: "";
+  position: absolute;
+  top: -13px;
+  left: 50%;
+  width: 78px;
+  height: 26px;
+  transform: translateX(-50%);
+  background: var(--tk-ink);
+  border-radius: 9px;
+}
+
+.jr-clip::after {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  width: 44px;
+  height: 7px;
+  transform: translateX(-50%);
+  background: var(--tk-cream);
+  border-radius: 4px;
+}
+
+.jr-paper {
+  position: relative;
+  aspect-ratio: 4 / 5;
+  max-height: 250px;
+  width: 100%;
+  overflow: hidden;
+  background: #fff;
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 7px;
+}
+
+.jr-paper img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
+
+.jr-fake { display: flex; flex-direction: column; gap: 9px; padding: 16px 14px; }
+.jr-fake i {
+  display: block;
+  height: 7px;
+  width: 100%;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--tk-ink) 14%, #fff);
+}
+
+/* The scanner: a band of brand colour that ends in a hard line, so it reads as
+   a light bar passing over paper and not as a loading shimmer. */
+.jr-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -52px;
+  height: 52px;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in srgb, var(--tk-brand) 34%, transparent) 72%,
+    color-mix(in srgb, var(--tk-brand) 62%, transparent)
+  );
+  border-bottom: 3px solid var(--tk-brand);
+  box-shadow: 0 3px 10px 0 color-mix(in srgb, var(--tk-brand) 55%, transparent);
+  animation: jr-scan 2.1s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}
+
+.jr-clip.paused .jr-scan { animation: none; opacity: 0; }
+
+@keyframes jr-scan {
+  from { top: -52px; }
+  to { top: 100%; }
+}
+
+@keyframes jr-clip-in {
+  from { transform: translateY(18px) rotate(3deg) scale(0.92); opacity: 0; }
+  to { transform: translateY(0) rotate(-1.6deg) scale(1); opacity: 1; }
+}
+
+.jr-reader { display: flex; align-items: flex-start; gap: 12px; }
+.jr-reader-mascot { width: 84px; flex: none; margin-top: -4px; }
+.jr-reader-text { flex: 1; min-width: 0; }
+
+.jr-steps {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.jr-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  opacity: 0.4;
+  transition: opacity 0.4s;
+}
+
+.jr-steps li.done { opacity: 1; }
+.jr-steps li.now { opacity: 1; font-weight: 800; }
+
+.jr-step-dot {
+  flex: none;
+  width: 21px;
+  height: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 50%;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.jr-steps li.done .jr-step-dot { background: var(--tk-green); }
+.jr-steps li.now .jr-step-dot { background: var(--tk-yellow); animation: tk-pulse 1s ease-in-out infinite; }
+
+.jr-honest { text-align: center; text-wrap: balance; }
+
+/* ======================================================================
+   Celebration
+   ====================================================================== */
+
+.jr-celebrate { max-width: 340px; }
+
+.jr-pop { animation: jr-pop 0.8s cubic-bezier(0.34, 1.7, 0.5, 1) 0.1s both; }
+
+@keyframes jr-pop {
+  from { transform: scale(0.25) rotate(-16deg); opacity: 0; }
+  to { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.jr-plus { animation: jr-slam 0.55s cubic-bezier(0.34, 1.6, 0.5, 1) 0.3s both; }
+.jr-plus b { font-variant-numeric: tabular-nums; min-width: 1.6ch; text-align: right; }
+
+@keyframes jr-slam {
+  from { transform: rotate(-2deg) scale(1.7); opacity: 0; }
+  to { transform: rotate(-2deg) scale(1); opacity: 1; }
+}
+
+.jr-found { width: 100%; margin-top: 14px; text-align: left; }
+
+.jr-found ul {
+  list-style: none;
+  margin: 7px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.jr-found li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px 5px 8px;
+  font-family: var(--tk-display);
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1.1;
+  background: #fff;
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 999px;
+  animation: jr-chip 0.45s cubic-bezier(0.34, 1.5, 0.6, 1) both;
+}
+
+.jr-found li::before { content: "✓"; color: var(--tk-green); font-weight: 800; -webkit-text-stroke: 0.6px var(--tk-ink); }
+
+@keyframes jr-chip {
+  from { transform: translateY(8px) scale(0.8); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* Confetti thrown from behind the card, one shot, then it falls. */
+.tk-confetti .p.burst {
+  top: 38%;
+  left: 50%;
+  animation: jr-burst 2.1s cubic-bezier(0.2, 0.75, 0.3, 1) both;
+  animation-iteration-count: 1;
+}
+
+@keyframes jr-burst {
+  0% { transform: translate(0, 0) scale(0.3) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  38% { transform: translate(var(--jr-dx), var(--jr-dy)) scale(1) rotate(var(--jr-rot)); opacity: 1; }
+  100% {
+    transform: translate(var(--jr-dx), calc(var(--jr-dy) + 420px)) scale(1) rotate(calc(var(--jr-rot) * 2));
+    opacity: 0;
+  }
+}
+
+/* ======================================================================
+   Prizes
+   ====================================================================== */
+
+.jr-art {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 3px solid var(--tk-ink);
+  border-radius: 13px;
+  background-color: var(--tk-brand-soft);
+  background-image: radial-gradient(color-mix(in srgb, var(--tk-brand) 22%, transparent) 1.2px, transparent 1.2px);
+  background-size: 14px 14px;
+  /* The gift card inside sizes itself off THIS box (cqw), so it reads the same
+     in a 140px grid cell and in the wide featured frame. */
+  container-type: inline-size;
+}
+
+.jr-art.wide { aspect-ratio: 16 / 9; }
+.jr-art img { width: 100%; height: 100%; object-fit: contain; padding: 6px; }
+.jr-art .tk-prizeico { background: #fff; }
+
+/* A gift card, front face. The brand fills it; the code never names a tenant. */
+.jr-giftface {
+  position: relative;
+  width: 82%;
+  max-width: 250px;
+  aspect-ratio: 1.62;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 6cqw 7cqw;
+  overflow: hidden;
+  color: #fff;
+  background: linear-gradient(
+    135deg,
+    var(--tk-brand),
+    color-mix(in srgb, var(--tk-brand) 62%, #000)
+  );
+  border: 3px solid var(--tk-ink);
+  border-radius: 12px;
+  box-shadow: 3px 3px 0 0 var(--tk-ink);
+  transform: rotate(-3deg);
+}
+
+.jr-giftface-chip {
+  width: 11cqw;
+  height: 8cqw;
+  background: var(--tk-yellow);
+  border: 2px solid var(--tk-ink);
+  border-radius: 4px;
+}
+
+.jr-giftface-label {
+  position: absolute;
+  top: 6cqw;
+  right: 7cqw;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: max(8px, 4.4cqw);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.jr-giftface-value {
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 19cqw;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  text-shadow: 2px 2px 0 var(--tk-ink);
+  overflow-wrap: anywhere;
+}
+
+.jr-giftface-shine {
+  position: absolute;
+  inset: -20% auto -20% 42%;
+  width: 22%;
+  background: rgba(255, 255, 255, 0.16);
+  transform: skewX(-22deg);
+}
+
+.jr-prize-meta { font-size: 11.5px; font-weight: 700; color: var(--tk-ink-soft); line-height: 1.25; }
+
+/* The featured prize stacks too: with real art the picture wants the width. */
+.tk-prize.featured { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
+.tk-prize.featured .tk-prize-body { flex: none; }
+.tk-prize.featured .tk-btn { flex: none; }
+.tk-prize .jr-art { margin-top: 4px; }
+
+/* What you cannot afford yet reads a notch quieter than what you can. */
+.tk-prize:not(.reach):not(.mine):not(.gone) .jr-art img,
+.tk-prize:not(.reach):not(.mine):not(.gone) .jr-giftface { filter: saturate(0.7); }
+
+.tk-prize.reach .jr-art { background-color: color-mix(in srgb, var(--tk-yellow) 35%, #fff); }
+
+.tk-confirmticket .jr-art { margin-top: 2px; }
+
+/* The code screen */
+.jr-gold-gift .jr-art { margin-top: 4px; background-color: var(--tk-cream); }
+
+.jr-copy {
+  margin-top: 12px;
+  align-self: center;
+  padding: 8px 18px;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--tk-ink);
+  background: #fff;
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 999px;
+  box-shadow: 2px 2px 0 0 var(--tk-ink);
+  cursor: pointer;
+}
+
+.jr-copy:active { transform: translate(2px, 2px); box-shadow: none; }
+
+/* ======================================================================
+   Panel
+   ====================================================================== */
+
+.jr-rank {
+  flex: none;
+  width: 27px;
+  height: 27px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 50%;
+  background: #fff;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.jr-rank.p1 { background: var(--tk-yellow); }
+.jr-rank.p2 { background: #e6e6e6; }
+.jr-rank.p3 { background: #f2b27a; }
+
+.jr-lb-row.me {
+  margin-inline: -8px;
+  padding-inline: 8px;
+  background: var(--tk-brand-soft);
+  border-radius: 12px;
+}
+
+.jr-hist-right { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+
+.jr-hist-pts {
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 14px;
+  color: var(--tk-brand-ink);
+}
+
+/* ======================================================================
+   Less motion
+   ====================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-fuel-fill, .tk-fuel-needle { transition: none; }
+  .tk-fuel-needle path, .tk-fuel.full .tk-fuel-hub { animation: none; }
+  .jr-scan { animation: none; top: 40%; }
+  .jr-clip, .jr-pop, .jr-plus, .jr-found li { animation: none; }
+  .jr-steps li.now .jr-step-dot { animation: none; }
+}
+
+/* "You can already redeem something": the tank points at the NEXT unreachable
+   prize, so this is the line that stops it from hiding what is reachable now. */
+.tk-fuel-now {
+  display: inline-block;
+  margin-top: 9px;
+  padding: 4px 11px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  background: color-mix(in srgb, var(--tk-green) 28%, #fff);
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 999px;
+}
+
+/* The thrown layer sits over the card (z 32 inside the overlay's stacking
+   context); the slow rain stays behind it. */
+.tk-confetti.burst-layer { z-index: 40; }
+
+/* The celebration has to fit a 844px phone with the buttons visible: mascot,
+   count-up, chips, gauge, two actions. Everything here is spacing, not content. */
+.jr-celebrate { padding: 18px 20px 16px; }
+.jr-celebrate .tk-modal-mascot { width: auto; max-width: 100%; max-height: 118px; margin-bottom: 2px; }
+.jr-celebrate .tk-plusbadge { margin-top: 8px; }
+.jr-celebrate .jr-found { margin-top: 10px; }
+.jr-celebrate .tk-fuel.compact { max-width: 188px; }
+.jr-celebrate .tk-fuelcard.compact { margin-top: 8px; }
+.jr-celebrate .tk-fuelcard .tk-eyebrow { display: none; }
+.jr-found li.more { padding: 5px 10px; }
+.jr-found li.more::before { content: none; }

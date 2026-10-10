@@ -1,19 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { REDEMPTION_STATUS_KEY } from "@/lib/tickets/i18n";
 import {
+  prizeDetail,
   prizeName,
   redemptionHoldsStock,
   REDEEM_ERROR_KEY,
-  type PrizeKind,
   type RedemptionStatus,
   type StorePrize,
 } from "@/lib/tickets/store";
 import { Mascot } from "../Mascot";
 import { useStoreState, useTickets } from "../TicketsShell";
 import { ConfirmRedeem } from "./ConfirmRedeem";
-import { PrizeIcon } from "./PrizeIcon";
+import { PrizeArt } from "./PrizeArt";
 import { RedemptionCode } from "./RedemptionCode";
 
 const REDEMPTION_PILL: Record<RedemptionStatus, string> = {
@@ -24,8 +24,7 @@ const REDEMPTION_PILL: Record<RedemptionStatus, string> = {
 
 interface FreshCode {
   code: string;
-  prize: string;
-  kind: PrizeKind;
+  prize: StorePrize;
 }
 
 /**
@@ -51,6 +50,7 @@ function PrizeCard({
   onPick: () => void;
 }) {
   const { locale, t } = useTickets();
+  const detail = prizeDetail(prize, locale);
   const soldOut = prize.remaining <= 0;
   const short = points < prize.pointsCost;
   const missing = prize.pointsCost - points;
@@ -70,6 +70,8 @@ function PrizeCard({
     <div
       className={[
         "tk-prize",
+        prize.kind === "giftcard" ? "gift" : null,
+        !soldOut && !mine && !short ? "reach" : null,
         featured ? "featured" : null,
         mine ? "mine" : soldOut ? "gone" : null,
       ]
@@ -99,10 +101,21 @@ function PrizeCard({
         ) : null}
       </div>
 
-      <PrizeIcon kind={prize.kind} className={featured ? "big" : undefined} />
+      <PrizeArt prize={prize} wide={featured} />
 
       <div className="tk-prize-body">
         <b className="tk-prize-name">{prizeName(prize, locale)}</b>
+
+        {/* Gift cards say what they are worth and who delivers them: the two
+            facts someone weighing "$10 of gas" actually asks. Both come from
+            `detail`, never from the code. */}
+        {prize.kind === "giftcard" && (detail.valueCents !== null || detail.provider) && (
+          <span className="jr-prize-meta">
+            {detail.provider
+              ? t("jrDeliveryVia", { provider: detail.provider })
+              : t("jrDeliveryDigital")}
+          </span>
+        )}
 
         <span className="tk-prize-cost">
           <span className="tk-star" aria-hidden="true">
@@ -195,6 +208,13 @@ export function PrizeStore({
   /** The code just won. Takes over the screen until the participant leaves it. */
   const [fresh, setFresh] = useState<FreshCode | null>(null);
 
+  // The code takes over the screen, but `.tk-screen` is the scroller and it
+  // keeps its offset: redeeming from the bottom of the shelf would open the
+  // payoff scrolled to its footer, with the prize and the code off the top.
+  useEffect(() => {
+    if (fresh) document.querySelector(".tk-screen")?.scrollTo({ top: 0 });
+  }, [fresh]);
+
   const redeem = async (prize: StorePrize) => {
     setBusy(true);
     setError(null);
@@ -218,8 +238,7 @@ export function PrizeStore({
       setConfirming(null);
       setFresh({
         code: payload.redemption?.redemption_code ?? "—",
-        prize: prizeName(prize, locale),
-        kind: prize.kind,
+        prize,
       });
       await load();
       onRedeemed();
@@ -255,7 +274,6 @@ export function PrizeStore({
       <RedemptionCode
         code={fresh.code}
         prize={fresh.prize}
-        kind={fresh.kind}
         onBack={() => setFresh(null)}
       />
     );
