@@ -5,6 +5,7 @@ import { nextPrize, prizeDetail, prizeName, type StorePrize } from "@/lib/ticket
 import { fuelNextLine } from "../journey/fuelCopy";
 import { Confetti } from "../Confetti";
 import { Mascot } from "../Mascot";
+import { CastFigure } from "../fiesta/CastFigure";
 import { useStoreState, useTickets } from "../TicketsShell";
 import { isPhysicalPrize } from "./PrizeIcon";
 import { PrizeArt } from "./PrizeArt";
@@ -62,9 +63,11 @@ export function RedemptionCode({
   const balance = snapshot?.points ?? 0;
   const next = nextPrize(snapshot);
   const fmt = (n: number) => n.toLocaleString(locale === "en" ? "en-US" : "es-MX");
+  const host = campaign.theme.cast.find((m) => m.brand === null) ?? campaign.theme.cast[0] ?? null;
 
   return (
-    <>
+    <div className="jr-bands">
+      <section className="jr-band rays codepage">
       {/* Over the whole app frame, not the heading's box: a burst thrown from
           a 60px strip has nowhere to go. */}
       <Confetti burst className="over" />
@@ -73,13 +76,19 @@ export function RedemptionCode({
           <h1 className="tk-h" style={{ fontSize: 30 }}>
             {t("jrCodeDone")}
           </h1>
-          <Mascot pose="celebrate" className="tk-codemascot" />
+          {host ? (
+            <CastFigure member={host} height={120} className="jr-code-cast" alt="" />
+          ) : (
+            <Mascot pose="celebrate" className="tk-codemascot" />
+          )}
         </div>
       </div>
 
       {/* The golden ticket. Rotated a hair, like every other object in this
           system that is meant to feel handled rather than rendered. */}
-      <div className={["tk-goldticket", gift ? "jr-gold-gift" : null].filter(Boolean).join(" ")}>
+      <div className={["tk-goldticket", "jr-flip", gift ? "jr-gold-gift" : null].filter(Boolean).join(" ")}>
+        {/* Gas-station ticket: a chequered flag along the top edge. */}
+        <div className="jr-ticket-flag sg-checker" aria-hidden="true" />
         <span className="tk-kindbadge">
           {t(physical ? "stKindPhysical" : "stKindDigital")}
         </span>
@@ -181,6 +190,7 @@ export function RedemptionCode({
       <button type="button" className="tk-btn" onClick={onBack}>
         {t("stBackToPrizes")} →
       </button>
-    </>
+      </section>
+    </div>
   );
 }

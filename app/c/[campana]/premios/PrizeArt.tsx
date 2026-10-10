@@ -22,10 +22,13 @@ import { PrizeIcon } from "./PrizeIcon";
 export function PrizeArt({
   prize,
   wide = false,
+  tone,
 }: {
   prize: Pick<StorePrize, "kind" | "detail" | "nameEs" | "nameEn">;
   /** The featured prize gets a wider frame. */
   wide?: boolean;
+  /** Index into the system's colour rotation, so neighbouring cards differ. */
+  tone?: number;
 }) {
   const { locale, money } = useTickets();
   const { imageUrl, valueCents } = prizeDetail(prize, locale);
@@ -35,7 +38,12 @@ export function PrizeArt({
   const showImage = imageUrl !== null && failedUrl !== imageUrl;
 
   return (
-    <div className={["jr-art", wide ? "wide" : null].filter(Boolean).join(" ")} aria-hidden="true">
+    <div
+      className={["jr-art", wide ? "wide" : null, tone !== undefined ? `tone-${tone % 6}` : null]
+        .filter(Boolean)
+        .join(" ")}
+      aria-hidden="true"
+    >
       {showImage ? (
         // eslint-disable-next-line @next/next/no-img-element -- tenant art from data; next/image would need every host allow-listed
         <img
@@ -53,6 +61,8 @@ export function PrizeArt({
         />
       ) : prize.kind === "giftcard" ? (
         <GiftFace value={valueCents !== null ? money(valueCents) : null} name={prizeName(prize, locale)} />
+      ) : prize.kind === "product" || prize.kind === "item" ? (
+        <div className="jr-couponface"><b>{prizeName(prize, locale)}</b></div>
       ) : (
         <PrizeIcon kind={prize.kind} className="big" />
       )}

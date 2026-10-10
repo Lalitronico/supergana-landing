@@ -36,7 +36,7 @@ const TINTS = ["var(--tk-yellow)", "var(--tk-brand)", "var(--tk-yellow-deep)"] a
  * spread, so no two neighbours fly the same way) — deterministic like PIECES,
  * for the same hydration reason, and it reads as thrown rather than as a fan.
  */
-const BURST = Array.from({ length: 22 }, (_, i) => {
+const BURST = Array.from({ length: 34 }, (_, i) => {
   const angle = (i * 137.5 * Math.PI) / 180;
   const reach = 90 + ((i * 53) % 110);
   return {
@@ -49,12 +49,17 @@ const BURST = Array.from({ length: 22 }, (_, i) => {
   };
 });
 
+// The system's own palette (yellow leads, the tenant's brand joins in).
 const BURST_TINTS = [
   "var(--tk-yellow)",
   "var(--tk-brand)",
+  "var(--sg-pink, #ff6b9d)",
+  "var(--sg-blue, #1e90ff)",
   "#fff",
-  "var(--tk-red)",
-  "var(--tk-yellow-deep)",
+  "var(--sg-green, #2ecc71)",
+  "var(--sg-red, #ff4757)",
+  "var(--sg-purple, #8b5cf6)",
+  "var(--sg-orange, #ff8a3d)",
 ] as const;
 
 export function Confetti({ className, burst = false }: { className?: string; burst?: boolean }) {

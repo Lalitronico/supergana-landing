@@ -6,10 +6,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { translator, type Translate } from "@/lib/tickets/i18n";
 import { formatUsdCents, type Locale, type PublicCampaign } from "@/lib/tickets/config";
-import { isCobranded, themeCssVars } from "@/lib/tickets/theme";
+import { brandTone, isCobranded, themeCssVars } from "@/lib/tickets/theme";
 import { useMe, type Me, type MeStatus } from "./useMe";
 import { useStore, type StoreStatus } from "./useStore";
 import { SafeImg } from "./showcase/SafeImg";
+import { SuperganaWordmark } from "./fiesta/Wordmark";
 import type { StoreSnapshot } from "@/lib/tickets/store";
 
 /**
@@ -218,7 +219,7 @@ export function TicketsShell({
 
   return (
     <TicketsContext.Provider value={value}>
-      <div className="tk-app" style={themeCssVars(theme)}>
+      <div className="tk-app" style={themeCssVars(theme)} data-tone={brandTone(theme) ?? undefined}>
         <div className="tk-phone">
           {campaign.status !== "live" && (
             <div className="tk-ribbon">{t("draftRibbon")}</div>
@@ -236,26 +237,15 @@ export function TicketsShell({
                   src={theme.logoUrl ?? ""}
                   alt={theme.logoAlt ?? campaign.orgName}
                   onFail={() => setLogoFailed(true)}
-                  fallback={
-                    <div className="tk-logo">
-                      <span className="dot" />
-                      {t("appName")}
-                    </div>
-                  }
+                  fallback={<SuperganaWordmark size={20} />}
                 />
               ) : (
-                <div className="tk-logo">
-                  <span className="dot" />
-                  {t("appName")}
-                </div>
+                <SuperganaWordmark size={21} />
               )}
               {cobrand && theme.poweredBy && (
                 <span className="tk-powered">
                   <span className="by">{t("headPoweredBy")}</span>
-                  <span className="tk-logo">
-                    <span className="dot" />
-                    {t("appName")}
-                  </span>
+                  <SuperganaWordmark size={14} />
                 </span>
               )}
             </div>

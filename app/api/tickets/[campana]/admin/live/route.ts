@@ -4,6 +4,7 @@ import { resolveStaff, staffDenialStatus } from "@/lib/tickets/access";
 import { getCampaign } from "@/lib/tickets/campaigns";
 import { POINTS_SPEND_KINDS } from "@/lib/tickets/config";
 import { productLabel } from "@/lib/tickets/productLabel";
+import { brandTone, castForBrand, castMember, type CastMember } from "@/lib/tickets/theme";
 
 export const runtime = "nodejs";
 
@@ -24,7 +25,7 @@ export const runtime = "nodejs";
  */
 
 const FEED_SIZE = 12;
-const TOP_SIZE = 5;
+const TOP_SIZE = 6;
 const CACHE_MS = 2000;
 const PAGE = 1000;
 const MAX_ROWS = 5000;
@@ -54,6 +55,8 @@ interface ParticipantRow {
   alias: string | null;
   first_name: string | null;
   last_name: string | null;
+  /** The cast member they picked at sign-up; null for people who did not. */
+  avatar: string | null;
 }
 interface ReceiptRow {
   id: string;
@@ -82,18 +85,35 @@ interface ItemRow {
   products: { brand: string; name: string; size: string | null } | null;
 }
 
+/** A character as the screen draws it: only what is public art. */
+export interface LiveFigure {
+  id: string;
+  name: string;
+  image: string;
+}
+
 export type LiveFeedItem =
   | {
       id: string;
       kind: "ticket";
       at: string;
       alias: string;
+      avatar: LiveFigure | null;
       points: number;
       products: string[];
       /** True when the machine approved it without a human. */
       auto: boolean;
+      /** The character of the brand that dominates this ticket, if the tenant has one. */
+      cameo: LiveFigure | null;
     }
-  | { id: string; kind: "redeem"; at: string; alias: string; prize: string };
+  | {
+      id: string;
+      kind: "redeem";
+      at: string;
+      alias: string;
+      avatar: LiveFigure | null;
+      prize: string;
+    };
 
 export interface LiveData {
   serverTime: string;
@@ -103,6 +123,8 @@ export interface LiveData {
     logoUrl: string | null;
     logoAlt: string | null;
     brand: string | null;
+    /** The tenant colour is too pale for white text: use ink on it. */
+    brandLight: boolean;
     poweredBy: boolean;
     mascots: Record<string, string>;
   };
@@ -123,7 +145,9 @@ export interface LiveData {
   /** Most-bought product among approved lines; null until there is one. */
   topProduct: { label: string; units: number } | null;
   feed: LiveFeedItem[];
-  top: { rank: number; alias: string; points: number }[];
+  /** The tenant's whole cast, for the stage; empty when it has none. */
+  cast: (LiveFigure & { brand: string | null })[];
+  top: { id: string; rank: number; alias: string; points: number; avatar: LiveFigure | null }[];
   mix: {
     brand: string;
     color: string;
@@ -144,6 +168,23 @@ const publicName = (p: ParticipantRow | undefined): string => {
     .join(". ");
   return initials ? `${initials}.` : "—";
 };
+
+/** Stable pseudo-random pick, so a participant with no chosen character keeps the same one. */
+const hashOf = (text: string): number => {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+};
+
+const figureOf = (member: CastMember): LiveFigure => ({
+  id: member.id,
+  name: member.name,
+  // The square bust when there is one; the full-body art otherwise.
+  image: member.avatar ?? member.image,
+});
 
 const FALLBACK_COLORS = ["#1E90FF", "#FF4757", "#2ECC71", "#FFD93D", "#9B5DE5"];
 
@@ -179,7 +220,7 @@ export async function GET(
       fetchAll<ParticipantRow>((a, b) =>
         db
           .from("participants")
-          .select("id, alias, first_name, last_name")
+          .select("id, alias, first_name, last_name, avatar")
           .eq("campaign_id", campaign.id)
           .order("id")
           .range(a, b),
@@ -245,6 +286,15 @@ export async function GET(
     const spendKinds = new Set<string>(POINTS_SPEND_KINDS);
     const earned = points.filter((p) => !spendKinds.has(p.kind) && p.points > 0);
 
+    // The character a participant picked, else a deterministic one from the
+    // cast (hash of their id), else none: the screen then draws an initial.
+    const cast = campaign.theme.cast;
+    const avatarOf = (participantId: string): LiveFigure | null => {
+      const picked = castMember(campaign.theme, byParticipant.get(participantId)?.avatar);
+      if (picked) return figureOf(picked);
+      return cast.length ? figureOf(cast[hashOf(participantId) % cast.length]) : null;
+    };
+
     // --- ranking: points EARNED, so redeeming never drops anyone ----------
     const totals = new Map<string, number>();
     for (const p of points) {
@@ -256,9 +306,11 @@ export async function GET(
       .sort((x, y) => y[1] - x[1])
       .slice(0, TOP_SIZE)
       .map(([id, pts], i) => ({
+        id,
         rank: i + 1,
         alias: publicName(byParticipant.get(id)),
         points: pts,
+        avatar: avatarOf(id),
       }));
 
     // --- brand mix --------------------------------------------------------
@@ -313,6 +365,16 @@ export async function GET(
       units: brandTotals.get(b.key)?.units ?? 0,
     }));
 
+    // The cast member of the brand that dominates a ticket (most lines; the
+    // first printed wins a tie). Null when the tenant has no such character.
+    const cameoOf = (receiptId: string): LiveFigure | null => {
+      const perBrand = brandsByReceipt.get(receiptId);
+      if (!perBrand) return null;
+      const dominant = [...perBrand.entries()].sort((x, y) => y[1] - x[1])[0]?.[0];
+      const member = castForBrand(campaign.theme, dominant);
+      return member ? { id: member.id, name: member.name, image: member.image } : null;
+    };
+
     // --- feed -------------------------------------------------------------
     const purchases = points
       .filter((p) => p.kind === "purchase" && p.receipt_id)
@@ -322,17 +384,20 @@ export async function GET(
         kind: "ticket",
         at: p.created_at,
         alias: publicName(byParticipant.get(p.participant_id)),
+        avatar: avatarOf(p.participant_id),
         points: p.points,
         products: [...(brandsByReceipt.get(p.receipt_id as string) ?? [])]
           .slice(0, 3)
           .map(([brand, n]) => (n > 1 ? `${brand} ×${n}` : brand)),
         auto: autoReceiptIds.has(p.receipt_id as string),
+        cameo: cameoOf(p.receipt_id as string),
       }));
     const redeemed = redemptions.slice(0, FEED_SIZE).map<LiveFeedItem>((r) => ({
       id: `r-${r.id}`,
       kind: "redeem",
       at: r.created_at,
       alias: publicName(byParticipant.get(r.participant_id)),
+      avatar: avatarOf(r.participant_id),
       prize: r.prize_drop_items?.name_es ?? "Premio",
     }));
     const feed = [...purchases, ...redeemed]
@@ -347,6 +412,7 @@ export async function GET(
         logoUrl: campaign.theme.logoUrl,
         logoAlt: campaign.theme.logoAlt,
         brand: campaign.theme.brand,
+        brandLight: brandTone(campaign.theme) === "light",
         poweredBy: campaign.theme.poweredBy,
         mascots: campaign.theme.mascots as Record<string, string>,
       },
@@ -361,6 +427,7 @@ export async function GET(
       },
       topProduct,
       feed,
+      cast: cast.map((m) => ({ ...figureOf(m), image: m.image, brand: m.brand })),
       top,
       mix,
     };

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { bestAffordablePrize, nextPrize, prizeName } from "@/lib/tickets/store";
 import { useStoreState, useTickets } from "./TicketsShell";
-import { FuelGauge } from "./journey/FuelGauge";
+import { FuelTank } from "./journey/FuelTank";
 import { fuelLines } from "./journey/fuelCopy";
 
 /**
@@ -68,25 +68,27 @@ export function NextPrizeProgress({
 
     const fuel = (
       <>
-        <div className="tk-eyebrow">{t("jrFuelEyebrow")}</div>
-        <FuelGauge
+        <FuelTank
           pct={next.pct}
           fromPct={fromPct}
           compact={compact}
           ariaLabel={t("npAria", { name, pct: next.pct })}
         />
-        <p className={["tk-fuel-goal", lines.canRedeem ? "ready" : null].filter(Boolean).join(" ")}>
-          {lines.main}
-        </p>
-        {lines.secondary && <p className="tk-fuel-next">{lines.secondary}</p>}
-        <p className="tk-fuel-of">
-          {t("npOf", { points: fmt(next.points), cost: fmt(next.prize.pointsCost) })}
-        </p>
-        {!compact && (
-          <span className="tk-fuel-go">
-            {t(lines.canRedeem ? "jrFuelRedeemNow" : "jrFuelCta")} →
-          </span>
-        )}
+        <div className="tk-fuel-copy">
+          <div className="tk-eyebrow">{t("jrFuelEyebrow")}</div>
+          <p className={["tk-fuel-goal", lines.canRedeem ? "ready" : null].filter(Boolean).join(" ")}>
+            {lines.main}
+          </p>
+          {lines.secondary && <p className="tk-fuel-next">{lines.secondary}</p>}
+          <p className="tk-fuel-of">
+            {t("npOf", { points: fmt(next.points), cost: fmt(next.prize.pointsCost) })}
+          </p>
+          {!compact && (
+            <span className="tk-fuel-go">
+              {t(lines.canRedeem ? "jrFuelRedeemNow" : "jrFuelCta")} →
+            </span>
+          )}
+        </div>
       </>
     );
 

@@ -6,6 +6,7 @@ import { authThrottleKind, supabaseBrowser } from "@/lib/supabase/browser";
 import { formatUsdCents, mechanicOf } from "@/lib/tickets/config";
 import { productLabel } from "@/lib/tickets/productLabel";
 import { canPayout, canReview } from "@/lib/tickets/roles";
+import { SuperganaWordmark } from "@/app/c/[campana]/fiesta/Wordmark";
 import { ReadingsView } from "./ReadingsView";
 import { PAYOUT_TRANSITIONS } from "@/lib/tickets/payouts";
 import { displayIdentity, formatMxPhone } from "@/lib/platform/phone";
@@ -216,8 +217,8 @@ export function TicketsAdminClient({ slug }: { slug: string }) {
     <div className="tka">
       <aside className="tka-side">
         <div className="logo">
-          <span className="dot" /> supergana{" "}
-          <span style={{ fontWeight: 400, color: "#8E897C" }}>ops</span>
+          <SuperganaWordmark size={20} />{" "}
+          <span style={{ fontWeight: 400, color: "#B9B4A6" }}>ops</span>
         </div>
         <div className="sec">Campaña</div>
         {NAV.map((item) => (

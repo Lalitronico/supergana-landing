@@ -51,10 +51,8 @@ export function PrizeTeaser({ prizes }: { prizes: TeaserPrize[] }) {
   // without any, the plain price list stays exactly as it was.
   if (art.some(Boolean)) {
     return (
-      <section className="sh-gallery-block">
-        <h2 className="tk-h" style={{ fontSize: 19 }}>
-          {t("shPrizesTitle")}
-        </h2>
+      <section className="sh-sec sh-sec-pink sh-gallery-block">
+        <h2 className="sh-h2">{t("shPrizesTitle")}</h2>
         <ul className="sh-gallery sh-reward-strip">
           {prizes.map((p, i) => (
             <li
@@ -80,27 +78,29 @@ export function PrizeTeaser({ prizes }: { prizes: TeaserPrize[] }) {
             </li>
           ))}
         </ul>
-        <p className="tk-foot">{t("shPrizesNote")}</p>
+        <p className="sh-lede">{t("shPrizesNote")}</p>
       </section>
     );
   }
 
   return (
-    <section className="tk-card sh-prizes">
-      <h2 className="tk-h" style={{ fontSize: 19, marginBottom: 4 }}>
-        {t("shPrizesTitle")}
-      </h2>
-      <ul>
-        {prizes.map((p) => (
-          <li key={`${p.nameEs}-${p.pointsCost}`}>
-            <span className="sh-prize-name">{nameOf(p)}</span>
-            {cost(p)}
-          </li>
-        ))}
-      </ul>
-      <p className="tk-foot" style={{ marginTop: 10 }}>
-        {t("shPrizesNote")}
-      </p>
+    <section className="sh-sec sh-sec-pink">
+      <div className="tk-card sh-prizes">
+        <h2 className="tk-h" style={{ fontSize: 19, marginBottom: 4 }}>
+          {t("shPrizesTitle")}
+        </h2>
+        <ul>
+          {prizes.map((p) => (
+            <li key={`${p.nameEs}-${p.pointsCost}`}>
+              <span className="sh-prize-name">{nameOf(p)}</span>
+              {cost(p)}
+            </li>
+          ))}
+        </ul>
+        <p className="tk-foot" style={{ marginTop: 10 }}>
+          {t("shPrizesNote")}
+        </p>
+      </div>
     </section>
   );
 }

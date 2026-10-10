@@ -6,6 +6,7 @@ import { formatMxPhone, normalizeMxPhone } from "@/lib/platform/phone";
 import { pickableStates } from "@/lib/tickets/states";
 import { useSession, useTickets } from "../TicketsShell";
 import { Headline } from "../Headline";
+import { CharacterPicker } from "../showcase/CharacterPicker";
 import { EntryHead } from "../showcase/EntryHead";
 import type { MeProfile } from "../useMe";
 
@@ -87,6 +88,13 @@ function ProfileForm({
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [zip, setZip] = useState(initial?.zip ?? "");
   const [state, setState] = useState(initial?.state ?? "");
+  // The character they play as. Preselected (the first of the cast, which is the
+  // host) so the preview is never empty; one tap changes it. Campaigns without a
+  // cast never show the picker and never send the field.
+  const cast = campaign.theme.cast;
+  const [avatar, setAvatar] = useState<string | null>(
+    (initial as { avatar?: string | null } | null)?.avatar ?? cast[0]?.id ?? null,
+  );
   const [ageState, setAgeState] = useState(false);
   const [rules, setRules] = useState(false);
   const [marketing, setMarketing] = useState(false);
@@ -145,6 +153,8 @@ function ProfileForm({
           zip: asksZip ? zip.trim() : null,
           state: asksState ? state : null,
           locale,
+          // Validated server-side against this campaign's cast.
+          ...(cast.length > 0 ? { avatar } : {}),
           acceptedAgeState: true,
           acceptedRules: true,
           acceptedMarketing: marketing,
@@ -177,6 +187,10 @@ function ProfileForm({
         className="tk-card sh-form"
         onSubmit={submit}
       >
+        {cast.length > 0 && (
+          <CharacterPicker cast={cast} value={avatar} onChange={setAvatar} alias={alias} />
+        )}
+
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <label className="tk-field">
             {t("fName")}

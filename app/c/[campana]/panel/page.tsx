@@ -13,6 +13,9 @@ import { ApprovalCelebration } from "../ApprovalCelebration";
 import { NextPrizeProgress } from "../NextPrizeProgress";
 import { redemptionLabelKey } from "../premios/redemptionStatus";
 import { prizeName } from "@/lib/tickets/store";
+import { castMember, type CastMember } from "@/lib/tickets/theme";
+import { dominantBrand } from "@/lib/tickets/brandOf";
+import { BrandChip } from "../journey/BrandChip";
 import type { MeReceipt } from "../useMe";
 
 const RECEIPT_PILL: Record<ReceiptStatus, string> = {
@@ -152,19 +155,15 @@ function PointsCard({
 }
 
 interface LeaderboardData {
-  top: { rank: number; alias: string; points: number; isMe: boolean }[];
+  /** `avatar` is the cast id; optional because the endpoint may not send it. */
+  top: { rank: number; alias: string; points: number; isMe: boolean; avatar?: string | null }[];
   me: { rank: number; points: number } | null;
   totalRanked: number;
 }
 
-/**
- * Top 10 by accumulated points. The server sends aliases and points, nothing
- * else — see the endpoint's note on why this is an aggregate, not a policy.
- */
-function LeaderboardCard({ slug }: { slug: string }) {
-  const { t } = useTickets();
+/** One read of the board, shared by the header ("you are #2") and the card. */
+function useLeaderboard(slug: string): LeaderboardData | null {
   const [data, setData] = useState<LeaderboardData | null>(null);
-
   useEffect(() => {
     let alive = true;
     fetch(`/api/tickets/${slug}/leaderboard/`, { cache: "no-store" })
@@ -177,34 +176,77 @@ function LeaderboardCard({ slug }: { slug: string }) {
       alive = false;
     };
   }, [slug]);
+  return data;
+}
 
+/** A cast member's face, for avatars. Falls back to the full-body art. */
+const faceOf = (member: CastMember) => member.avatar ?? member.image;
+
+const RACE_TONES = [
+  "var(--sg-yellow)",
+  "var(--sg-pink)",
+  "var(--sg-blue)",
+  "var(--sg-green)",
+  "var(--sg-orange)",
+  "var(--sg-purple)",
+];
+
+/**
+ * Top 10 by accumulated points, drawn as a race: each row has a lane whose
+ * length is proportional to points against the leader's. The server sends
+ * aliases, points and (optionally) the character, nothing else; see the
+ * endpoint's note on why this is an aggregate, not a policy.
+ */
+function LeaderboardCard({ data }: { data: LeaderboardData | null }) {
+  const { campaign, t } = useTickets();
   if (!data) return null;
+  const lead = Math.max(1, ...data.top.map((r) => r.points));
 
   return (
-    <div className="tk-card">
+    <div className="tk-card jr-race">
       <h2 className="tk-h" style={{ fontSize: 18, marginBottom: 4 }}>{t("lbTitle")}</h2>
       {data.top.length === 0 ? (
         <p className="tk-body" style={{ fontSize: 13.5 }}>{t("lbEmpty")}</p>
       ) : (
         <>
           <div className="tk-hist">
-            {data.top.map((row) => (
-              <div className={["tk-hist-item", "jr-lb-row", row.isMe ? "me" : null].filter(Boolean).join(" ")} key={row.rank}>
-                <div className="meta" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                  {/* The podium gets a medal chip; the rest keep a plain number.
-                      Colour carries rank only as redundancy — the number is
-                      always printed. */}
-                  <b className={["jr-rank", row.rank <= 3 ? `p${row.rank}` : null].filter(Boolean).join(" ")}>
-                    {row.rank}
-                  </b>
-                  <b>{row.alias}</b>
-                  {row.isMe && <span className="tk-pill ok">{t("lbYou")}</span>}
+            {data.top.map((row, i) => {
+              const member = castMember(campaign.theme, row.avatar);
+              return (
+                <div
+                  className={["tk-hist-item", "jr-lb-row", row.isMe ? "me" : null].filter(Boolean).join(" ")}
+                  key={row.rank}
+                >
+                  <div className="jr-lane">
+                    <div className="jr-lane-head">
+                      {member ? (
+                        // eslint-disable-next-line @next/next/no-img-element -- tenant art
+                        <img className="jr-face" src={faceOf(member)} alt="" decoding="async" />
+                      ) : (
+                        <b className={["jr-rank", row.rank <= 3 ? `p${row.rank}` : null].filter(Boolean).join(" ")}>
+                          {row.rank}
+                        </b>
+                      )}
+                      <b className="jr-lane-name">{row.alias}</b>
+                      {row.isMe && <span className="tk-pill ok">{t("lbYou")}</span>}
+                      <b className="jr-lane-pts">
+                        {row.points} {t("ptsUnit")}
+                      </b>
+                    </div>
+                    <div className="jr-track" aria-hidden="true">
+                      <span
+                        className="jr-track-fill"
+                        style={{
+                          width: `${Math.max(6, (row.points / lead) * 100)}%`,
+                          background: RACE_TONES[i % RACE_TONES.length],
+                        }}
+                      />
+                      {row.rank === 1 && <span className="jr-track-flag sg-checker" />}
+                    </div>
+                  </div>
                 </div>
-                <b style={{ fontFamily: "var(--tk-display)", whiteSpace: "nowrap" }}>
-                  {row.points} {t("ptsUnit")}
-                </b>
-              </div>
-            ))}
+              );
+            })}
           </div>
           {data.me && (
             <p className="tk-foot" style={{ marginTop: 10 }}>
@@ -344,6 +386,7 @@ export default function PanelPage() {
   const router = useRouter();
   const { status, me, reload } = useSession();
   const store = useStoreState();
+  const board = useLeaderboard(campaign.slug);
 
   useEffect(() => {
     if (status === "anon") router.replace(`${base}entrar/?next=panel`);
@@ -379,6 +422,12 @@ export default function PanelPage() {
       .join(" · ");
 
   const redemptions = store.snapshot?.redemptions ?? [];
+  const panelMember =
+    campaign.theme.cast.length > 0
+      ? (castMember(campaign.theme, me.participant?.avatar) ??
+        campaign.theme.cast.find((m) => m.brand === null) ??
+        campaign.theme.cast[0])
+      : null;
   const identity = me.email || me.phone ? displayIdentity(me.email, me.phone) : null;
 
   const reward = me.rewards.find((r) => r.status !== "canceled") ?? null;
@@ -395,17 +444,40 @@ export default function PanelPage() {
   return (
     <div className="tk-pad">
       <ApprovalCelebration me={me} />
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10 }}>
-        <div>
-          <h1 className="tk-h" style={{ fontSize: 30 }}>{t("pnTitle")}</h1>
-          <p className="tk-foot" style={{ marginTop: 4 }}>
-            {t("pnHello", { name: me.participant?.firstName ?? "" })}
-            {/* Phone campaigns without a readable number have no identity to
-                show, and a lone dash after a separator reads as a bug. */}
-            {identity && <> · {identity}</>}
-          </p>
+      {panelMember ? (
+        // With a cast the header is a stage: the participant's own character in
+        // a ring, the name, and their place in the race, on a colour band that
+        // bleeds to the edges.
+        <section className="jr-panelhead sg-halftone">
+          <div className="jr-avatar">
+            {/* eslint-disable-next-line @next/next/no-img-element -- tenant art */}
+            <img src={faceOf(panelMember)} alt="" decoding="async" />
+          </div>
+          <div className="jr-panelhead-text">
+            <h1 className="tk-h" style={{ fontSize: 28 }}>
+              {t("pnHello", { name: me.participant?.firstName ?? "" })}
+            </h1>
+            {board?.me && (
+              <p className="jr-rankpill">
+                {t("lbYourPlace", { rank: board.me.rank, total: board.totalRanked })}
+              </p>
+            )}
+            {identity && <p className="jr-panelhead-id">{identity}</p>}
+          </div>
+        </section>
+      ) : (
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10 }}>
+          <div>
+            <h1 className="tk-h" style={{ fontSize: 30 }}>{t("pnTitle")}</h1>
+            <p className="tk-foot" style={{ marginTop: 4 }}>
+              {t("pnHello", { name: me.participant?.firstName ?? "" })}
+              {/* Phone campaigns without a readable number have no identity to
+                  show, and a lone dash after a separator reads as a bug. */}
+              {identity && <> · {identity}</>}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       <PointsCard
         points={me.points}
@@ -459,7 +531,7 @@ export default function PanelPage() {
         </div>
       )}
 
-      <LeaderboardCard slug={campaign.slug} />
+      <LeaderboardCard data={board} />
 
       {/* Gated on the address existing, not only on the reward. A campaign
           identified by phone has no address to verify and no reward mailed to
@@ -525,7 +597,15 @@ export default function PanelPage() {
                       than a contradiction. */}
                   {detailOf(receipt) && <span>{detailOf(receipt)}</span>}
                   {(receipt.products?.length ?? 0) > 0 && (
-                    <span>{t("jrHistProducts", { list: receipt.products!.slice(0, 3).join(", ") })}</span>
+                    <ul className="jr-chips small">
+                      {receipt.products!.slice(0, 3).map((label, i) => (
+                        <BrandChip
+                          key={label}
+                          label={label}
+                          brand={dominantBrand(receipt.products!.slice(0, 3), campaign.brands).byLabel[i]}
+                        />
+                      ))}
+                    </ul>
                   )}
                   {receipt.reject_reason && (
                     <span>{t("pnRejected", { reason: receipt.reject_reason })}</span>

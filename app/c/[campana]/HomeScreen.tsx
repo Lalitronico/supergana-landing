@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useSession, useTickets } from "./TicketsShell";
-import { Confetti } from "./Confetti";
 import { Headline } from "./Headline";
-import { Mascot } from "./Mascot";
 import { NextPrizeProgress } from "./NextPrizeProgress";
-import { StepStrip } from "./StepStrip";
-import { brandNames } from "./showcase/brandNames";
-import { BrandLockup } from "./showcase/BrandLockup";
+import { SuperganaWordmark } from "./fiesta/Wordmark";
+import { BrandParade } from "./showcase/BrandParade";
+import { HeroStage } from "./showcase/HeroStage";
+import { LogoMarquee } from "./showcase/LogoMarquee";
+import { RoadMap } from "./showcase/RoadMap";
 import { PrizeTeaser, type TeaserPrize } from "./showcase/PrizeTeaser";
 import { ProductGallery } from "./showcase/ProductGallery";
 
@@ -249,11 +249,15 @@ function ThresholdHome({
 }
 
 /**
- * Accumulation campaigns (Carrera Alaska): every eligible peso earns points and
- * no receipt pays a reward. Nothing here may mention a minimum purchase, a
- * reward amount, a weekly quota or a sold-out state — none of those exist in
- * this mechanic, and printing them from a zeroed config is what made this
- * screen announce "buy $0, get $0, all gone".
+ * Accumulation campaigns (Carrera Alaska, Ticket al Tanque): every eligible peso
+ * earns points and no receipt pays a reward. Nothing here may mention a minimum
+ * purchase, a reward amount, a weekly quota or a sold-out state: none of those
+ * exist in this mechanic.
+ *
+ * Built as a sequence of full-bleed bands, each with its own ground (sunburst,
+ * ink, halftone, grass, paper), the way supergana.fun alternates its sections:
+ * two neighbours never share a background, which is what makes a long page read
+ * as a place to move through instead of one scrolling form.
  */
 function AccumulationHome({
   products,
@@ -262,13 +266,9 @@ function AccumulationHome({
   products: ProductView[];
   prizes: TeaserPrize[];
 }) {
-  const { campaign, t, base, locale } = useTickets();
+  const { campaign, t, base } = useTickets();
   const rate = campaign.pointsPerDollar;
   const org = campaign.orgName;
-  // What counts for points. When the campaign names its brands, ONLY those do
-  // ("Jarritos y Mineragua", not every product of the parent company), so the
-  // copy that says "products of X" must say X = the brands. No brands: the org.
-  const eligible = brandNames(campaign.brands, locale) ?? org;
 
   // The real validation catalogue, which is what a shopper needs in front of
   // the shelf. Falls back to the configured brand chips for a multi-brand
@@ -278,154 +278,125 @@ function AccumulationHome({
       ? products.map((p) => ({ key: `${p.brand} ${p.name}`, label: p.name }))
       : campaign.brands.map((b) => ({ key: b.name, label: b.name }));
 
-  // The hero art is the mascot's, and the confetti belongs to it: a tenant with
-  // no artwork gets a full-width headline, which is exactly the layout this
-  // screen shipped with. No tenant needs an illustrator to launch.
-  const hasArt = Boolean(campaign.theme.mascots.greet);
-
-  // The photo gallery is opt-in by data: it needs at least one product image.
-  // Without any, the chips above stay exactly as every earlier campaign had them.
-  const galleryProducts = products.some((p) => p.imageUrl) ? products : [];
+  // Opt-in by data. Several brands -> the parade, one card each. A single brand
+  // (or none) has no parade to hold; it keeps the shelf or the chips.
+  const parade = campaign.brands.length >= 2;
+  const galleryProducts = !parade && products.some((p) => p.imageUrl) ? products : [];
 
   return (
-    <div className="tk-pad">
-      {/* No eyebrow here, unlike the threshold home: this headline already says
-          the org's name, in the org's colour, and saying it twice in the two
-          biggest type sizes on the screen reads as a stutter. */}
-      <div className={hasArt ? "tk-hero art sh-rise" : "tk-hero sh-rise"} style={rise(0)}>
-        <h1 className="tk-h tk-hero-title">
-          <Headline text={t("accHeroTitle", { org })} mark={t("accHeroMark", { org })} as="brand" />
-        </h1>
-        {hasArt && (
-          <div className="tk-hero-art">
-            <Confetti />
-            <Mascot pose="greet" />
+    <div className="sh-home">
+      <section className="sh-sec sh-sec-hero">
+        <HeroStage org={org} />
+
+        <div className="tk-ticket sh-ticket sh-rise" style={rise(3)}>
+          <div className="top">
+            <div className="tk-eyebrow">{t("accRateLabel")}</div>
+            <div className="tk-amount sh-rate" style={{ fontSize: 34, marginTop: 4 }}>
+              {t("accRateLine", { rate })}
+            </div>
+            <p className="tk-foot" style={{ marginTop: 8 }}>{t("accRateNote")}</p>
+            <span className="sh-stamp" aria-hidden="true">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="m12 2.6 2.9 6.05 6.6.86-4.85 4.55 1.24 6.54L12 17.4l-5.89 3.2 1.24-6.54L2.5 9.51l6.6-.86z"
+                  fill="var(--tk-ink)"
+                />
+              </svg>
+            </span>
           </div>
-        )}
-      </div>
-      <p className="tk-body sh-rise" style={rise(1)}>
-        {t("accHeroSub")}
-      </p>
-
-      <div className="sh-rise" style={rise(2)}>
-        <BrandLockup brands={campaign.brands} />
-      </div>
-
-      {/* The ticket comes before the glance strip: the one thing this screen
-          exists for is the press, and on a 390x844 phone it has to be on the
-          first screen with its camera icon, not scrolled to. */}
-      <div className="tk-ticket sh-ticket sh-rise" style={rise(3)}>
-        <div className="top">
-          <div className="tk-eyebrow">{t("accRateLabel")}</div>
-          <div className="tk-amount sh-rate" style={{ fontSize: 34, marginTop: 4 }}>
-            {t("accRateLine", { rate })}
+          <div className="rip" />
+          <div className="bottom pressable">
+            <CtaLine href={`${base}subir/`} title={t("ctaUploadTitle")} sub={t("ctaUploadSub")} />
           </div>
-          <p className="tk-foot" style={{ marginTop: 8 }}>{t("accRateNote")}</p>
-          {/* Decorative stamp: the star is the system's mark for points. */}
-          <span className="sh-stamp" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <path
-                d="m12 2.6 2.9 6.05 6.6.86-4.85 4.55 1.24 6.54L12 17.4l-5.89 3.2 1.24-6.54L2.5 9.51l6.6-.86z"
-                fill="var(--tk-ink)"
-              />
-            </svg>
-          </span>
         </div>
-        <div className="rip" />
-        <div className="bottom pressable">
-          <CtaLine
-            href={`${base}subir/`}
-            title={t("ctaUploadTitle")}
-            sub={t("ctaUploadSub")}
-          />
-        </div>
-      </div>
 
-      <div className="sh-rise" style={rise(4)}>
-        <StepStrip />
-      </div>
+        {/* Renders nothing until there is a session and an open Drop. */}
+        <NextPrizeProgress />
+        <AccountDoors />
+      </section>
 
-      {/* Renders nothing until there is a session and an open Drop. For a
-          participant it is the reason to press the ticket above. */}
-      <NextPrizeProgress />
+      <LogoMarquee brands={campaign.brands} />
 
-      <AccountDoors />
+      {parade && (
+        <section className="sh-sec sh-sec-yellow">
+          <h2 className="sh-h2">{t("shParadeTitle")}</h2>
+          <p className="sh-lede">{t("shParadeNote")}</p>
+          <BrandParade brands={campaign.brands} products={products} />
+        </section>
+      )}
+
+      {!parade && galleryProducts.length > 0 && (
+        <section className="sh-sec sh-sec-yellow sh-gallery-block">
+          <h2 className="sh-h2">{t("accProductsTitle")}</h2>
+          <ProductGallery products={galleryProducts} brands={campaign.brands} />
+          <p className="sh-lede">{t("accProductsNote", { org })}</p>
+        </section>
+      )}
+
+      {!parade && galleryProducts.length === 0 && items.length > 0 && (
+        <section className="sh-sec sh-sec-yellow">
+          <h2 className="sh-h2">{t("accProductsTitle")}</h2>
+          <div className="tk-brands">
+            {items.map((item) => (
+              <span className="tk-chip" key={item.key}>
+                {item.label}
+              </span>
+            ))}
+          </div>
+          <p className="sh-lede" style={{ marginTop: 10 }}>{t("accProductsNote", { org })}</p>
+        </section>
+      )}
+
+      <section className="sh-sec sh-sec-grass">
+        <h2 className="sh-h2">{t("shRoadTitle")}</h2>
+        <RoadMap />
+      </section>
 
       <PrizeTeaser prizes={prizes} />
 
-      {galleryProducts.length > 0 ? (
-        <section className="sh-gallery-block">
-          <h2 className="tk-h" style={{ fontSize: 19 }}>
-            {t("accProductsTitle")}
-          </h2>
-          <ProductGallery products={galleryProducts} brands={campaign.brands} />
-          <p className="tk-foot">{t("accProductsNote", { org: eligible })}</p>
+      <section className="sh-sec sh-sec-paper">
+        <section className="sh-faq">
+          <h2 className="sh-h2">{t("shFaqTitle")}</h2>
+          {(
+            [
+              ["shFaqEarnQ", "shFaqEarnA"],
+              ["shFaqWhenQ", "shFaqWhenA"],
+              ["shFaqRedeemQ", "shFaqRedeemA"],
+            ] as const
+          ).map(([q, a]) => (
+            <details key={q}>
+              <summary>{t(q)}</summary>
+              <p>{t(a, { rate })}</p>
+            </details>
+          ))}
         </section>
-      ) : (
-        items.length > 0 && (
-          <div className="tk-card">
-            <h2 className="tk-h" style={{ fontSize: 19, marginBottom: 10 }}>
-              {t("accProductsTitle")}
+
+        {campaign.eligibleStates.length > 0 && (
+          <div className="tk-card flat" style={{ marginTop: 14 }}>
+            <h2 className="tk-h" style={{ fontSize: 16, marginBottom: 6 }}>
+              {t("statesTitle")}
             </h2>
-            <div className="tk-brands">
-              {items.map((item) => (
-                <span className="tk-chip" key={item.key}>
-                  {item.label}
-                </span>
-              ))}
-            </div>
-            <p className="tk-foot" style={{ marginTop: 10 }}>
-              {t("accProductsNote", { org: eligible })}
+            <p className="tk-foot">
+              {t("statesNote", { states: campaign.eligibleStates.join(", ") })}
             </p>
           </div>
-        )
-      )}
-
-      {/* Replaces the "how it works" card: the strip above already says buy,
-          upload, earn, redeem, and repeating it as three paragraphs made the
-          page say the same thing twice. These answer what the strip cannot. */}
-      <section className="sh-faq">
-        <h2 className="tk-h" style={{ fontSize: 19 }}>
-          {t("shFaqTitle")}
-        </h2>
-        {(
-          [
-            ["shFaqEarnQ", "shFaqEarnA"],
-            ["shFaqWhenQ", "shFaqWhenA"],
-            ["shFaqRedeemQ", "shFaqRedeemA"],
-          ] as const
-        ).map(([q, a]) => (
-          <details key={q}>
-            <summary>{t(q)}</summary>
-            <p>{t(a, { rate })}</p>
-          </details>
-        ))}
+        )}
       </section>
 
-      {campaign.eligibleStates.length > 0 && (
-        <div className="tk-card flat">
-          <h2 className="tk-h" style={{ fontSize: 16, marginBottom: 6 }}>
-            {t("statesTitle")}
-          </h2>
-          <p className="tk-foot">
-            {t("statesNote", { states: campaign.eligibleStates.join(", ") })}
-          </p>
-        </div>
-      )}
-
-      <p className="tk-foot">
-        {t("accLegalHome")}
-        {campaign.rulesUrl && (
-          <>
-            {" "}
-            <a href={campaign.rulesUrl} style={{ color: "inherit" }}>
-              {t("rulesLink")}
-            </a>
-            .
-          </>
-        )}
-      </p>
-      <p className="tk-foot">{t("poweredBy")}</p>
+      <footer className="sh-sec sh-sec-ink sh-foot">
+        <p>
+          {t("accLegalHome")}
+          {campaign.rulesUrl && (
+            <>
+              {" "}
+              <a href={campaign.rulesUrl}>{t("rulesLink")}</a>.
+            </>
+          )}
+        </p>
+        <p className="sh-foot-by">
+          {t("shOperatedBy")} <SuperganaWordmark size={17} />
+        </p>
+      </footer>
     </div>
   );
 }

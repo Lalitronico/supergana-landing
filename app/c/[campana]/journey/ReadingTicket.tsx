@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import type { ReceiptStatus } from "@/lib/tickets/config";
 import { Mascot } from "../Mascot";
-import { useTickets } from "../TicketsShell";
+import { useSession, useTickets } from "../TicketsShell";
+import { CastFigure } from "../fiesta/CastFigure";
+import { castMember } from "@/lib/tickets/theme";
 
 /**
  * The wait, made watchable.
@@ -41,6 +43,15 @@ export function ReadingTicket({
   readDone?: boolean;
 }) {
   const { campaign, t } = useTickets();
+  const { me } = useSession();
+  // Who is examining the ticket: the participant's own character when they
+  // picked one, else the cast's host, else the tenant's mascot as before.
+  const { cast } = campaign.theme;
+  const inspector =
+    castMember(campaign.theme, me?.participant?.avatar) ??
+    cast.find((m) => m.brand === null) ??
+    cast[0] ??
+    null;
   // Seconds since the receipt was sent. Seeded from the server's timestamp so a
   // reload does not restart the show from "Leyendo…" on a ticket that has been
   // waiting for ten minutes; clamped at 0 for a phone whose clock runs behind.
@@ -78,47 +89,55 @@ export function ReadingTicket({
 
   return (
     <div className="jr-read">
-      <div className={["jr-clip", withTeam ? "paused" : null].filter(Boolean).join(" ")}>
-        <div className="jr-paper">
-          {photoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element -- blob: URL of the photo just taken
-            <img src={photoUrl} alt={t("jrReadAlt")} />
-          ) : (
-            // After a reload the original is gone from the browser and private
-            // in storage, so the scanner passes over a drawn stand-in instead of
-            // a broken image.
-            <div className="jr-fake" aria-hidden="true">
-              <i style={{ width: "58%" }} /><i style={{ width: "36%" }} />
-              <i /><i style={{ width: "82%" }} /><i style={{ width: "70%" }} />
-              <i /><i style={{ width: "76%" }} /><i style={{ width: "44%" }} />
-              <i style={{ width: "88%" }} /><i style={{ width: "52%" }} />
-            </div>
-          )}
-          <span className="jr-scan" aria-hidden="true" />
+      <div className="jr-stage sg-halftone">
+        <div className={["jr-clip", withTeam ? "paused" : null].filter(Boolean).join(" ")}>
+          <div className="jr-paper">
+            {photoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- blob: URL of the photo just taken
+              <img src={photoUrl} alt={t("jrReadAlt")} />
+            ) : (
+              // After a reload the original is gone from the browser and private
+              // in storage, so the scanner passes over a drawn stand-in instead of
+              // a broken image.
+              <div className="jr-fake" aria-hidden="true">
+                <i style={{ width: "58%" }} /><i style={{ width: "36%" }} />
+                <i /><i style={{ width: "82%" }} /><i style={{ width: "70%" }} />
+                <i /><i style={{ width: "76%" }} /><i style={{ width: "44%" }} />
+                <i style={{ width: "88%" }} /><i style={{ width: "52%" }} />
+              </div>
+            )}
+            <span className="jr-scan" aria-hidden="true" />
+            {/* A magnifying glass drifting over the paper: the character is
+                "checking" it. CSS only; it stops with the scanner. */}
+            <span className="jr-lens" aria-hidden="true" />
+          </div>
         </div>
+
+        {inspector ? (
+          <CastFigure member={inspector} height={132} className="jr-inspector" alt="" delay={200} />
+        ) : (
+          <Mascot pose="ticket" className="jr-inspector" />
+        )}
       </div>
 
-      <div className="jr-reader">
-        <Mascot pose="ticket" className="jr-reader-mascot" />
-        <div role="status" aria-live="polite" className="jr-reader-text">
-          <h1 className="tk-h" style={{ fontSize: 22 }}>
-            {withTeam ? t("jrReadInReviewTitle") : t("jrReadTitle")}
-          </h1>
-          {withTeam ? (
-            <p className="tk-body" style={{ fontSize: 13.5, marginTop: 6 }}>
-              {t("jrReadInReview", { hours: campaign.reviewSlaHours })}
-            </p>
-          ) : (
-            <ol className="jr-steps">
-              {steps.map((label, i) => (
-                <li key={label} className={i < active ? "done" : i === active ? "now" : "next"}>
-                  <span className="jr-step-dot" aria-hidden="true">{i < active ? "✓" : ""}</span>
-                  {i === 2 && slow && i === active ? t("jrReadLong") : label}
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
+      <div role="status" aria-live="polite" className="jr-reader-text">
+        <h1 className="tk-h" style={{ fontSize: 24 }}>
+          {withTeam ? t("jrReadInReviewTitle") : t("jrReadTitle")}
+        </h1>
+        {withTeam ? (
+          <p className="tk-body" style={{ fontSize: 13.5, marginTop: 6 }}>
+            {t("jrReadInReview", { hours: campaign.reviewSlaHours })}
+          </p>
+        ) : (
+          <ol className="jr-steps">
+            {steps.map((label, i) => (
+              <li key={label} className={i < active ? "done" : i === active ? "now" : "next"}>
+                <span className="jr-step-dot" aria-hidden="true">{i < active ? "✓" : ""}</span>
+                {i === 2 && slow && i === active ? t("jrReadLong") : label}
+              </li>
+            ))}
+          </ol>
+        )}
       </div>
 
       {!withTeam && <p className="tk-foot jr-honest">{t("jrReadHonest")}</p>}

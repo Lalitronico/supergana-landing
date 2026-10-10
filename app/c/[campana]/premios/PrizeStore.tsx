@@ -10,6 +10,7 @@ import {
   type StorePrize,
 } from "@/lib/tickets/store";
 import { Mascot } from "../Mascot";
+import { CastFigure } from "../fiesta/CastFigure";
 import { useStoreState, useTickets } from "../TicketsShell";
 import { ConfirmRedeem } from "./ConfirmRedeem";
 import { PrizeArt } from "./PrizeArt";
@@ -40,6 +41,7 @@ function PrizeCard({
   points,
   featured,
   mine,
+  tone,
   onPick,
 }: {
   prize: StorePrize;
@@ -47,6 +49,8 @@ function PrizeCard({
   featured: boolean;
   /** Already claimed in this Drop. The RPC would refuse a second one. */
   mine: boolean;
+  /** Colour rotation index for the art frame. */
+  tone: number;
   onPick: () => void;
 }) {
   const { locale, t } = useTickets();
@@ -101,7 +105,7 @@ function PrizeCard({
         ) : null}
       </div>
 
-      <PrizeArt prize={prize} wide={featured} />
+      <PrizeArt prize={prize} wide={featured} tone={tone} />
 
       <div className="tk-prize-body">
         <b className="tk-prize-name">{prizeName(prize, locale)}</b>
@@ -300,6 +304,11 @@ export function PrizeStore({
   const rest = featured ? items.filter((item) => item.id !== featured.id) : items;
   const allGone = items.length > 0 && items.every((item) => item.remaining <= 0);
 
+  // Section bands alternate backgrounds, as on the landing: ink header, yellow
+  // sunburst for the featured prize, cream for the shelf, pink for the history.
+  // Two neighbours never share a colour, and every screen has at least three.
+  const host = campaign.theme.cast.find((m) => m.brand === null) ?? campaign.theme.cast[0] ?? null;
+
   return (
     <>
       {confirming && (
@@ -316,93 +325,109 @@ export function PrizeStore({
         />
       )}
 
-      <div className="tk-drophead">
-        <div>
-          <h1 className="tk-h" style={{ fontSize: 27 }}>{t("stTitle")}</h1>
-          <p className="tk-foot" style={{ marginTop: 4 }}>{t("stDropCadence")}</p>
-        </div>
-        {campaign.theme.mascots.ticket && (
-          <div className="tk-drophead-art">
-            <Mascot pose="ticket" />
+      <div className="jr-bands">
+        <section className="jr-band ink">
+          <div className="jr-drophead">
+            <div>
+              <h1 className="tk-h jr-drophead-title">{t("stTitle")}</h1>
+              <p className="jr-drophead-sub">{t("stDropCadence")}</p>
+            </div>
+            {host ? (
+              <CastFigure member={host} height={104} className="jr-drophead-art" alt="" />
+            ) : campaign.theme.mascots.ticket ? (
+              <div className="tk-drophead-art">
+                <Mascot pose="ticket" />
+              </div>
+            ) : null}
           </div>
-        )}
-      </div>
+          <div className="jr-checker sg-checker" aria-hidden="true" />
+        </section>
 
-      {/* Errors from a refusal that happened outside the modal — a stale shelf
-          re-read, mostly. Inside the modal the modal shows them. */}
-      {error && !confirming && <p className="tk-error">{error}</p>}
+        {/* Errors from a refusal that happened outside the modal — a stale shelf
+            re-read, mostly. Inside the modal the modal shows them. */}
+        {error && !confirming && <p className="tk-error" style={{ margin: 18 }}>{error}</p>}
 
-      {items.length === 0 ? (
-        <div className="tk-card">
-          <p className="tk-body" style={{ fontSize: 13.5 }}>{t("stNoDrop")}</p>
-          <p className="tk-foot" style={{ marginTop: 6 }}>{t("stNoDropNote")}</p>
-        </div>
-      ) : (
-        <>
-          {featured && (
-            <PrizeCard
-              prize={featured}
-              points={points}
-              featured
-              mine={claimed.has(featured.id)}
-              onPick={() => {
-                setError(null);
-                setConfirming(featured);
-              }}
-            />
-          )}
-
-          {rest.length > 0 && (
-            <div className="tk-prizegrid">
-              {rest.map((prize) => (
+        {items.length === 0 ? (
+          <section className="jr-band cream">
+            <div className="tk-card">
+              <p className="tk-body" style={{ fontSize: 13.5 }}>{t("stNoDrop")}</p>
+              <p className="tk-foot" style={{ marginTop: 6 }}>{t("stNoDropNote")}</p>
+            </div>
+          </section>
+        ) : (
+          <>
+            {featured && (
+              <section className="jr-band rays">
                 <PrizeCard
-                  key={prize.id}
-                  prize={prize}
+                  prize={featured}
                   points={points}
-                  featured={false}
-                  mine={claimed.has(prize.id)}
+                  featured
+                  mine={claimed.has(featured.id)}
+                  tone={0}
                   onPick={() => {
                     setError(null);
-                    setConfirming(prize);
+                    setConfirming(featured);
                   }}
                 />
-              ))}
-            </div>
-          )}
+              </section>
+            )}
 
-          {allGone && <p className="tk-foot">{t("stSoldOutNote")}</p>}
-        </>
-      )}
-
-      {redemptions.length > 0 && (
-        <div className="tk-card">
-          <h2 className="tk-h" style={{ fontSize: 18, marginBottom: 4 }}>{t("stHistTitle")}</h2>
-          <div className="tk-hist">
-            {redemptions.map((row) => (
-              <div className="tk-hist-item" key={row.id}>
-                <div className="meta">
-                  <b>{prizeName({ nameEs: row.prizeNameEs, nameEn: row.prizeNameEn }, locale)}</b>
-                  <span>
-                    {t("stRedeemedOn", {
-                      date: new Intl.DateTimeFormat(locale === "es" ? "es-MX" : "en-US", {
-                        day: "numeric",
-                        month: "short",
-                      }).format(new Date(row.createdAt)),
-                    })}{" "}
-                    · {row.pointsSpent} {t("pointsUnit")}
-                  </span>
-                  {/* Monospaced and letter-spaced: this is the string somebody
-                      reads out at a counter, in a list that may hold several. */}
-                  <span className="tk-histcode">{row.code}</span>
+            {rest.length > 0 && (
+              <section className="jr-band cream">
+                <div className="tk-prizegrid">
+                  {rest.map((prize, i) => (
+                    <PrizeCard
+                      key={prize.id}
+                      prize={prize}
+                      points={points}
+                      featured={false}
+                      mine={claimed.has(prize.id)}
+                      tone={i + 1}
+                      onPick={() => {
+                        setError(null);
+                        setConfirming(prize);
+                      }}
+                    />
+                  ))}
                 </div>
-                <span className={`tk-pill ${REDEMPTION_PILL[row.status]}`}>
-                  {t(redemptionLabelKey(row))}
-                </span>
+                {allGone && <p className="tk-foot" style={{ marginTop: 12 }}>{t("stSoldOutNote")}</p>}
+              </section>
+            )}
+          </>
+        )}
+
+        {redemptions.length > 0 && (
+          <section className="jr-band pink">
+            <div className="tk-card">
+              <h2 className="tk-h" style={{ fontSize: 18, marginBottom: 4 }}>{t("stHistTitle")}</h2>
+              <div className="tk-hist">
+                {redemptions.map((row) => (
+                  <div className="tk-hist-item" key={row.id}>
+                    <div className="meta">
+                      <b>{prizeName({ nameEs: row.prizeNameEs, nameEn: row.prizeNameEn }, locale)}</b>
+                      <span>
+                        {t("stRedeemedOn", {
+                          date: new Intl.DateTimeFormat(locale === "es" ? "es-MX" : "en-US", {
+                            day: "numeric",
+                            month: "short",
+                          }).format(new Date(row.createdAt)),
+                        })}{" "}
+                        · {row.pointsSpent} {t("pointsUnit")}
+                      </span>
+                      {/* Monospaced and letter-spaced: this is the string somebody
+                          reads out at a counter, in a list that may hold several. */}
+                      <span className="tk-histcode">{row.code}</span>
+                    </div>
+                    <span className={`tk-pill ${REDEMPTION_PILL[row.status]}`}>
+                      {t(redemptionLabelKey(row))}
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
+          </section>
+        )}
+      </div>
     </>
   );
 }

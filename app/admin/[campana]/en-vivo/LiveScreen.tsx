@@ -3,21 +3,29 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import QRCode from "qrcode";
-import type { LiveData, LiveFeedItem } from "@/app/api/tickets/[campana]/admin/live/route";
+import type {
+  LiveData,
+  LiveFeedItem,
+  LiveFigure,
+} from "@/app/api/tickets/[campana]/admin/live/route";
+import { SuperganaWordmark } from "@/app/c/[campana]/fiesta/Wordmark";
 
 type Gate = "loading" | "anon" | "forbidden" | "error" | "ready";
 
 const POLL_MS = 3000;
 const STAGE_W = 1920;
 const STAGE_H = 1080;
+const LANES = 6;
+/** Lane pitch in stage pixels; mirrors --lane in live.css. */
+const LANE_H = 62;
 
-/** Supergana's own cast, for tenants that ship no mascots of their own. */
-const DEFAULT_CHARACTERS = {
-  greet: "/characters/v2/gato.png",
-  celebrate: "/characters/v2/oso.png",
-  ticket: "/characters/v2/cebra.png",
-  point: "/characters/v2/lince.png",
-} as const;
+/** Supergana's own cast, for tenants that ship no cast and no mascots. */
+const DEFAULT_CHARACTERS = [
+  "/characters/v2/gato.png",
+  "/characters/v2/oso.png",
+  "/characters/v2/cebra.png",
+  "/characters/v2/lince.png",
+];
 
 const usd = (cents: number) => `$${Math.round(cents / 100).toLocaleString("en-US")}`;
 const int = (n: number) => Math.round(n).toLocaleString("en-US");
@@ -31,9 +39,8 @@ const ago = (nowMs: number, atIso: string): string => {
 };
 
 /**
- * Counts toward `target` instead of jumping to it. A number that rolls up is
- * what tells a room of people "that was you"; a number that silently changes
- * is not noticed from four metres away.
+ * Counts toward `target` instead of jumping to it. The number rolls up like a
+ * pump display: a room notices "that was us" far more than a silent change.
  */
 function useCountUp(target: number): number {
   const [shown, setShown] = useState(0);
@@ -62,21 +69,21 @@ function Counter({
   label,
   value,
   suffix,
-  className,
+  tone,
   hint,
   empty,
 }: {
   label: string;
   value: number;
   suffix?: string;
-  className?: string;
+  tone: string;
   hint?: string;
   /** Neutral "nothing yet" state: a dash instead of a discouraging zero. */
   empty?: boolean;
 }) {
   const shown = useCountUp(value);
   return (
-    <div className={`lv-card lv-counter ${className ?? ""}`}>
+    <div className={`lv-card lv-counter ${tone}`}>
       <div className="lv-counter-label">{label}</div>
       {/* `key` restarts the pop animation each time the real value changes. */}
       <div key={value} className={`lv-counter-value ${empty ? "empty" : ""}`}>
@@ -88,7 +95,7 @@ function Counter({
   );
 }
 
-function Icon({ kind }: { kind: "ticket" | "gift" | "bolt" | "full" }) {
+function Icon({ kind }: { kind: "ticket" | "gift" | "bolt" | "full" | "flag" }) {
   const common = {
     width: "100%",
     height: "100%",
@@ -111,7 +118,7 @@ function Icon({ kind }: { kind: "ticket" | "gift" | "bolt" | "full" }) {
     return (
       <svg {...common}>
         <path d="M4 10h16v10H4zM3 7h18v3H3zM12 7v13" />
-        <path d="M12 7c-1-3-5-3.5-5-1.2C7 7.2 9 7 12 7zm0 0c1-3 5-3.5 5-1.2C17 7.2 15 7 12 7z" />
+        <path d="M12 7c-1-3-5-3.5-5-1.2C7 7.2 9 7 12 7zm0 0c1-3 5-3.5 5-1.2C17 7.2 15 7.2 12 7z" />
       </svg>
     );
   if (kind === "bolt")
@@ -120,10 +127,48 @@ function Icon({ kind }: { kind: "ticket" | "gift" | "bolt" | "full" }) {
         <path d="M13 3 5 13h6l-1 8 8-10h-6z" />
       </svg>
     );
+  if (kind === "flag")
+    return (
+      <svg {...common}>
+        <path d="M5 21V4M5 4h11l-2 4 2 4H5" />
+      </svg>
+    );
   return (
     <svg {...common}>
       <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
     </svg>
+  );
+}
+
+/** A character's face in a ring; an initial when the tenant has no cast. */
+function Avatar({
+  figure,
+  alias,
+  className,
+}: {
+  figure: LiveFigure | null;
+  alias: string;
+  className?: string;
+}) {
+  return (
+    <span className={`lv-avatar ${className ?? ""}`}>
+      {figure ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={figure.image} alt="" aria-hidden="true" draggable={false} />
+      ) : (
+        <b>{alias.charAt(0).toUpperCase()}</b>
+      )}
+    </span>
+  );
+}
+
+/** A brand's logo; its name when the logo is missing or fails to load. */
+function BrandMark({ name, logoUrl }: { name: string; logoUrl: string | null }) {
+  const [failed, setFailed] = useState(false);
+  if (!logoUrl || failed) return <span className="lv-brand-name">{name}</span>;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img className="lv-brand-logo" src={logoUrl} alt={name} onError={() => setFailed(true)} />
   );
 }
 
@@ -140,7 +185,10 @@ function FeedRow({
   return (
     <li className={`lv-feed-item ${fresh ? "fresh" : ""} ${isTicket ? "ticket" : "redeem"}`}>
       <span className="lv-feed-icon">
-        <Icon kind={isTicket ? "ticket" : "gift"} />
+        <Avatar figure={item.avatar} alias={item.alias} />
+        <span className="lv-feed-badge">
+          <Icon kind={isTicket ? "ticket" : "gift"} />
+        </span>
       </span>
       <div className="lv-feed-body">
         <div className="lv-feed-who">
@@ -161,9 +209,7 @@ function FeedRow({
         ) : (
           <span className="lv-feed-pts redeem">Premio</span>
         )}
-        <span className="lv-feed-ago">
-          {ago(nowMs, item.at)}
-        </span>
+        <span className="lv-feed-ago">{ago(nowMs, item.at)}</span>
       </div>
     </li>
   );
@@ -183,13 +229,13 @@ function buildFacts(data: LiveData): { kicker: string; text: string }[] {
   if (leader && total > 0) {
     facts.push({
       kicker: "Marca líder",
-      text: `${leader.brand} · ${Math.round((leader.cents / total) * 100)}% del gasto elegible`,
+      text: `${leader.brand} · ${Math.round((leader.cents / total) * 100)}% del gasto`,
     });
   }
   if (data.counters.approved > 0) {
     facts.push({
       kicker: "Ticket promedio",
-      text: `${int(data.counters.points / data.counters.approved)} puntos por ticket aprobado`,
+      text: `${int(data.counters.points / data.counters.approved)} puntos por ticket`,
     });
   }
   return facts;
@@ -221,11 +267,13 @@ export function LiveScreen({ slug }: { slug: string }) {
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [clockSkew, setClockSkew] = useState(0);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
+  const [passers, setPassers] = useState<Set<string>>(new Set());
   const [banner, setBanner] = useState<LiveFeedItem | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
 
   // Ids already shown: the first snapshot must not celebrate the whole backlog.
   const seen = useRef<Set<string> | null>(null);
+  const lastRank = useRef<Map<string, number>>(new Map());
   const bannerTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // --- polling -------------------------------------------------------------
@@ -259,6 +307,20 @@ export function LiveScreen({ slug }: { slug: string }) {
           setTimeout(() => alive && setFresh(new Set()), 5000);
         }
         seen.current = new Set(next.feed.map((f) => f.id));
+
+        // Overtakes: anyone whose rank number got smaller since the last
+        // snapshot (or who just entered the board after the first load).
+        const overtakers = new Set<string>();
+        const hadBoard = lastRank.current.size > 0;
+        for (const row of next.top) {
+          const before = lastRank.current.get(row.id);
+          if (before !== undefined ? row.rank < before : hadBoard) overtakers.add(row.id);
+        }
+        lastRank.current = new Map(next.top.map((r) => [r.id, r.rank]));
+        if (overtakers.size > 0) {
+          setPassers(overtakers);
+          setTimeout(() => alive && setPassers(new Set()), 3200);
+        }
 
         setClockSkew(Date.now() - Date.parse(next.serverTime));
         setData(next);
@@ -356,25 +418,44 @@ export function LiveScreen({ slug }: { slug: string }) {
 
   const { counters, theme, campaign } = data;
   const brandStyle = (theme.brand ? { "--lv-brand": theme.brand } : {}) as CSSProperties;
-  const mascot = (pose: keyof typeof DEFAULT_CHARACTERS) =>
-    theme.mascots[pose] ?? DEFAULT_CHARACTERS[pose];
+  const cast = data.cast;
+
+  // Art for the stage: the tenant's cast, else its mascots, else Supergana's.
+  const mascotList = Object.values(theme.mascots);
+  const stage: string[] = cast.length
+    ? cast.map((m) => m.image)
+    : mascotList.length
+      ? mascotList
+      : DEFAULT_CHARACTERS;
+  const art = (i: number) => stage[i % stage.length];
   const nowAdjusted = nowMs - clockSkew;
-  const mixTotal = data.mix.reduce((sum, b) => sum + b.cents, 0);
+
   // Seconds while it is quick, minutes once it is not: "8 s" is the pitch.
   const avg = counters.autoAvgSeconds ?? 0;
-  const autoTime = avg < 90 ? { value: Math.max(1, Math.round(avg)), unit: " s" } : { value: Math.round(avg / 60), unit: " min" };
+  const autoTime =
+    avg < 90
+      ? { value: Math.max(1, Math.round(avg)), unit: " s" }
+      : { value: Math.round(avg / 60), unit: " min" };
   const facts = buildFacts(data);
+  const mixTotal = data.mix.reduce((sum, b) => sum + b.cents, 0);
   const empty = counters.tickets === 0 && data.feed.length === 0;
   const origin = data.joinUrl.replace(/^https?:\/\//, "");
 
+  // The race: distance is proportional to points, scaled so the leader stops a
+  // little short of the flag until somebody earns more than they have.
+  const leaderPoints = data.top[0]?.points ?? 0;
+  const goal = Math.max(leaderPoints * 1.12, 300);
+
   return (
-    <div className="lv-root" style={brandStyle}>
+    <div className={`lv-root ${theme.brandLight ? "brand-light" : ""}`} style={brandStyle}>
       <div
         className="lv-stage"
         style={{
           transform: `translate(-50%, -50%) scale(${scale})`,
         }}
       >
+        <div className="lv-rays" aria-hidden="true" />
+
         {/* ---- header ---------------------------------------------------- */}
         <header className="lv-head">
           <div className="lv-cobrand">
@@ -386,14 +467,8 @@ export function LiveScreen({ slug }: { slug: string }) {
             {theme.logoUrl && theme.poweredBy && <span className="lv-x">×</span>}
             {(!theme.logoUrl || theme.poweredBy) && (
               <span className="lv-sg">
-                <span className="lv-sg-dot" />
-                {theme.logoUrl ? (
-                  <>
-                    <small>Powered by</small> supergana
-                  </>
-                ) : (
-                  "supergana"
-                )}
+                {theme.logoUrl && <small>Powered by</small>}
+                <SuperganaWordmark size={46} />
               </span>
             )}
           </div>
@@ -424,7 +499,7 @@ export function LiveScreen({ slug }: { slug: string }) {
         <div className="lv-flag" aria-hidden="true" />
 
         <main className="lv-grid">
-          {/* ---- column A: QR + top 5 ------------------------------------- */}
+          {/* ---- column A: QR + brand mix --------------------------------- */}
           <section className="lv-col lv-col-a">
             <div className="lv-card lv-qr">
               <div className="lv-qr-kicker">Escanea y juega</div>
@@ -438,58 +513,7 @@ export function LiveScreen({ slug }: { slug: string }) {
               </div>
               <div className="lv-qr-url">{origin}</div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img className="lv-peek" src={mascot("greet")} alt="" aria-hidden="true" />
-            </div>
-
-            <div className="lv-card lv-top">
-              <div className="lv-card-title">
-                <span className="lv-card-icon">
-                  <Icon kind="bolt" />
-                </span>
-                Los 5 primeros
-              </div>
-              {/* The real rows plus ONE dashed ghost: a column of five empty
-                  seats with a single player reads as a dead room. */}
-              <ol className="lv-rank">
-                {Array.from({ length: Math.min(5, data.top.length + 1) }, (_, i) => data.top[i] ?? null).map((row, i) =>
-                  row ? (
-                    <li key={row.rank} className={`pos-${row.rank}`}>
-                      <span className="lv-rank-n">{row.rank}</span>
-                      <span className="lv-rank-who">{row.alias}</span>
-                      <span className="lv-rank-pts">{int(row.points)} pts</span>
-                    </li>
-                  ) : (
-                    <li key={`ghost-${i}`} className="ghost">
-                      <span className="lv-rank-n">{i + 1}</span>
-                      <span className="lv-rank-who">¿Quién sigue?</span>
-                      <span className="lv-rank-pts">—</span>
-                    </li>
-                  ),
-                )}
-              </ol>
-            </div>
-          </section>
-
-          {/* ---- column B: counters + brand mix --------------------------- */}
-          <section className="lv-col lv-col-b">
-            <div className="lv-row lv-row-big">
-              <Counter label="Tickets subidos" value={counters.tickets} className="hero" />
-              <Counter label="Participantes" value={counters.participants} />
-            </div>
-            <div className="lv-row lv-row-small">
-              <Counter
-                label="Validación automática"
-                value={autoTime.value}
-                suffix={autoTime.unit}
-                empty={counters.autoAvgSeconds === null}
-                hint={
-                  counters.autoAvgSeconds === null
-                    ? "esperando el primero"
-                    : `${counters.autoApproved} de ${counters.approved} tickets aprobados solos`
-                }
-              />
-              <Counter label="Puntos repartidos" value={counters.points} />
-              <Counter label="Premios canjeados" value={counters.redemptions} />
+              <img className="lv-peek" src={art(0)} alt="" aria-hidden="true" />
             </div>
 
             <div className="lv-card lv-mix">
@@ -505,57 +529,130 @@ export function LiveScreen({ slug }: { slug: string }) {
                   const share = mixTotal > 0 ? b.cents / mixTotal : 0;
                   return (
                     <div className="lv-bar" key={b.brand}>
-                      <div className="lv-bar-head">
-                        <span className="lv-bar-name">
-                          {b.logoUrl ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={b.logoUrl} alt={b.brand} />
-                          ) : (
-                            <>
-                              <i style={{ background: b.color }} />
-                              {b.brand}
-                            </>
-                          )}
-                        </span>
-                        <span className="lv-bar-num">
-                          <strong>{usd(b.cents)}</strong>
-                          <em>
-                            {int(b.units)} {b.units === 1 ? "producto" : "productos"} ·{" "}
-                            {Math.round(share * 100)}%
-                          </em>
-                        </span>
-                      </div>
+                      <span className="lv-bar-name">
+                        <BrandMark name={b.brand} logoUrl={b.logoUrl} />
+                      </span>
                       <div className="lv-bar-track">
                         <div
                           className="lv-bar-fill"
-                          style={{
-                            width: `${share * 100}%`,
-                            background: b.color,
-                          }}
+                          style={{ width: `${share * 100}%`, background: b.color }}
                         />
+                      </div>
+                      <span className="lv-bar-num">{usd(b.cents)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="lv-peek lv-peek-mix" src={art(5)} alt="" aria-hidden="true" />
+            </div>
+          </section>
+
+          {/* ---- column B: counters + the race ---------------------------- */}
+          <section className="lv-col lv-col-b">
+            <div className="lv-row lv-row-big">
+              <Counter label="Tickets subidos" value={counters.tickets} tone="t-brand" />
+              <Counter label="Participantes" value={counters.participants} tone="t-blue" />
+            </div>
+            <div className="lv-row lv-row-small">
+              <Counter
+                label="Validación automática"
+                value={autoTime.value}
+                suffix={autoTime.unit}
+                tone="t-green"
+                empty={counters.autoAvgSeconds === null}
+                hint={
+                  counters.autoAvgSeconds === null
+                    ? "esperando el primero"
+                    : `${counters.autoApproved} de ${counters.approved} tickets aprobados solos`
+                }
+              />
+              <Counter label="Puntos repartidos" value={counters.points} tone="t-pink" />
+              <Counter label="Premios canjeados" value={counters.redemptions} tone="t-purple" />
+            </div>
+
+            <div className="lv-card lv-race">
+              <div className="lv-race-head">
+                <div className="lv-card-title">
+                  <span className="lv-card-icon">
+                    <Icon kind="flag" />
+                  </span>
+                  La carrera
+                </div>
+                <span className="lv-race-sub">más puntos, más cerca de la meta</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img className="lv-peek lv-peek-race" src={art(2)} alt="" aria-hidden="true" />
+              </div>
+
+              <div className="lv-track" style={{ "--lanes": LANES } as CSSProperties}>
+                {Array.from({ length: LANES }, (_, i) => (
+                  <div className="lv-lane-line" key={i} style={{ top: i * LANE_H }}>
+                    <span>{i + 1}</span>
+                  </div>
+                ))}
+                <div className="lv-finish" aria-hidden="true">
+                  <span>META</span>
+                </div>
+
+                {data.top.length === 0 && (
+                  <div className="lv-race-empty">
+                    <div className="lv-start-line">
+                      {stage.slice(0, 4).map((src, i) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={src}
+                          src={src}
+                          alt=""
+                          aria-hidden="true"
+                          style={{ animationDelay: `${i * 380}ms` }}
+                        />
+                      ))}
+                    </div>
+                    <p>¡En sus marcas! Sube un ticket y arranca la carrera.</p>
+                  </div>
+                )}
+
+                {data.top.map((row) => {
+                  const p = Math.min(1, row.points / goal);
+                  const leaning = p > 0.55;
+                  return (
+                    <div
+                      key={row.id}
+                      className={`lv-racer ${passers.has(row.id) ? "pass" : ""} ${row.rank === 1 ? "lead" : ""}`}
+                      style={{ top: (row.rank - 1) * LANE_H, "--p": p } as CSSProperties}
+                    >
+                      <div className={`lv-runner ${leaning ? "flip" : ""}`}>
+                        <Avatar figure={row.avatar} alias={row.alias} className="big" />
+                        <span className="lv-tag">
+                          <b>{row.alias}</b>
+                          <i>{int(row.points)}</i>
+                        </span>
+                        {passers.has(row.id) && <span className="lv-up">▲</span>}
                       </div>
                     </div>
                   );
                 })}
               </div>
-            </div>
 
-            <FactStrip facts={facts} />
+              <FactStrip facts={facts} />
+            </div>
           </section>
 
           {/* ---- column C: live feed -------------------------------------- */}
           <section className="lv-col lv-col-c">
             <div className="lv-card lv-feed">
-              <div className="lv-card-title">
+              <div className="lv-card-title lv-feed-title">
                 <span className="lv-card-icon">
                   <Icon kind="bolt" />
                 </span>
                 Actividad en vivo
               </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img className="lv-peek lv-peek-feed" src={art(4)} alt="" aria-hidden="true" />
               {empty || data.feed.length === 0 ? (
                 <div className="lv-empty">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={mascot("point")} alt="" aria-hidden="true" />
+                  <img src={art(1)} alt="" aria-hidden="true" />
                   <p>
                     Esperando el primer ticket
                     <span className="lv-dots">
@@ -580,11 +677,20 @@ export function LiveScreen({ slug }: { slug: string }) {
               )}
             </div>
 
-            {/* Celebration toast, over the feed so it never covers numbers. */}
+            {/* Celebration toast, over the feed so it never covers numbers. The
+                character is the cameo of the brand that dominates the ticket. */}
             {banner && (
               <div key={banner.id} className="lv-banner" role="status">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={mascot("celebrate")} alt="" aria-hidden="true" />
+                <img
+                  src={
+                    (banner.kind === "ticket" && banner.cameo?.image) ||
+                    banner.avatar?.image ||
+                    art(1)
+                  }
+                  alt=""
+                  aria-hidden="true"
+                />
                 <div className="lv-banner-text">
                   <div className="lv-banner-kicker">
                     {banner.kind === "ticket" ? "Ticket aprobado" : "Premio canjeado"}
@@ -600,7 +706,6 @@ export function LiveScreen({ slug }: { slug: string }) {
             )}
           </section>
         </main>
-
       </div>
     </div>
   );

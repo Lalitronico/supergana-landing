@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { resolveParticipant } from "@/lib/tickets/access";
 import { getCampaign, isVisible, mayRehearse } from "@/lib/tickets/campaigns";
 import { profileSchemaFor } from "@/lib/tickets/schema";
+import { parseAvatarChoice } from "@/lib/tickets/avatar";
 import { POINTS_SPEND_KINDS } from "@/lib/tickets/config";
 import type { ReceiptRow, RewardRow } from "@/lib/tickets/schema";
 
@@ -130,6 +131,9 @@ export async function GET(
       // migration 0015 runs against a project the key is simply absent.
       phone: ctx.participant.phone ?? null,
       locale: ctx.participant.locale,
+      // Absent on a project where 0043 has not run; the cast id the participant
+      // picked, drawn client-side from the theme.
+      avatar: (ctx.participant as { avatar?: string | null }).avatar ?? null,
       emailVerified: ctx.participant.email_verified_at !== null,
     },
     receipts: receiptRows.map((r) => ({
@@ -210,6 +214,17 @@ export async function POST(
     return NextResponse.json({ error: "state_not_eligible" }, { status: 403 });
   }
 
+  // "Elige tu personaje": validated against THIS campaign's cast, never trusted.
+  // Not in the profile schema because it is optional decoration, not consent or
+  // identity; absent leaves the stored choice untouched.
+  const avatarChoice = parseAvatarChoice(
+    campaign.theme.cast,
+    body && typeof body === "object" ? (body as Record<string, unknown>).avatar : undefined,
+  );
+  if (avatarChoice.kind === "invalid") {
+    return NextResponse.json({ error: "bad_body" }, { status: 400 });
+  }
+
   // The upsert names only the columns this campaign asks for. Two reasons: a
   // field the campaign switched off stops being written without erasing what
   // was already collected from people who answered it, and a campaign that
@@ -258,6 +273,8 @@ export async function POST(
     profile.email = ctx.email.toLowerCase();
     if (profileFields.phone !== "off") profile.phone = input.phone;
   }
+  if (avatarChoice.kind === "set") profile.avatar = avatarChoice.id;
+  if (avatarChoice.kind === "clear") profile.avatar = null;
   if (profileFields.zip !== "off") profile.zip = input.zip;
   if (profileFields.state !== "off") profile.state = input.state;
 

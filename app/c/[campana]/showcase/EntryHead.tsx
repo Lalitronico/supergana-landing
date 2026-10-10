@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 import { useTickets } from "../TicketsShell";
 import { Mascot } from "../Mascot";
+import { CastFigure } from "../fiesta/CastFigure";
+import { stageCast } from "../fiesta/stage";
 
 /**
  * The heading block shared by every entry screen (sign in, create account,
@@ -25,10 +27,13 @@ export function EntryHead({
   sub: ReactNode;
 }) {
   const { campaign, t } = useTickets();
-  const hasArt = Boolean(campaign.theme.mascots.greet);
+  const { host } = stageCast(campaign.theme);
+  const hasArt = Boolean(host || campaign.theme.mascots.greet);
+  // Colour by step, so the three screens of the flow feel like three stops.
+  const tone = step === null ? "blue" : step === 1 ? "yellow" : "pink";
 
   return (
-    <div className={hasArt ? "sh-entry-head art" : "sh-entry-head"}>
+    <div className={hasArt ? `sh-entry-head art ${tone}` : `sh-entry-head ${tone}`}>
       <div className="sh-entry-text">
         {step !== null && (
           <div className="sh-steps" aria-label={t("regStep", { n: step })}>
@@ -43,7 +48,7 @@ export function EntryHead({
       </div>
       {hasArt && (
         <div className="sh-entry-art">
-          <Mascot pose="greet" />
+          {host ? <CastFigure member={host} height={128} alt="" /> : <Mascot pose="greet" />}
         </div>
       )}
     </div>

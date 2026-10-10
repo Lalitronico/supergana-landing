@@ -45,7 +45,7 @@ export async function GET(
   // the balance, never the position earned.
   const { data: entries, error } = await db
     .from("points_entries")
-    .select("participant_id, points, participants(alias, first_name, last_name)")
+    .select("participant_id, points, participants(alias, first_name, last_name, avatar)")
     .eq("campaign_id", campaign.id)
     .not("kind", "in", `(${POINTS_SPEND_KINDS.join(",")})`);
 
@@ -57,12 +57,17 @@ export async function GET(
   interface Row {
     participant_id: string;
     points: number;
-    participants: { alias: string | null; first_name: string; last_name: string } | null;
+    participants: {
+      alias: string | null;
+      first_name: string;
+      last_name: string;
+      avatar: string | null;
+    } | null;
   }
 
   // Aggregated in memory: fine at campaign scale (hundreds of entries). If a
   // campaign ever outgrows this, the fix is a SQL view — not a wider policy.
-  const totals = new Map<string, { points: number; display: string }>();
+  const totals = new Map<string, { points: number; display: string; avatar: string | null }>();
   for (const raw of (entries ?? []) as unknown as Row[]) {
     const current = totals.get(raw.participant_id);
     // Alias is what people chose to show. Profiles that predate the field
@@ -73,6 +78,9 @@ export async function GET(
     totals.set(raw.participant_id, {
       points: (current?.points ?? 0) + raw.points,
       display,
+      // A cast id, nothing else: the screen draws the picture from the theme.
+      // Alias, points and this keep the board free of personal data.
+      avatar: raw.participants?.avatar ?? null,
     });
   }
 
@@ -88,6 +96,7 @@ export async function GET(
     top: ranked.slice(0, TOP).map((r, i) => ({
       rank: i + 1,
       alias: r.display,
+      avatar: r.avatar,
       points: r.points,
       isMe: r.participantId === meId,
     })),

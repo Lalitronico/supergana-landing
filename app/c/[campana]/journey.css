@@ -1,138 +1,145 @@
-/* Journey layer: receipt reading, celebration, fuel tank, prize cards. Loaded after tickets.css.
+/* Journey layer: receipt reading, celebration, tank, prizes, panel. Loaded after
+   tickets.css and fiesta.css (tokens --sg-* and patterns .sg-rays/.sg-halftone/
+   .sg-checker live there; this file only reads them).
 
-   Same rules as the rest of the module: scoped under .tk-app by the shell,
+   Rules shared with the rest of the module: scoped under .tk-app by the shell,
    tenant colour only through --tk-brand / --tk-brand-ink, yellow stays the
    action colour, 3px ink lines and hard offset shadows. Nothing here knows which
-   tenant it is drawing for. */
+   tenant it is drawing for: colours come from the system palette or from data
+   (brand colours, cast art). A screen never stays all-cream: each one carries
+   at least three palette colours, in bands that alternate. */
+
+@keyframes jr-rotate { to { transform: rotate(360deg); } }
+@keyframes jr-spin { to { transform: rotate(360deg); } }
 
 /* ======================================================================
-   Fuel gauge: the "progress meter" when config.progress_meter = "fuel"
+   The tank: a jerrycan filling with the tenant's colour
    ====================================================================== */
 
-.tk-fuelcard {
-  text-align: center;
-  /* A faint wash of the brand at the top, like light on a dashboard. */
-  background: radial-gradient(120% 90% at 50% 0%, var(--tk-brand-soft), #fff 62%);
+.tk-tank { display: block; width: 100%; max-width: 150px; overflow: visible; flex: none; }
+.tk-tank.compact { max-width: 96px; }
+
+.tk-tank-shadow { fill: var(--tk-ink); }
+.tk-tank-glass { fill: #fff; }
+.tk-tank-outline { fill: none; stroke: var(--tk-ink); stroke-width: 4.5; }
+.tk-tank-handle-ink { fill: none; stroke: var(--tk-ink); stroke-width: 13; stroke-linecap: round; stroke-linejoin: round; }
+.tk-tank-handle { fill: none; stroke: var(--sg-yellow); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.tk-tank-neck { fill: #fff; stroke: var(--tk-ink); stroke-width: 3.5; }
+.tk-tank-cap { fill: var(--sg-red); stroke: var(--tk-ink); stroke-width: 3.5; }
+
+/* The level is a translateY on the liquid group: a transition with a springy
+   landing, so each ticket visibly pours in. */
+.tk-tank-liquid { transition: transform 1.4s cubic-bezier(0.34, 1.25, 0.5, 1); }
+.tk-tank-wave { animation: jr-slosh 2.6s linear infinite; }
+.tk-tank-wave.back { animation-duration: 3.9s; animation-direction: reverse; }
+.tk-tank-wave path { fill: var(--tk-brand); }
+.tk-tank-wave.back path { fill: color-mix(in srgb, var(--tk-brand) 55%, #ffffff); }
+.tk-tank-wave.front path { stroke: var(--tk-ink); stroke-width: 3; stroke-linejoin: round; }
+
+@keyframes jr-slosh {
+  from { transform: translateX(0); }
+  to { transform: translateX(-64px); }
 }
 
-.tk-fuelcard.compact {
-  background: none;
-  padding: 0;
-  margin-top: 10px;
+.tk-tank-bubble { fill: rgba(255, 255, 255, 0.75); animation: jr-bubble 3.2s ease-in infinite; }
+.tk-tank-bubble.b2 { animation-delay: 1.1s; animation-duration: 2.6s; }
+.tk-tank-bubble.b3 { animation-delay: 2s; animation-duration: 3.8s; }
+@keyframes jr-bubble {
+  0% { transform: translateY(70px); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateY(-10px); opacity: 0; }
 }
 
-.tk-fuel {
-  display: block;
-  width: 100%;
-  max-width: 300px;
-  margin: 4px auto 0;
-  overflow: visible;
-}
+.tk-tank-shine { fill: rgba(255, 255, 255, 0.55); }
 
-.tk-fuel.compact { max-width: 230px; }
-
-.tk-fuel-plate {
-  fill: #fff;
-  stroke: var(--tk-ink);
-  stroke-width: 3;
-  stroke-linejoin: round;
-}
-
-.tk-fuel-rim { fill: none; stroke: var(--tk-ink); stroke-width: 24; stroke-linecap: round; }
-.tk-fuel-track { fill: none; stroke: var(--tk-cream-deep); stroke-width: 17; }
-.tk-fuel-reserve { fill: none; stroke: var(--tk-red); stroke-width: 17; }
-
-.tk-fuel-fill {
-  fill: none;
-  stroke: var(--tk-brand);
-  stroke-width: 17;
-  /* The sweep: long, with a soft landing. The needle uses an overshoot curve of
-     its own; the fill must not, or it would paint past where the needle ends. */
-  transition: stroke-dashoffset 1.1s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.tk-fuel-tick { stroke: var(--tk-ink); stroke-width: 2; stroke-linecap: round; opacity: 0.55; }
-.tk-fuel-tick.major { stroke-width: 3.2; opacity: 1; }
-
-.tk-fuel-letter {
+.tk-tank-pct {
   font-family: var(--tk-display);
   font-weight: 800;
-  font-size: 15px;
+  font-size: 34px;
   fill: var(--tk-ink);
-}
-
-.tk-fuel-drop { fill: var(--tk-yellow); stroke: var(--tk-ink); stroke-width: 2.2; stroke-linejoin: round; }
-
-.tk-fuel-needle {
-  transform-box: view-box;
-  transform-origin: 120px 122px;
-  transition: transform 1.1s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.tk-fuel-needle path {
-  fill: var(--tk-red);
-  stroke: var(--tk-ink);
-  stroke-width: 2.6;
+  stroke: #fff;
+  stroke-width: 7px;
+  paint-order: stroke;
   stroke-linejoin: round;
-  transform-box: view-box;
-  transform-origin: 120px 122px;
-  /* A real needle never quite rests. */
-  animation: jr-needle-idle 2.6s ease-in-out 2s infinite;
 }
 
-.tk-fuel-hub { fill: var(--tk-yellow); stroke: var(--tk-ink); stroke-width: 3; }
-.tk-fuel-pin { fill: var(--tk-ink); }
+.tk-tank-tick { stroke: var(--tk-ink); stroke-width: 2.5; stroke-linecap: round; }
+.tk-tank-letter { font-family: var(--tk-display); font-weight: 800; font-size: 14px; fill: currentColor; }
+.tk-tank-pointer { transition: transform 1.4s cubic-bezier(0.34, 1.25, 0.5, 1); }
+.tk-tank-pointer path { fill: var(--sg-red); stroke: var(--tk-ink); stroke-width: 2; stroke-linejoin: round; }
 
-.tk-fuel.full .tk-fuel-hub {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: tk-pulse 1.1s ease-in-out infinite;
+.tk-tank.full .tk-tank-cap { transform-box: fill-box; transform-origin: center; animation: tk-pulse 1.1s ease-in-out infinite; }
+
+/* The card around it: the system's blue with halftone, white type. Inside the
+   celebration (compact) the card is the white one already, so it is plain. */
+.tk-fuelcard,
+a.tk-fuelcard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #fff;
+  background-color: var(--sg-blue-deep, #1769bf);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1.4px, transparent 1.6px);
+  background-size: 11px 11px;
 }
 
-@keyframes jr-needle-idle {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(1.4deg); }
-}
+.tk-fuelcard .tk-tank-letter { fill: #fff; }
+.tk-fuelcard .tk-eyebrow { color: rgba(255, 255, 255, 0.82); }
+.tk-fuel-copy { flex: 1; min-width: 0; text-align: left; }
 
 .tk-fuel-goal {
   font-family: var(--tk-display);
   font-weight: 800;
-  font-size: 18px;
-  line-height: 1.2;
+  font-size: 19px;
+  line-height: 1.15;
   letter-spacing: -0.02em;
-  margin-top: 10px;
+  margin-top: 4px;
   text-wrap: balance;
 }
 
-.tk-fuel-goal b {
-  color: var(--tk-brand-ink);
-  font-size: 1.28em;
-  letter-spacing: -0.03em;
-}
-
-.tk-fuelcard.compact .tk-fuel-goal { font-size: 15.5px; margin-top: 6px; }
-
-.tk-fuel-of {
-  margin-top: 3px;
-  font-size: 12px;
+.tk-fuel-goal b { color: var(--sg-yellow); font-size: 1.28em; letter-spacing: -0.03em; }
+.tk-fuel-next {
+  margin-top: 6px;
+  font-size: 12.5px;
   font-weight: 600;
-  color: var(--tk-ink-mute);
+  line-height: 1.3;
+  color: rgba(255, 255, 255, 0.88);
+  text-wrap: balance;
 }
+.tk-fuel-next b { color: var(--sg-yellow); font-weight: 800; }
+.tk-fuel-of { margin-top: 4px; font-size: 11.5px; font-weight: 600; color: rgba(255, 255, 255, 0.72); }
 
 .tk-fuel-go {
+  white-space: nowrap;
   display: inline-block;
-  margin-top: 12px;
-  padding: 7px 16px;
+  margin-top: 10px;
+  padding: 7px 14px;
   font-family: var(--tk-display);
   font-weight: 800;
   font-size: 13px;
-  background: var(--tk-yellow);
+  color: var(--tk-ink);
+  background: var(--sg-yellow);
   border: 2.5px solid var(--tk-ink);
   border-radius: 999px;
   box-shadow: 2px 2px 0 0 var(--tk-ink);
 }
 
-.tk-modal .tk-fuelcard.compact { margin-top: 12px; }
+/* Compact: inside the celebration card. Ink type on the white card. */
+.tk-fuelcard.compact {
+  color: var(--tk-ink);
+  background: none;
+  padding: 0;
+  margin-top: 12px;
+  width: 100%;
+  gap: 12px;
+}
+.tk-fuelcard.compact .tk-tank-letter { fill: var(--tk-ink); }
+.tk-fuelcard.compact .tk-fuel-goal { font-size: 15.5px; }
+.tk-fuelcard.compact .tk-fuel-goal b,
+.tk-fuelcard.compact .tk-fuel-next b { color: var(--tk-brand-ink); }
+.tk-fuelcard.compact .tk-fuel-next { color: var(--tk-ink-soft); }
+.tk-fuelcard.compact .tk-fuel-of { color: var(--tk-ink-mute); }
+.tk-fuelcard.compact .tk-eyebrow { color: var(--tk-ink-mute); }
 
 /* ======================================================================
    Reading the receipt
@@ -140,17 +147,39 @@
 
 .jr-read { display: flex; flex-direction: column; gap: 18px; }
 
-/* The photo, on a clipboard: the person's own ticket stays the hero of the wait. */
+/* A blue stage with halftone: the clipboard on one side, the character
+   inspecting it from the other. */
+.jr-stage {
+  position: relative;
+  display: flex;
+  justify-content: flex-start;
+  padding: 26px 16px 18px 20px;
+  min-height: 250px;
+  background-color: var(--sg-blue);
+  --dots: rgba(255, 255, 255, 0.3);
+  border: 3px solid var(--tk-ink);
+  border-radius: 22px;
+  box-shadow: var(--tk-shadow-lg);
+}
+
+.jr-inspector {
+  position: absolute;
+  right: 4px;
+  bottom: -2px;
+  z-index: 3;
+  width: auto;
+  max-width: 44%;
+}
+
 .jr-clip {
   position: relative;
-  align-self: center;
-  width: min(62%, 232px);
-  padding: 22px 10px 10px;
-  background: var(--tk-yellow);
+  width: min(54%, 200px);
+  padding: 22px 9px 9px;
+  background: var(--sg-yellow);
   border: 3px solid var(--tk-ink);
-  border-radius: 16px;
-  box-shadow: var(--tk-shadow-lg);
-  transform: rotate(-1.6deg);
+  border-radius: 14px;
+  box-shadow: 5px 5px 0 0 var(--tk-ink);
+  transform: rotate(-3deg);
   animation: jr-clip-in 0.55s cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
 
@@ -159,8 +188,8 @@
   position: absolute;
   top: -13px;
   left: 50%;
-  width: 78px;
-  height: 26px;
+  width: 70px;
+  height: 24px;
   transform: translateX(-50%);
   background: var(--tk-ink);
   border-radius: 9px;
@@ -171,7 +200,7 @@
   position: absolute;
   top: -5px;
   left: 50%;
-  width: 44px;
+  width: 40px;
   height: 7px;
   transform: translateX(-50%);
   background: var(--tk-cream);
@@ -181,7 +210,7 @@
 .jr-paper {
   position: relative;
   aspect-ratio: 4 / 5;
-  max-height: 250px;
+  max-height: 230px;
   width: 100%;
   overflow: hidden;
   background: #fff;
@@ -200,8 +229,8 @@
   background: color-mix(in srgb, var(--tk-ink) 14%, #fff);
 }
 
-/* The scanner: a band of brand colour that ends in a hard line, so it reads as
-   a light bar passing over paper and not as a loading shimmer. */
+/* The scanner: a band of brand colour ending in a hard line, like a light bar
+   passing over paper. */
 .jr-scan {
   position: absolute;
   left: 0;
@@ -220,21 +249,60 @@
   animation: jr-scan 2.1s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
 }
 
-.jr-clip.paused .jr-scan { animation: none; opacity: 0; }
+/* The magnifying glass the character is "using". */
+.jr-lens {
+  position: absolute;
+  z-index: 2;
+  width: 56px;
+  height: 56px;
+  left: 6%;
+  top: 12%;
+  border: 5px solid var(--tk-ink);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.5), 3px 3px 0 rgba(10, 10, 10, 0.25);
+  animation: jr-lens 3.6s ease-in-out infinite alternate;
+}
+.jr-lens::after {
+  content: "";
+  position: absolute;
+  left: 40px;
+  top: 44px;
+  width: 8px;
+  height: 30px;
+  border-radius: 4px;
+  background: var(--tk-ink);
+  transform: rotate(-45deg);
+  transform-origin: top center;
+}
+
+.jr-clip.paused .jr-scan,
+.jr-clip.paused .jr-lens { animation: none; opacity: 0; }
 
 @keyframes jr-scan {
   from { top: -52px; }
   to { top: 100%; }
 }
 
-@keyframes jr-clip-in {
-  from { transform: translateY(18px) rotate(3deg) scale(0.92); opacity: 0; }
-  to { transform: translateY(0) rotate(-1.6deg) scale(1); opacity: 1; }
+@keyframes jr-lens {
+  0% { left: 4%; top: 8%; }
+  35% { left: 44%; top: 26%; }
+  70% { left: 12%; top: 56%; }
+  100% { left: 46%; top: 70%; }
 }
 
-.jr-reader { display: flex; align-items: center; gap: 14px; padding-left: 6px; }
-.jr-reader-mascot { width: 84px; flex: none; }
-.jr-reader-text { flex: 1; min-width: 0; }
+@keyframes jr-clip-in {
+  from { transform: translateY(18px) rotate(4deg) scale(0.92); opacity: 0; }
+  to { transform: translateY(0) rotate(-3deg) scale(1); opacity: 1; }
+}
+
+.jr-reader-text {
+  padding: 16px;
+  background: #fff;
+  border: 3px solid var(--tk-ink);
+  border-radius: 18px;
+  box-shadow: var(--tk-shadow);
+}
 
 .jr-steps {
   list-style: none;
@@ -252,8 +320,8 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 1.25;
-  /* Pending steps are muted by COLOUR, not opacity: --tk-ink-mute on cream is
-     5.4:1, where the old 40% opacity fell under AA. */
+  /* Pending steps are muted by COLOUR, not opacity: --tk-ink-mute on white is
+     above AA, where a 40% opacity fell under it. */
   color: var(--tk-ink-mute);
   transition: color 0.4s;
 }
@@ -264,8 +332,8 @@
 
 .jr-step-dot {
   flex: none;
-  width: 21px;
-  height: 21px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -276,59 +344,231 @@
   font-weight: 800;
 }
 
-.jr-steps li.done .jr-step-dot { background: var(--tk-green); }
-.jr-steps li.now .jr-step-dot { background: var(--tk-yellow); animation: tk-pulse 1s ease-in-out infinite; }
+.jr-steps li.done .jr-step-dot { background: var(--sg-green); }
+.jr-steps li.now .jr-step-dot { background: var(--sg-pink); animation: tk-pulse 1s ease-in-out infinite; }
 
 .jr-honest { text-align: center; text-wrap: balance; }
 
 /* ======================================================================
-   Celebration
+   The celebration: the whole screen, a sunburst, the brand's character
    ====================================================================== */
 
-.jr-celebrate { max-width: 340px; }
-
-.jr-pop { animation: jr-pop 0.8s cubic-bezier(0.34, 1.7, 0.5, 1) 0.1s both; }
-
-@keyframes jr-pop {
-  from { transform: scale(0.25) rotate(-16deg); opacity: 0; }
-  to { transform: scale(1) rotate(0deg); opacity: 1; }
+.jr-party {
+  padding: 0;
+  display: block;
+  overflow: hidden;
+  background: var(--sg-blue);
 }
 
-.jr-plus { animation: jr-slam 0.55s cubic-bezier(0.34, 1.6, 0.5, 1) 0.3s both; }
-.jr-plus b { font-variant-numeric: tabular-nums; min-width: 1.6ch; text-align: right; }
+.jr-party-rays {
+  position: absolute;
+  inset: -70%;
+  z-index: 0;
+  animation: jr-rotate 60s linear infinite;
+  opacity: 0.95;
+}
+
+.jr-party-body {
+  position: relative;
+  z-index: 32;
+  height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 16px 14px;
+  --jr-cast-h: 168px;
+}
+
+.jr-party-stage {
+  position: relative;
+  z-index: 3;
+  height: var(--jr-cast-h);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  margin-bottom: -22px;
+  flex: none;
+}
+
+.jr-party-cast {
+  filter: drop-shadow(4px 5px 0 rgba(10, 10, 10, 0.35));
+  animation: jr-cast-in 0.95s cubic-bezier(0.34, 1.6, 0.5, 1) 0.15s both;
+}
+
+@keyframes jr-cast-in {
+  from { transform: translateY(110%) rotate(-14deg) scale(0.6); opacity: 0; }
+  to { transform: translateY(0) rotate(0) scale(1); opacity: 1; }
+}
+
+.jr-pop { animation: jr-cast-in 0.95s cubic-bezier(0.34, 1.6, 0.5, 1) 0.15s both; }
+
+.jr-party-card {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  padding: 28px 16px 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--tk-cream);
+  border: 3px solid var(--tk-ink);
+  border-radius: 22px;
+  box-shadow: var(--tk-shadow-lg);
+  animation: tk-modal-in 0.4s cubic-bezier(0.34, 1.4, 0.64, 1) 0.05s both;
+  flex: none;
+}
+
+.jr-party-title {
+  font-size: 23px;
+  line-height: 1.08;
+  text-wrap: balance;
+  background: linear-gradient(transparent 62%, var(--tk-yellow) 62% 92%, transparent 92%);
+  padding: 0 4px;
+}
+
+.jr-party-actions {
+  width: 100%;
+  max-width: 340px;
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+
+.jr-party-close {
+  min-height: 44px;
+  padding: 0 24px;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 13.5px;
+  color: var(--tk-ink);
+  background: #fff;
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 999px;
+  box-shadow: 2px 2px 0 0 var(--tk-ink);
+  cursor: pointer;
+}
+.jr-party-close:active { transform: translate(2px, 2px); box-shadow: none; }
+
+/* The pump display: mechanical digit reels in an ink case. */
+.jr-pump {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 8px 12px 8px 14px;
+  background: var(--tk-ink);
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 3px #3a3a3a, 4px 4px 0 0 var(--sg-red);
+  animation: jr-slam 0.5s cubic-bezier(0.34, 1.6, 0.5, 1) 0.3s both;
+}
+
+.jr-pump-plus {
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 34px;
+  line-height: 1;
+  color: var(--sg-yellow);
+}
+
+.jr-pump-reels { display: inline-flex; gap: 3px; }
+
+.jr-reel {
+  display: block;
+  width: 0.66em;
+  height: 1.15em;
+  font-size: 40px;
+  overflow: hidden;
+  background: var(--tk-cream);
+  border: 2px solid #000;
+  border-radius: 5px;
+  box-shadow: inset 0 7px 8px -4px rgba(0, 0, 0, 0.35), inset 0 -7px 8px -4px rgba(0, 0, 0, 0.35);
+}
+
+.jr-reel-col {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  line-height: 1.15em;
+  text-align: center;
+  color: var(--tk-ink);
+  transition-property: transform;
+  transition-timing-function: cubic-bezier(0.18, 0.8, 0.2, 1);
+  font-variant-numeric: tabular-nums;
+}
+.jr-reel-col span { display: block; height: 1.15em; }
+
+.jr-pump-unit {
+  align-self: flex-end;
+  margin: 0 0 7px 4px;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--sg-yellow);
+}
 
 @keyframes jr-slam {
-  from { transform: rotate(-2deg) scale(1.7); opacity: 0; }
-  to { transform: rotate(-2deg) scale(1); opacity: 1; }
+  from { transform: scale(1.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
-.jr-found { width: 100%; margin-top: 14px; text-align: left; }
+/* Product chips in the brand's colour */
+.jr-found { width: 100%; margin-top: 12px; }
+.jr-found .tk-eyebrow { text-align: center; }
 
-.jr-found ul {
+.jr-found ul,
+.jr-chips {
   list-style: none;
   margin: 7px 0 0;
   padding: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  justify-content: center;
 }
 
-.jr-found li {
+.jr-chip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px 5px 8px;
+  gap: 6px;
+  padding: 4px 11px 4px 4px;
   font-family: var(--tk-display);
   font-weight: 700;
   font-size: 12px;
   line-height: 1.1;
+  text-align: left;
+  color: var(--tk-ink);
   background: #fff;
   border: 2.5px solid var(--tk-ink);
   border-radius: 999px;
   animation: jr-chip 0.45s cubic-bezier(0.34, 1.5, 0.6, 1) both;
 }
 
-.jr-found li::before { content: "✓"; color: var(--tk-green); font-weight: 800; -webkit-text-stroke: 0.6px var(--tk-ink); }
+.jr-chip-dot {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--chip, var(--sg-green));
+  border: 2px solid var(--tk-ink);
+  border-radius: 50%;
+}
+.jr-chip-dot img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+
+.jr-chip.more { padding: 5px 11px; }
+.jr-chips.small { justify-content: flex-start; margin-top: 4px; }
+.jr-chips.small .jr-chip { font-size: 11px; padding: 3px 9px 3px 3px; animation: none; color: var(--tk-ink); }
+.jr-chips.small .jr-chip-dot { width: 18px; height: 18px; }
 
 @keyframes jr-chip {
   from { transform: translateY(8px) scale(0.8); opacity: 0; }
@@ -337,9 +577,9 @@
 
 /* Confetti thrown from behind the card, one shot, then it falls. */
 .tk-confetti .p.burst {
-  top: 38%;
+  top: 34%;
   left: 50%;
-  animation: jr-burst 2.1s cubic-bezier(0.2, 0.75, 0.3, 1) both;
+  animation: jr-burst 2.3s cubic-bezier(0.2, 0.75, 0.3, 1) both;
   animation-iteration-count: 1;
 }
 
@@ -348,13 +588,120 @@
   10% { opacity: 1; }
   38% { transform: translate(var(--jr-dx), var(--jr-dy)) scale(1) rotate(var(--jr-rot)); opacity: 1; }
   100% {
-    transform: translate(var(--jr-dx), calc(var(--jr-dy) + 420px)) scale(1) rotate(calc(var(--jr-rot) * 2));
+    transform: translate(var(--jr-dx), calc(var(--jr-dy) + 460px)) scale(1) rotate(calc(var(--jr-rot) * 2));
     opacity: 0;
   }
 }
 
+/* The thrown layer sits over the card; the slow rain stays behind it. */
+.tk-confetti.burst-layer { z-index: 40; }
+
+/* A coupon, for products with no art yet: the prize's own name on a ticket. */
+.jr-couponface {
+  position: relative;
+  width: 84%;
+  max-width: 260px;
+  aspect-ratio: 1.9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6cqw 9cqw;
+  text-align: center;
+  color: var(--tk-ink);
+  background: #fff;
+  border: 3px solid var(--tk-ink);
+  border-radius: 12px;
+  box-shadow: 3px 3px 0 0 var(--tk-ink);
+  transform: rotate(-3deg);
+}
+.jr-couponface::before,
+.jr-couponface::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 7cqw;
+  height: 7cqw;
+  margin-top: -3.5cqw;
+  background: var(--jr-coupon-bg, var(--sg-yellow));
+  border: 3px solid var(--tk-ink);
+  border-radius: 50%;
+}
+.jr-couponface::before { left: -4.5cqw; }
+.jr-couponface::after { right: -4.5cqw; }
+.jr-couponface b {
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 9cqw;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.jr-art.tone-0 { --jr-coupon-bg: var(--sg-yellow); }
+.jr-art.tone-1 { --jr-coupon-bg: var(--sg-pink); }
+.jr-art.tone-2 { --jr-coupon-bg: var(--sg-blue); }
+.jr-art.tone-3 { --jr-coupon-bg: var(--sg-green); }
+.jr-art.tone-4 { --jr-coupon-bg: var(--sg-orange); }
+.jr-art.tone-5 { --jr-coupon-bg: var(--sg-purple); }
+
 /* ======================================================================
-   Prizes
+   Bands: alternating section backgrounds (prizes and the code)
+   ====================================================================== */
+
+/* Full-bleed inside .tk-pad (padding 20/18/28). */
+.jr-bands { margin: -20px -18px -28px; display: flex; flex-direction: column; }
+
+.jr-band {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 18px;
+}
+
+.jr-band.ink { background: var(--tk-ink); color: #fff; padding-bottom: 0; gap: 0; }
+
+.jr-band.rays {
+  background: repeating-conic-gradient(from 0deg at 50% 38%, var(--sg-yellow) 0 10deg, #ffe98a 10deg 20deg);
+  border-block: 3px solid var(--tk-ink);
+}
+
+.jr-band.cream {
+  background-color: var(--tk-cream);
+  background-image: radial-gradient(rgba(10, 10, 10, 0.1) 1.4px, transparent 1.6px);
+  background-size: 11px 11px;
+}
+
+.jr-band.pink {
+  background-color: var(--sg-pink);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.35) 1.4px, transparent 1.6px);
+  background-size: 11px 11px;
+  border-top: 3px solid var(--tk-ink);
+  padding-bottom: 32px;
+}
+
+.jr-drophead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 112px;
+}
+
+.jr-drophead-title {
+  font-size: 40px;
+  line-height: 0.95;
+  color: #fff;
+  background: linear-gradient(transparent 64%, var(--sg-pink) 64% 92%, transparent 92%);
+  display: inline-block;
+}
+
+.jr-drophead-sub { margin-top: 8px; font-size: 13px; font-weight: 600; color: rgba(255, 255, 255, 0.82); }
+.jr-drophead-art { margin-bottom: -2px; flex: none; }
+
+.jr-checker { height: 16px; margin: 14px -18px 0; background-size: 16px 16px; }
+
+/* ======================================================================
+   Prize art: colour frames in rotation, gift cards, flip
    ====================================================================== */
 
 .jr-art {
@@ -368,10 +715,9 @@
   border: 3px solid var(--tk-ink);
   border-radius: 13px;
   background-color: var(--tk-brand-soft);
-  background-image: radial-gradient(color-mix(in srgb, var(--tk-brand) 22%, transparent) 1.2px, transparent 1.2px);
-  background-size: 14px 14px;
-  /* The gift card inside sizes itself off THIS box (cqw), so it reads the same
-     in a 140px grid cell and in the wide featured frame. */
+  background-image: radial-gradient(rgba(255, 255, 255, 0.4) 1.4px, transparent 1.6px);
+  background-size: 12px 12px;
+  /* The gift card inside sizes itself off THIS box (cqw). */
   container-type: inline-size;
 }
 
@@ -379,7 +725,13 @@
 .jr-art img { width: 100%; height: 100%; object-fit: contain; padding: 6px; }
 .jr-art .tk-prizeico { background: #fff; }
 
-/* A gift card, front face. The brand fills it; the code never names a tenant. */
+.jr-art.tone-0 { background-color: var(--sg-yellow); }
+.jr-art.tone-1 { background-color: var(--sg-pink); }
+.jr-art.tone-2 { background-color: var(--sg-blue); }
+.jr-art.tone-3 { background-color: var(--sg-green); }
+.jr-art.tone-4 { background-color: var(--sg-orange); }
+.jr-art.tone-5 { background-color: var(--sg-purple); }
+
 .jr-giftface {
   position: relative;
   width: 82%;
@@ -391,11 +743,7 @@
   padding: 6cqw 7cqw;
   overflow: hidden;
   color: #fff;
-  background: linear-gradient(
-    135deg,
-    var(--tk-brand),
-    color-mix(in srgb, var(--tk-brand) 62%, #000)
-  );
+  background: linear-gradient(135deg, var(--tk-brand), color-mix(in srgb, var(--tk-brand) 62%, #000));
   border: 3px solid var(--tk-ink);
   border-radius: 12px;
   box-shadow: 3px 3px 0 0 var(--tk-ink);
@@ -441,7 +789,6 @@
 
 .jr-prize-meta { font-size: 11.5px; font-weight: 700; color: var(--tk-ink-soft); line-height: 1.25; }
 
-/* The featured prize stacks too: with real art the picture wants the width. */
 .tk-prize.featured { flex-direction: column; align-items: stretch; flex-wrap: nowrap; }
 .tk-prize.featured .tk-prize-body { flex: none; }
 .tk-prize.featured .tk-btn { flex: none; }
@@ -449,19 +796,89 @@
 
 /* What you cannot afford yet reads a notch quieter than what you can. */
 .tk-prize:not(.reach):not(.mine):not(.gone) .jr-art img,
-.tk-prize:not(.reach):not(.mine):not(.gone) .jr-giftface { filter: saturate(0.7); }
+.tk-prize:not(.reach):not(.mine):not(.gone) .jr-giftface { filter: saturate(0.72); }
 
-.tk-prize.reach .jr-art { background-color: color-mix(in srgb, var(--tk-yellow) 35%, #fff); }
+/* "Already yours": an achieved state, so green and readable, not a greyed button. */
+.jr-claimed {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 13.5px;
+  color: var(--tk-ink);
+  background: color-mix(in srgb, var(--sg-green) 40%, #fff);
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 11px;
+}
 
-.tk-confirmticket .jr-art { margin-top: 2px; }
+.tk-confirmticket .jr-art { margin-top: 2px; background-color: var(--sg-yellow); }
 
-/* The code screen */
-.jr-gold-gift .jr-art { margin-top: 4px; background-color: var(--tk-cream); }
+/* ======================================================================
+   The code: a gas-station ticket on a sunburst, flipped into place
+   ====================================================================== */
+
+.jr-band.codepage {
+  background:
+    repeating-conic-gradient(from 0deg at 50% 30%, var(--sg-blue) 0 10deg, #4fb0ff 10deg 20deg);
+  min-height: calc(100dvh - 120px);
+  padding-bottom: 32px;
+}
+
+.codepage .tk-codehead h1 {
+  background: #fff;
+  border: 3px solid var(--tk-ink);
+  border-radius: 14px;
+  padding: 6px 12px;
+  box-shadow: 4px 4px 0 0 var(--tk-ink);
+  transform: rotate(-2deg);
+}
+
+.jr-code-cast { flex: none; margin-block: -8px; }
+
+.jr-flip { animation: jr-flip-in 0.95s cubic-bezier(0.3, 1.2, 0.4, 1) 0.1s both; }
+
+@keyframes jr-flip-in {
+  from { transform: perspective(900px) rotateY(-110deg) rotate(-1deg); opacity: 0; }
+  55% { opacity: 1; }
+  to { transform: perspective(900px) rotateY(0) rotate(-1deg); opacity: 1; }
+}
+
+.jr-ticket-flag {
+  align-self: stretch;
+  height: 18px;
+  margin: -16px -14px 10px;
+  border-bottom: 3px solid var(--tk-ink);
+  border-radius: 14px 14px 0 0;
+  background-size: 18px 18px;
+}
+
+/* Punched notches on the perforation, like a torn stub. */
+.jr-flip .tk-goldticket-rip { position: relative; }
+.jr-flip .tk-goldticket-rip::before,
+.jr-flip .tk-goldticket-rip::after {
+  content: "";
+  position: absolute;
+  top: -14px;
+  width: 24px;
+  height: 24px;
+  background: #2f9bff;
+  border: 4px solid var(--tk-ink);
+  border-radius: 50%;
+}
+.jr-flip .tk-goldticket-rip::before { left: -29px; }
+.jr-flip .tk-goldticket-rip::after { right: -29px; }
+
+.jr-gold-gift .jr-art { margin-top: 4px; }
 
 .jr-copy {
   margin-top: 12px;
   align-self: center;
-  padding: 8px 18px;
+  min-height: 44px;
+  padding: 8px 20px;
   font-family: var(--tk-display);
   font-weight: 800;
   font-size: 13px;
@@ -472,12 +889,85 @@
   box-shadow: 2px 2px 0 0 var(--tk-ink);
   cursor: pointer;
 }
-
 .jr-copy:active { transform: translate(2px, 2px); box-shadow: none; }
 
+/* Tiles flip in one by one (80ms apart; the delay is set per tile). */
+.tk-code-tile { animation: jr-tile 0.5s cubic-bezier(0.34, 1.3, 0.64, 1) both; transform-origin: 50% 60%; }
+@keyframes jr-tile {
+  from { transform: perspective(300px) rotateX(-92deg); opacity: 0; }
+  to { transform: perspective(300px) rotateX(0); opacity: 1; }
+}
+
 /* ======================================================================
-   Panel
+   Panel: your character, your lane in the race
    ====================================================================== */
+
+.jr-panelhead {
+  margin: -20px -18px 0;
+  padding: 22px 18px 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #fff;
+  background-color: var(--sg-blue);
+  --dots: rgba(255, 255, 255, 0.3);
+  border-bottom: 3px solid var(--tk-ink);
+}
+
+.jr-avatar {
+  flex: none;
+  width: 84px;
+  height: 84px;
+  overflow: hidden;
+  background: var(--sg-yellow);
+  border: 4px solid var(--tk-ink);
+  border-radius: 50%;
+  box-shadow: 4px 4px 0 0 var(--tk-ink);
+}
+.jr-avatar img { width: 100%; height: 100%; object-fit: cover; object-position: center top; display: block; }
+
+.jr-panelhead-text { min-width: 0; }
+.jr-panelhead h1 { color: #fff; text-shadow: 2px 2px 0 var(--tk-ink); }
+
+.jr-rankpill {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 12px;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 12.5px;
+  color: var(--tk-ink);
+  background: var(--sg-yellow);
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 999px;
+  box-shadow: 2px 2px 0 0 var(--tk-ink);
+}
+
+.jr-panelhead-id { margin-top: 8px; font-size: 12px; color: rgba(255, 255, 255, 0.88); overflow-wrap: anywhere; }
+
+.jr-lb-row { display: block; }
+.jr-lb-row.me {
+  margin-inline: -8px;
+  padding-inline: 8px;
+  background: color-mix(in srgb, var(--sg-yellow) 35%, #fff);
+  border-radius: 12px;
+}
+
+.jr-lane { width: 100%; }
+.jr-lane-head { display: flex; align-items: center; gap: 8px; }
+.jr-lane-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; }
+.jr-lane-pts { font-family: var(--tk-display); font-size: 13px; white-space: nowrap; }
+
+.jr-face {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  object-fit: cover;
+  object-position: center top;
+  background: var(--sg-yellow);
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 50%;
+}
 
 .jr-rank {
   flex: none;
@@ -493,72 +983,29 @@
   font-weight: 800;
   font-size: 12px;
 }
-
 .jr-rank.p1 { background: var(--tk-yellow); }
 .jr-rank.p2 { background: #e6e6e6; }
 .jr-rank.p3 { background: #f2b27a; }
 
-.jr-lb-row.me {
-  margin-inline: -8px;
-  padding-inline: 8px;
-  background: var(--tk-brand-soft);
-  border-radius: 12px;
+.jr-track {
+  position: relative;
+  height: 11px;
+  margin-top: 6px;
+  overflow: hidden;
+  background: var(--tk-cream-deep);
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 999px;
 }
+.jr-track-fill { display: block; height: 100%; border-right: 2.5px solid var(--tk-ink); }
+.jr-track-flag { position: absolute; right: 0; top: 0; bottom: 0; width: 14px; background-size: 7px 7px; border-left: 2px solid var(--tk-ink); }
 
 .jr-hist-right { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
-
-.jr-hist-pts {
-  font-family: var(--tk-display);
-  font-weight: 800;
-  font-size: 14px;
-  color: var(--tk-brand-ink);
-}
+.jr-hist-pts { font-family: var(--tk-display); font-weight: 800; font-size: 14px; color: var(--tk-brand-ink); }
 
 /* ======================================================================
-   Less motion
+   Controls
    ====================================================================== */
 
-@media (prefers-reduced-motion: reduce) {
-  .tk-fuel-fill, .tk-fuel-needle { transition: none; }
-  .tk-fuel-needle path, .tk-fuel.full .tk-fuel-hub { animation: none; }
-  .jr-scan { animation: none; top: 40%; }
-  .jr-clip, .jr-pop, .jr-plus, .jr-found li { animation: none; }
-  .jr-steps li.now .jr-step-dot { animation: none; }
-}
-
-
-/* The thrown layer sits over the card (z 32 inside the overlay's stacking
-   context); the slow rain stays behind it. */
-.tk-confetti.burst-layer { z-index: 40; }
-
-/* The celebration has to fit a 844px phone with the buttons visible: mascot,
-   count-up, chips, gauge, two actions. Everything here is spacing, not content. */
-.jr-celebrate { padding: 18px 20px 16px; }
-.jr-celebrate .tk-modal-mascot { width: auto; max-width: 100%; max-height: 104px; margin-bottom: 0; }
-.jr-celebrate .tk-plusbadge { margin-top: 8px; }
-.jr-celebrate .jr-found { margin-top: 10px; }
-.jr-celebrate .tk-fuel.compact { max-width: 172px; }
-.jr-celebrate .tk-fuelcard.compact { margin-top: 8px; }
-.jr-celebrate .tk-fuelcard .tk-eyebrow { display: none; }
-.jr-found li.more { padding: 5px 10px; }
-.jr-found li.more::before { content: none; }
-
-/* Claimable-now leads; the next goal is a quieter second line. */
-.tk-fuel-goal.ready { color: var(--tk-ink); }
-.tk-fuel-next {
-  margin-top: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.3;
-  color: var(--tk-ink-soft);
-  text-wrap: balance;
-}
-.tk-fuel-next b { color: var(--tk-brand-ink); font-weight: 800; }
-
-/* ---- QA round ------------------------------------------------------------ */
-
-/* Mid-upload the button stays full yellow; the disabled fade is for "you can't",
-   and here the answer is "it's working". */
 .tk-btn.busy:disabled { opacity: 1; cursor: progress; }
 .jr-sending { display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
 .jr-spinner {
@@ -569,57 +1016,22 @@
   border-radius: 50%;
   animation: jr-spin 0.75s linear infinite;
 }
-@keyframes jr-spin { to { transform: rotate(360deg); } }
-
-/* "Already yours": an achieved state, so it is green and readable, not a greyed button. */
-.jr-claimed {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 44px;
-  font-family: var(--tk-display);
-  font-weight: 800;
-  font-size: 13.5px;
-  color: var(--tk-ink);
-  background: color-mix(in srgb, var(--tk-green) 35%, #fff);
-  border: 2.5px solid var(--tk-ink);
-  border-radius: 11px;
-}
 
 /* Touch targets: 44px minimum. */
 .tk-btn.sm { min-height: 44px; }
-.jr-copy { min-height: 44px; padding-inline: 20px; }
 .tk-modal .tk-linkbtn { min-height: 44px; padding-inline: 12px; font-size: 13.5px; }
 .tk-modal.confirm .tk-foot { font-size: 13.5px; line-height: 1.4; }
 
-/* Code tiles flip in one by one (80ms apart); the delay is set per tile. */
-.tk-code-tile { animation: jr-flip 0.5s cubic-bezier(0.34, 1.3, 0.64, 1) both; transform-origin: 50% 60%; }
-@keyframes jr-flip {
-  from { transform: perspective(300px) rotateX(-92deg); opacity: 0; }
-  to { transform: perspective(300px) rotateX(0); opacity: 1; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tk-code-tile, .jr-spinner { animation: none; }
-}
-
-/* ---- Final polish ---------------------------------------------------------- */
-
-/* Confirm sheet: the two actions get real air between them, and the "no" is
-   visibly secondary — flat, no hard shadow, so only "yes" looks pressable. */
+/* Confirm sheet: real air between the actions, the "no" visibly secondary. */
 .tk-modal.confirm .tk-btn + .tk-btn { margin-top: 14px; }
-.tk-modal.confirm .tk-btn.ghost {
-  box-shadow: none;
-  border-width: 2.5px;
-  background: transparent;
-}
+.tk-modal.confirm .tk-btn.ghost { box-shadow: none; border-width: 2.5px; background: transparent; }
 
-/* Short phones (360x740 and the like): trim heights, never the type of the
-   amounts. The art and the mascot are what give way. */
+/* ======================================================================
+   Short phones (360x740 and the like): heights give way, type of amounts never
+   ====================================================================== */
+
 @media (max-height: 780px) {
-  .tk-overlay { padding: 12px; }
+  .tk-overlay:not(.jr-party) { padding: 12px; }
   .tk-modal.confirm { padding: 16px 16px; }
   .tk-modal.confirm .jr-art.wide { aspect-ratio: 2.7; }
   .tk-modal.confirm .tk-confirmticket { padding: 12px 12px 10px; gap: 5px; }
@@ -628,11 +1040,33 @@
   .tk-modal.confirm .tk-btn.ghost { padding-block: 8px; }
   .tk-modal.confirm .tk-foot { margin-top: 6px; }
 
-  .jr-celebrate { padding: 12px 16px 8px; }
-  .jr-celebrate .tk-modal-mascot { max-height: 78px; }
-  .jr-celebrate .tk-modal-emoji { font-size: 38px; margin-bottom: 4px; }
-  .jr-celebrate .tk-fuel.compact { max-width: 140px; }
-  .jr-celebrate .tk-fuel-of { display: none; }
-  .jr-celebrate .tk-btn { margin-top: 10px !important; padding-block: 11px; }
-  .jr-celebrate .jr-found { margin-top: 6px; }
+  .jr-party-body { --jr-cast-h: 118px; padding-top: 10px; gap: 0; }
+  .jr-party-stage { margin-bottom: -18px; }
+  .jr-party-card { padding: 22px 14px 10px; }
+  .jr-party-title { font-size: 20px; }
+  .jr-pump { margin-top: 8px; padding: 6px 10px 6px 12px; }
+  .jr-reel { font-size: 32px; }
+  .jr-pump-plus { font-size: 28px; }
+  .jr-party .tk-tank.compact { max-width: 78px; }
+  .jr-party .tk-fuel-of { display: none; }
+  .jr-party-actions { margin-top: 10px; gap: 6px; }
+  .jr-party-actions .tk-btn { padding-block: 11px; }
+
+  .jr-stage { min-height: 215px; padding-top: 22px; }
+  .jr-paper { max-height: 190px; }
+}
+
+/* ======================================================================
+   Less motion: everything holds still, the final state stays
+   ====================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-tank-liquid, .tk-tank-pointer { transition: none; }
+  .tk-tank-wave, .tk-tank-bubble, .tk-tank.full .tk-tank-cap { animation: none; }
+  .jr-party-rays, .jr-scan, .jr-lens { animation: none; }
+  .jr-scan { top: 40%; }
+  .jr-lens { left: 30%; top: 30%; }
+  .jr-clip, .jr-party-cast, .jr-pop, .jr-party-card, .jr-pump, .jr-chip, .jr-flip, .tk-code-tile, .jr-spinner { animation: none; }
+  .jr-reel-col { transition: none; }
+  .jr-steps li.now .jr-step-dot { animation: none; }
 }

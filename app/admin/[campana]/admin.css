@@ -477,3 +477,14 @@
    of a 120px column that cut "Jarritos Tamarindo 1.5 L" to "Jarritos Tama". */
 .tka-line { grid-template-columns: minmax(0, 1fr) 96px minmax(0, 1.25fr) 34px; }
 .tka-line select { text-overflow: ellipsis; min-width: 0; font-size: 13px; }
+
+/* The real Supergana wordmark on the dark sidebar: cream "Supergana", red dot.
+   The wordmark's own colours come from fiesta.css tokens that only exist under
+   .tk-app, so they are restated here. */
+.tka-side .logo .sg-wordmark {
+  font-family: var(--a-display);
+  font-weight: 800;
+  color: var(--a-cream);
+  letter-spacing: -0.03em;
+}
+.tka-side .logo .sg-wordmark .sg-dot { color: #ff4757; }

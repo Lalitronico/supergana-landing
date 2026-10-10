@@ -40,6 +40,9 @@ export interface MeProfile {
   /** Null wherever the campaign's `profileFields.zip` is not 'required'. */
   zip: string | null;
   state: string | null;
+  /** The cast member this participant picked (`participants.avatar`). Optional:
+   *  the endpoint may not send it yet, and campaigns without a cast never do. */
+  avatar?: string | null;
   /** E.164, or null on campaigns that never ask for it. */
   phone: string | null;
   locale: "es" | "en";
