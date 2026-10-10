@@ -604,3 +604,35 @@
 @media (prefers-reduced-motion: reduce) {
   .tk-code-tile, .jr-spinner { animation: none; }
 }
+
+/* ---- Final polish ---------------------------------------------------------- */
+
+/* Confirm sheet: the two actions get real air between them, and the "no" is
+   visibly secondary — flat, no hard shadow, so only "yes" looks pressable. */
+.tk-modal.confirm .tk-btn + .tk-btn { margin-top: 14px; }
+.tk-modal.confirm .tk-btn.ghost {
+  box-shadow: none;
+  border-width: 2.5px;
+  background: transparent;
+}
+
+/* Short phones (360x740 and the like): trim heights, never the type of the
+   amounts. The art and the mascot are what give way. */
+@media (max-height: 780px) {
+  .tk-overlay { padding: 12px; }
+  .tk-modal.confirm { padding: 16px 16px; }
+  .tk-modal.confirm .jr-art.wide { aspect-ratio: 2.7; }
+  .tk-modal.confirm .tk-confirmticket { padding: 12px 12px 10px; gap: 5px; }
+  .tk-modal.confirm .tk-confirmmascot { display: none; }
+  .tk-modal.confirm .tk-confirmask { margin-top: 10px; }
+  .tk-modal.confirm .tk-btn.ghost { padding-block: 8px; }
+  .tk-modal.confirm .tk-foot { margin-top: 6px; }
+
+  .jr-celebrate { padding: 12px 16px 8px; }
+  .jr-celebrate .tk-modal-mascot { max-height: 78px; }
+  .jr-celebrate .tk-modal-emoji { font-size: 38px; margin-bottom: 4px; }
+  .jr-celebrate .tk-fuel.compact { max-width: 140px; }
+  .jr-celebrate .tk-fuel-of { display: none; }
+  .jr-celebrate .tk-btn { margin-top: 10px !important; padding-block: 11px; }
+  .jr-celebrate .jr-found { margin-top: 6px; }
+}

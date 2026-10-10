@@ -145,14 +145,19 @@ test("gana la razón social cuando la sucursal no nombra nada", () => {
   assert.equal(namesAListedStore(name, ALASKA_STORES), true);
 });
 
-test("sin lista de tiendas conserva el comportamiento viejo", () => {
-  // Una campaña que nunca listó tiendas no puede aprobar sola de todos modos
-  // (`campaign_has_no_stores`), así que lo que necesita el humano que lo va a
-  // mirar es el nombre más específico, no el más largo.
+test("sin empate con la lista, el comercio gana sobre la sucursal", () => {
+  // Sin lista (o con una tienda fuera de ella) lo mira una persona: necesita el
+  // nombre del comercio, no "#22".
   assert.equal(
-    storeNameFrom({ store_name: "SUPER DEL RIO", store_branch: "SUCURSAL 0010" }, []),
-    "SUCURSAL 0010",
+    storeNameFrom({ store_name: "LA MICHOACANA MEAT MARKET", store_branch: "#22" }, []),
+    "LA MICHOACANA MEAT MARKET",
   );
+  assert.equal(
+    storeNameFrom({ store_name: "OXXO", store_branch: "#22" }, ALASKA_STORES),
+    "OXXO",
+  );
+  // Si el comercio no se leyó, la sucursal es mejor que nada.
+  assert.equal(storeNameFrom({ store_name: "", store_branch: "#22" }, []), "#22");
 });
 
 test("acepta las dos formas del objeto, snake y camel", () => {

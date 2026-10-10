@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { authThrottleKind, supabaseBrowser } from "@/lib/supabase/browser";
 import { formatUsdCents, mechanicOf } from "@/lib/tickets/config";
@@ -17,6 +17,9 @@ import { StoreView } from "./StoreView";
 
 type Gate = "loading" | "anon" | "forbidden" | "ready" | "error";
 type View = "dash" | "queue" | "readings" | "payouts" | "catalog" | "store";
+
+/** Receipt states that still wait for a decision. */
+const OPEN_STATUSES = new Set(["received", "in_review", "needs_new_image"]);
 
 const money = (cents: number) => formatUsdCents(cents, "en");
 
@@ -831,18 +834,35 @@ function QueueView({
   const all = useMemo(() => [...queue, ...decided], [queue, decided]);
   const current = all.find((item) => item.receipt.id === selected) ?? null;
 
+  // Default: only what needs a person. The approved/rejected history is one
+  // click away, but a console opened in front of a client should not open on a
+  // table of finished work labelled "pending".
+  const [scope, setScope] = useState<"pending" | "all">("pending");
+  const rows = scope === "pending" ? queue : all;
+
+  // Opening a ticket must put its detail on screen: the panel renders below the
+  // table, which on a long list is screens away.
+  const detailRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (selected) detailRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [selected]);
+
   // One narrow column, spent on whatever this campaign actually collected. A
   // ZIP column full of dashes tells the reviewer nothing; on a campaign that
   // pays in phone top-ups, the number is the thing they scan the list for.
   const showsZip = profileFields.zip !== "off";
-  const contactHeader = showsZip ? "ZIP" : profileFields.phone !== "off" ? "Celular" : "—";
+  // No column at all when the campaign collected neither: a header of "—" over a
+  // column of dashes is what read as a missing heading.
+  const contactHeader = showsZip ? "ZIP" : profileFields.phone !== "off" ? "Celular" : null;
+  const columns = contactHeader ? 6 : 5;
 
   return (
     <>
       <div>
         <h2 className="tka-title">Cola de revisión</h2>
         <div className="tka-sub">
-          {queue.length} tickets pendientes.{" "}
+          {queue.length} {queue.length === 1 ? "ticket pendiente" : "tickets pendientes"}
+          {scope === "all" ? ` · ${decided.length} ya decididos` : ""}.{" "}
           {/* Este texto decía "Sin OCR en la v1" hasta el 2026-08-20, dos semanas
               después de que el OCR entrara en producción. Se lo leían los
               revisores. Ahora lo dice la configuración, no un comentario que
@@ -855,27 +875,48 @@ function QueueView({
         </div>
       </div>
 
+      <div role="group" aria-label="Qué tickets mostrar" style={{ display: "flex", gap: 8 }}>
+        <button
+          type="button"
+          className={`tka-btn sm ${scope === "pending" ? "" : "ghost"}`}
+          aria-pressed={scope === "pending"}
+          onClick={() => setScope("pending")}
+        >
+          Pendientes ({queue.length})
+        </button>
+        <button
+          type="button"
+          className={`tka-btn sm ${scope === "all" ? "" : "ghost"}`}
+          aria-pressed={scope === "all"}
+          onClick={() => setScope("all")}
+        >
+          Todos ({all.length})
+        </button>
+      </div>
+
       <div className="tka-card tka-scroll">
         <table>
           <thead>
             <tr>
               <th>Enviado</th>
               <th>Participante</th>
-              <th>{contactHeader}</th>
+              {contactHeader && <th>{contactHeader}</th>}
               <th>Señales</th>
               <th>Elegible</th>
               <th>Estado</th>
             </tr>
           </thead>
           <tbody>
-            {all.length === 0 && (
+            {rows.length === 0 && (
               <tr>
-                <td colSpan={6} style={{ color: "#6B665B" }}>
-                  Todavía no hay tickets en esta campaña.
+                <td colSpan={columns} style={{ color: "#6B665B" }}>
+                  {all.length === 0
+                    ? "Todavía no hay tickets en esta campaña."
+                    : "Nada pendiente: todo lo que llegó ya está decidido."}
                 </td>
               </tr>
             )}
-            {all.map((item) => {
+            {rows.map((item) => {
               const worst = item.flags.some((f) => f.level === "bad")
                 ? "bad"
                 : item.flags.some((f) => f.level === "warn")
@@ -906,17 +947,25 @@ function QueueView({
                       {displayIdentity(item.participant?.email, item.participant?.phone)}
                     </span>
                   </td>
+                  {contactHeader && (
+                    <td>
+                      {showsZip
+                        ? (item.participant?.zip ?? "—")
+                        : item.participant?.phone
+                          ? formatMxPhone(item.participant.phone)
+                          : "—"}
+                    </td>
+                  )}
                   <td>
-                    {showsZip
-                      ? (item.participant?.zip ?? "—")
-                      : item.participant?.phone
-                        ? formatMxPhone(item.participant.phone)
-                        : "—"}
-                  </td>
-                  <td>
-                    <span className={`tka-pill ${worst === "ok" ? "ok" : worst === "warn" ? "warn" : "bad"}`}>
-                      {worst === "ok" ? "Limpio" : worst === "warn" ? "Revisar" : "Alerta"}
-                    </span>
+                    {/* A signal only means something on a ticket still waiting
+                        for a decision; on a settled one it is noise. */}
+                    {OPEN_STATUSES.has(item.receipt.status) ? (
+                      <span className={`tka-pill ${worst === "ok" ? "ok" : worst === "warn" ? "warn" : "bad"}`}>
+                        {worst === "ok" ? "Limpio" : worst === "warn" ? "Revisar" : "Alerta"}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
                   </td>
                   <td>
                     {item.receipt.eligible_cents != null
@@ -936,6 +985,7 @@ function QueueView({
       </div>
 
       {current && (
+        <div ref={detailRef} style={{ scrollMarginTop: 12 }}>
         <ReviewPanel
           key={current.receipt.id}
           slug={slug}
@@ -952,6 +1002,7 @@ function QueueView({
           ocr={ocr}
           onDone={onDone}
         />
+        </div>
       )}
     </>
   );

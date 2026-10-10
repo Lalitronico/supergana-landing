@@ -106,7 +106,7 @@ test("the store name written is the one the anti-duplicate lock will see", () =>
   assert.equal(out.action, "approve");
   if (out.action !== "approve") return;
   assert.equal(out.capture.storeName, "DEL RIO (0010)");
-  assert.equal(out.capture.storeName, autoStoreName(read()));
+  assert.equal(out.capture.storeName, autoStoreName(read(), ["Superette", "Del Río"]));
 });
 
 // ---------------------------------------------------------------------------

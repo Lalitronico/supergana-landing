@@ -18,6 +18,8 @@ export interface MeReceipt {
   points?: number | null;
   /** Catalog products read on it (approved receipts only). */
   products?: string[];
+  /** The automatic read has finished (says nothing about what it found). */
+  read_done?: boolean;
 }
 
 export interface MeReward {

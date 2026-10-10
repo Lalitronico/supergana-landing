@@ -30,12 +30,15 @@ export function ReadingTicket({
   photoUrl,
   status,
   submittedAt,
+  readDone = false,
 }: {
   /** The photo this browser just uploaded; null after a reload (it is private). */
   photoUrl: string | null;
   status: ReceiptStatus;
   /** ISO time the receipt was sent, so a reload resumes mid-wait. */
   submittedAt: string;
+  /** The server says the automatic read already finished. */
+  readDone?: boolean;
 }) {
   const { campaign, t } = useTickets();
   // Seconds since the receipt was sent. Seeded from the server's timestamp so a
@@ -55,7 +58,18 @@ export function ReadingTicket({
   // honest thing is to say so, not to keep a scanner running over it. (The
   // status stays `received` until a reviewer opens it, so the status alone
   // would never tell us.)
-  const withTeam = status === "in_review" || elapsed >= TEAM_AFTER_SECONDS;
+  // The server tells us when the read is over; a receipt that is still open
+  // after that was not auto-approved, so it is with a person. A 4s grace first:
+  // the extraction row lands a beat before the approval does, and flashing
+  // "with the team" just before a celebration would be a lie.
+  const [readSettled, setReadSettled] = useState(false);
+  useEffect(() => {
+    if (!readDone) return;
+    const id = setTimeout(() => setReadSettled(true), 4000);
+    return () => clearTimeout(id);
+  }, [readDone]);
+
+  const withTeam = status === "in_review" || readSettled || elapsed >= TEAM_AFTER_SECONDS;
 
   // Seconds at which each step becomes the active one.
   const active = withTeam ? 3 : elapsed < 4 ? 0 : elapsed < 9 ? 1 : 2;

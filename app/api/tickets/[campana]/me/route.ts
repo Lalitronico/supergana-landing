@@ -69,6 +69,19 @@ export async function GET(
   // this participant, so there is no way to ask for someone else's.
   const receiptRows = (receipts.data ?? []) as Partial<ReceiptRow>[];
   const productsByReceipt = new Map<string, string[]>();
+  // Whether the automatic read has FINISHED for each receipt — one boolean, not
+  // what it read or why a ticket went to the queue. The participant's screen
+  // uses it to stop pretending to scan the moment the gate has had its say,
+  // instead of waiting out a timer.
+  const readDone = new Set<string>();
+  const allIds = receiptRows.map((r) => r.id).filter((id): id is string => Boolean(id));
+  if (allIds.length > 0) {
+    const { data: extractions } = await db
+      .from("receipt_extractions")
+      .select("receipt_id")
+      .in("receipt_id", allIds);
+    for (const row of (extractions ?? []) as { receipt_id: string }[]) readDone.add(row.receipt_id);
+  }
   const approvedIds = receiptRows.filter((r) => r.status === "approved" && r.id).map((r) => r.id!);
   if (approvedIds.length > 0) {
     const { data: items } = await db
@@ -122,6 +135,7 @@ export async function GET(
     receipts: receiptRows.map((r) => ({
       ...r,
       points: r.id ? (pointsByReceipt.get(r.id) ?? null) : null,
+      read_done: r.id ? readDone.has(r.id) : false,
       products: r.id ? (productsByReceipt.get(r.id) ?? []) : [],
     })),
     rewards: (rewards.data ?? []) as Partial<RewardRow>[],

@@ -364,8 +364,17 @@ export default function PanelPage() {
   // Store and eligible spend only exist after a reviewer has typed them, so a
   // receipt that was rejected or bounced back has neither. Returns an empty
   // string in that case and the caller drops the line entirely.
+  // Both numbers, labelled: the person remembers the TOTAL on the paper, and
+  // the points are earned on the eligible part. Showing only the second looked
+  // like the ticket had been misread.
   const detailOf = (receipt: MeReceipt) =>
-    [receipt.store_name, receipt.eligible_cents != null ? money(receipt.eligible_cents) : null]
+    [
+      receipt.store_name,
+      receipt.total_cents != null ? t("jrHistTotal", { amount: money(receipt.total_cents) }) : null,
+      receipt.eligible_cents != null
+        ? t("jrHistEligible", { amount: money(receipt.eligible_cents) })
+        : null,
+    ]
       .filter(Boolean)
       .join(" · ");
 

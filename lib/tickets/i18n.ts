@@ -494,6 +494,8 @@ const es = {
   jrRedProcessing: "En proceso",
   jrMore: "más",
   jrAllPrizes: "Ver todos los premios",
+  jrHistTotal: "Total {amount}",
+  jrHistEligible: "{amount} en productos participantes",
   // Short, but it keeps the one clause privacyNoteOcr exists for: a third-party
   // reading service sees the photo. Dropping it would make the promise false
   // again on exactly the campaigns where the OCR is on.
@@ -617,7 +619,7 @@ const en: Dict = {
   ptsTitle: "My points",
   ptsUnit: "points",
   ptsUnitAvailable: "points available",
-  ptsRaceTotal: "Race total: {points} points. Redeeming never drops you down the board.",
+  ptsRaceTotal: "Total points earned: {points}. Redeeming never drops you down the leaderboard.",
   ptsRate: "You earn {rate} points per eligible dollar on approved receipts.",
   ptsNext: "{points} points to go for: {prize}",
   ptsAllDone: "You've reached every prize in the catalog. 🏆",
@@ -682,7 +684,7 @@ const en: Dict = {
   stRedeem: "Redeem",
   stRedeeming: "Redeeming…",
   stConfirmQ: "Redeem {prize} for {points} points?",
-  stConfirmNote: "They come off your balance on confirm. Your race position stays put.",
+  stConfirmNote: "They come off your balance on confirm. Your spot on the leaderboard stays put.",
   stConfirmYes: "Yes, redeem",
   stConfirmNo: "Not now",
   stNeedMore: "{points} pts to go",
@@ -908,6 +910,8 @@ const en: Dict = {
   jrRedProcessing: "Processing",
   jrMore: "more",
   jrAllPrizes: "See all prizes",
+  jrHistTotal: "Total {amount}",
+  jrHistEligible: "{amount} in participating products",
   jrPrivacyShort:
     "Your receipt is stored encrypted; an automated reading service processes it only to validate your purchase.",
   jrHistPoints: "+{points} pts",

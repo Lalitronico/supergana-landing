@@ -266,6 +266,7 @@ export default function UploadPage() {
             photoUrl={sentPhoto}
             status={openReceipt.status}
             submittedAt={openReceipt.submitted_at}
+            readDone={openReceipt.read_done ?? false}
           />
         ) : (
           <>

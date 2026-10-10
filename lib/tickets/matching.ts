@@ -238,9 +238,10 @@ export const namesAListedStore = (text: string, stores: string[]): boolean => {
  * justo lo que la aprobación automática existe para hacer.
  *
  * LA REGLA AHORA: gana el campo que efectivamente nombre una tienda de la
- * campaña. Si ninguno lo hace, se conserva el comportamiento anterior, porque
+ * campaña. Si ninguno lo hace, se prefiere el nombre del comercio sobre la sucursal, porque
  * en ese caso lo va a mirar una persona de todos modos y lo que necesita es el
- * nombre más reconocible, no el más largo.
+ * nombre del comercio; la sucursal es un número y sólo es el respaldo cuando
+ * el comercio no se leyó.
  */
 export const storeNameFrom = (extraction: ExtractedStore, stores: string[] = []): string => {
   const chain = chainOf(extraction);
@@ -253,5 +254,8 @@ export const storeNameFrom = (extraction: ExtractedStore, stores: string[] = [])
     if (chain && namesAListedStore(chain, stores)) return chain;
   }
 
-  return branch || chain;
+  // Ninguno empata con la lista: lo va a mirar una persona, y lo que necesita
+  // ver es el comercio ("LA MICHOACANA MEAT MARKET"), no el numero de sucursal
+  // ("#22") que es lo que antes se prellenaba.
+  return chain || branch;
 };
