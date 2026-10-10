@@ -12,7 +12,6 @@ import {
 } from "@/lib/tickets/config";
 import { useSession, useTickets } from "../TicketsShell";
 import { StatusTimeline } from "../StatusTimeline";
-import { ApprovalCelebration } from "../ApprovalCelebration";
 import { Headline } from "../Headline";
 import { Mascot } from "../Mascot";
 import { CastFigure } from "../fiesta/CastFigure";
@@ -100,7 +99,7 @@ const API_ERROR_KEYS = {
 } as const;
 
 export default function UploadPage() {
-  const { campaign, t, base, money } = useTickets();
+  const { campaign, t, base, money, locale } = useTickets();
   const router = useRouter();
   const { status, me, reload } = useSession();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -266,9 +265,7 @@ export default function UploadPage() {
   if (openReceipt) {
     return (
       <div className="tk-pad">
-        {/* First child in every branch, so React keeps it mounted across the
-            in-flight → approved re-render — the exact moment it exists for. */}
-        <ApprovalCelebration me={me} />
+        {/* The verdict is announced by the shell (ApprovalCelebration), on any screen. */}
         {campaign.ocrEnabled ? (
           // The automatic read is on: the wait is seconds, and it is shown.
           <ReadingTicket
@@ -308,7 +305,6 @@ export default function UploadPage() {
 
   return (
     <div className="tk-pad">
-      <ApprovalCelebration me={me} />
       <section className="jr-capband sg-halftone">
       <div className="jr-caphero">
         <div className="jr-caphero-text">
@@ -317,6 +313,15 @@ export default function UploadPage() {
             <Headline text={t("capTitle")} mark={t("capTitleMark")} as="brand" />
           </h1>
           <p className="tk-body" style={{ fontSize: 13.5, marginTop: 6 }}>{t("capSub")}</p>
+          {/* In a demo, saying that any photo counts is the instruction the
+              room needs: nobody there carries a receipt with the products. */}
+          {campaign.demoPoints !== null && (
+            <p className="jr-demo-pill">
+              {t("capDemo", {
+                points: campaign.demoPoints.toLocaleString(locale === "en" ? "en-US" : "es-MX"),
+              })}
+            </p>
+          )}
         </div>
         {capMember ? (
           <CastFigure member={capMember} height={128} className="jr-caphero-art" alt="" />

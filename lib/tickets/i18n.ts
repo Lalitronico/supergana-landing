@@ -162,6 +162,15 @@ const es = {
   clbApproved: "Tu ticket quedó validado.",
   clbReward: "Y tu recompensa de {amount} quedó reservada.",
   clbCta: "Ver mi panel",
+  // Un veredicto que no fue aprobación se avisa igual que una: quien espera su
+  // ticket merece enterarse sin tener que ir a buscarlo al panel.
+  vrdNewImageTitle: "Necesitamos otra foto de tu ticket",
+  vrdNewImageCta: "Subir otra foto",
+  vrdRejectedTitle: "Tu ticket no fue aprobado",
+  // La pastilla que avisa que la pantalla sigue hacia abajo.
+  scrollCue: "Desliza para ver más",
+  // Solo en campañas en modo demo (`config.demo`).
+  capDemo: "Modo demo: cualquier foto suma {points} pts",
 
   // ---- tienda de premios --------------------------------------------------
   // Drops semanales con inventario limitado. El copy dice tres cosas y ninguna
@@ -652,6 +661,11 @@ const en: Dict = {
   clbApproved: "Your receipt is validated.",
   clbReward: "And your {amount} reward is reserved.",
   clbCta: "See my panel",
+  vrdNewImageTitle: "We need another photo of your receipt",
+  vrdNewImageCta: "Upload another photo",
+  vrdRejectedTitle: "Your receipt wasn't approved",
+  scrollCue: "Scroll for more",
+  capDemo: "Demo mode: any photo earns {points} pts",
 
   stTitle: "Prizes",
   stSub:

@@ -9,7 +9,6 @@ import { RECEIPT_STATUS_KEY, REWARD_STATUS_KEY } from "@/lib/tickets/i18n";
 import type { ReceiptStatus, RewardStatus } from "@/lib/tickets/config";
 import { useSession, useStoreState, useTickets } from "../TicketsShell";
 import { StatusTimeline } from "../StatusTimeline";
-import { ApprovalCelebration } from "../ApprovalCelebration";
 import { NextPrizeProgress } from "../NextPrizeProgress";
 import { redemptionLabelKey } from "../premios/redemptionStatus";
 import { prizeName } from "@/lib/tickets/store";
@@ -440,7 +439,6 @@ export default function PanelPage() {
 
   return (
     <div className="tk-pad">
-      <ApprovalCelebration me={me} />
       {panelMember ? (
         // With a cast the header is a stage: the participant's own character in
         // a ring, the name, and their place in the race, on a colour band that

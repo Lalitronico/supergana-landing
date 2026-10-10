@@ -885,7 +885,17 @@
   border-radius: 22px;
   box-shadow: 5px 5px 0 0 var(--sg-ink);
   overflow: hidden;
+  /* backface-visibility alone is not enough on iOS Safari: a child with its own
+     compositing layer (the tilted logo, the z-indexed footer and photo
+     circles) ignores its face's backface and shows through, mirrored, on the
+     other side. So the face turned away is also hidden outright, swapped at the
+     moment the card is edge-on. With this curve the turn passes 90° at ~16% of
+     620 ms, hence 100 ms — in both directions. */
+  transition: visibility 0s linear 100ms;
 }
+.sh-face.back { visibility: hidden; }
+.sh-card.open .sh-face.front { visibility: hidden; }
+.sh-card.open .sh-face.back { visibility: visible; }
 
 .sh-face.front {
   background-color: var(--c);
@@ -1003,12 +1013,42 @@
   line-height: 1.2;
 }
 .sh-skus li:first-child { border-top: 0; }
-.sh-skus img { width: 44px; height: 44px; min-width: 44px; object-fit: contain; flex: none; }
+/* Each product in a round window, like the ones on the front: the photo fits
+   inside the circle (contain + padding) instead of a tall bottle spilling out
+   of it, on a tint of the brand's own colour. A product with no photo keeps an
+   empty window so the names still line up. */
+.sh-skus img,
+.sh-sku-ph {
+  width: 50px;
+  height: 50px;
+  min-width: 50px;
+  flex: none;
+  object-fit: contain;
+  padding: 3px;
+  background: color-mix(in srgb, var(--c) 12%, #ffffff);
+  border: 2.5px solid var(--sg-ink);
+  border-radius: 50%;
+  overflow: hidden;
+}
 
-/* One or two SKUs would leave the back mostly blank: show each as a big photo. */
-.sh-skus.few { display: flex; flex-direction: column; justify-content: center; gap: 6px; padding-top: 10px; }
-.sh-skus.few li { flex-direction: column; text-align: center; border-top: 0; min-height: 0; padding: 4px 0; font-size: 15px; }
-.sh-skus.few img { width: auto; height: 130px; min-width: 0; max-width: 100%; filter: drop-shadow(0 5px 0 rgba(10, 10, 10, 0.16)); }
+/* One or two SKUs would leave the back mostly blank: show each as a big photo.
+   Side by side, not stacked: two 130 px photos and their names are taller than
+   the back, and the second one sat cut off at the bottom edge. */
+.sh-skus.few { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 8px; padding: 10px 10px 12px; }
+.sh-skus.few li { flex: 1 1 0; min-width: 0; flex-direction: column; text-align: center; border-top: 0; min-height: 0; padding: 4px 0; font-size: 15px; }
+.sh-skus.few img {
+  width: auto;
+  height: 168px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  filter: drop-shadow(0 5px 0 rgba(10, 10, 10, 0.16));
+}
+.sh-skus.few .sh-sku-ph { display: none; }
 
 /* ---- road --------------------------------------------------------------------- */
 
@@ -1117,6 +1157,8 @@
   .sh-sec-hero::before, .sh-pop, .sh-mq-track, .sh-card, .sh-road li { animation: none; }
   .sh-mq { overflow-x: auto; }
   .sh-card-inner { transition: none; }
+  /* An instant turn swaps faces instantly too: no 100 ms of a mirrored front. */
+  .sh-face { transition: none; }
 }
 
 

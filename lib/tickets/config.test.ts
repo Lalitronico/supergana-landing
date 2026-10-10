@@ -151,3 +151,23 @@ test("castForBrand: matches the brand across accents, case and punctuation", () 
   assert.equal(castForBrand(theme, "Jarritos"), null);
   assert.equal(castForBrand(theme, null), null);
 });
+
+// Demo mode approves ANY photo with fixed points. It must exist only where a
+// campaign wrote it by name, with a positive number — never by inheritance,
+// never from a value that merely looks like one.
+test("demo mode is off unless a campaign asks for it with a positive number", () => {
+  assert.equal(parseCampaignConfig({}).demo, null);
+  assert.equal(parseCampaignConfig(null).demo, null);
+  for (const demo of [true, {}, { fixed_points: 0 }, { fixed_points: -50 }, { fixed_points: "1500" }, { points: 1500 }]) {
+    assert.equal(
+      parseCampaignConfig({ demo }).demo,
+      null,
+      `${JSON.stringify(demo)} no debió encender el modo demo`,
+    );
+  }
+});
+
+test("demo mode carries its fixed points, whole", () => {
+  assert.deepEqual(parseCampaignConfig({ demo: { fixed_points: 1500 } }).demo, { fixedPoints: 1500 });
+  assert.deepEqual(parseCampaignConfig({ demo: { fixed_points: 99.9 } }).demo, { fixedPoints: 99 });
+});

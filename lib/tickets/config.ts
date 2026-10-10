@@ -64,6 +64,21 @@ export interface Brand {
 export type ProgressMeter = "bar" | "fuel";
 
 /**
+ * Demo mode: `config.demo = { fixed_points: 1500 }`.
+ *
+ * For a sales demo, where the people holding the phones carry no receipt with
+ * the client's products and every "a person will review it" is a dead minute in
+ * the meeting. The reading still runs (it is the part worth showing), but every
+ * photo is approved with `fixedPoints`, whatever it turns out to be. Null on
+ * every campaign that does not ask for it by name — and the approving RPC
+ * (`tickets_approve_demo`, migration 0048) re-checks the same key, so a server
+ * bug cannot mint fixed points on a real campaign.
+ */
+export interface DemoConfig {
+  fixedPoints: number;
+}
+
+/**
  * Per-campaign wording: `config.copy = { es: { <CopyKey>: "..." }, en: { ... } }`
  * replaces any key of the copy dictionary for THAT campaign only. A tenant's
  * headline is a matter of data, not of a code change (see `parseCopyOverrides`).
@@ -144,6 +159,8 @@ export interface CampaignConfig {
   progressMeter: ProgressMeter;
   /** See `CopyOverrides`. */
   copy: CopyOverrides;
+  /** See `DemoConfig`. Null = a real campaign, which is every campaign by default. */
+  demo: DemoConfig | null;
 }
 
 /** The model this platform reads receipts with, unless a campaign names another. */
@@ -349,6 +366,14 @@ const DEFAULTS: CampaignConfig = {
   eligibility: "sku",
   progressMeter: "bar",
   copy: {},
+  // Fails closed, like everything above: approving any photo has to be asked for.
+  demo: null,
+};
+
+const asDemo = (value: unknown): DemoConfig | null => {
+  const d = (value ?? {}) as Record<string, unknown>;
+  const points = typeof d.fixed_points === "number" ? Math.floor(d.fixed_points) : 0;
+  return points > 0 ? { fixedPoints: points } : null;
 };
 
 const asOcr = (value: unknown): OcrConfig => {
@@ -513,6 +538,7 @@ export const parseCampaignConfig = (raw: unknown): CampaignConfig => {
     eligibility: c.eligibility === "brand" ? "brand" : DEFAULTS.eligibility,
     progressMeter: c.progress_meter === "fuel" ? "fuel" : DEFAULTS.progressMeter,
     copy: parseCopyOverrides(c.copy),
+    demo: asDemo(c.demo),
   };
 };
 
@@ -570,6 +596,12 @@ export interface PublicCampaign {
   progressMeter: ProgressMeter;
   /** Wording overrides for this campaign. Public by nature: it is on screen. */
   copy: CopyOverrides;
+  /**
+   * Points every photo earns in demo mode, or null. Public because the capture
+   * screen says it out loud: in a demo, telling people any photo counts is the
+   * point, not a leak.
+   */
+  demoPoints: number | null;
 }
 
 export const toPublicCampaign = (campaign: Campaign): PublicCampaign => ({
@@ -596,6 +628,7 @@ export const toPublicCampaign = (campaign: Campaign): PublicCampaign => ({
   prizes: campaign.config.prizes,
   progressMeter: campaign.config.progressMeter,
   copy: campaign.config.copy,
+  demoPoints: campaign.config.demo?.fixedPoints ?? null,
 });
 
 // ---------------------------------------------------------------------------

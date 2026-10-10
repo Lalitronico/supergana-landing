@@ -2,94 +2,183 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useTickets } from "./TicketsShell";
+import { useSession, useTickets } from "./TicketsShell";
 import { Confetti } from "./Confetti";
 import { Mascot } from "./Mascot";
 import { NextPrizeProgress } from "./NextPrizeProgress";
 import { CastFigure } from "./fiesta/CastFigure";
 import { BrandChip } from "./journey/BrandChip";
 import { PumpDisplay } from "./journey/PumpDisplay";
-import { castForBrand } from "@/lib/tickets/theme";
+import { castForBrand, castMember } from "@/lib/tickets/theme";
 import { dominantBrand } from "@/lib/tickets/brandOf";
-import type { Me } from "./useMe";
+import type { MeReceipt } from "./useMe";
 
-interface Celebration {
-  points: number;
-  /** Balance before this approval, so the gauge can start where it was. */
-  fromPoints: number;
-  gotReward: boolean;
-  /** Catalog products read on the receipt(s) that just flipped. */
-  products: string[];
-}
+type Verdict =
+  | {
+      kind: "approved";
+      points: number;
+      /** Balance before this approval, so the gauge can start where it was. */
+      fromPoints: number;
+      gotReward: boolean;
+      /** Catalog products read on the receipt(s) that just flipped. */
+      products: string[];
+    }
+  | { kind: "needs_new_image" | "rejected"; reason: string | null };
+
+const isOpen = (r: MeReceipt) => r.status === "received" || r.status === "in_review";
 
 /**
- * The moment the module exists for: a receipt flipping to "approved" while
- * the person is looking at the screen. The polling in useMe already notices
- * the transition — this celebrates it instead of letting the pill change
- * silently. Mounted on the screens someone actually waits on (subir, panel).
+ * Receipts this device saw in flight, per participant and campaign.
  *
- * Only fires on a transition seen live: if the approval happened before the
- * screen opened, the panel already tells that story and a popup would just
- * repeat it.
+ * In storage, not just in memory, because the verdict often lands while the
+ * page is not there to see it: the phone was locked, the participant switched
+ * apps, or iOS discarded the tab and reloaded it on return. An in-memory
+ * "before" dies with the page, and the approval then arrived in silence — which
+ * is exactly how a manually approved ticket went unnoticed in the first demo.
  */
-export function ApprovalCelebration({ me }: { me: Me | null }) {
+const watchKey = (slug: string, participantId: string) => `tk-watch:${slug}:${participantId}`;
+
+const readWatched = (key: string): Set<string> => {
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(key) ?? "[]");
+    return new Set(Array.isArray(parsed) ? parsed.filter((x) => typeof x === "string") : []);
+  } catch {
+    return new Set();
+  }
+};
+
+const writeWatched = (key: string, ids: Set<string>) => {
+  try {
+    if (ids.size > 0) window.localStorage.setItem(key, JSON.stringify([...ids]));
+    else window.localStorage.removeItem(key);
+  } catch {
+    /* private mode or full storage: the in-memory set still covers this page */
+  }
+};
+
+/**
+ * The moment the module exists for: a receipt's verdict, told to the person
+ * who is waiting for it, on whatever screen they happen to be.
+ *
+ * Mounted once, in the shell. It used to live on the two screens people wait
+ * on (subir, panel) and to fire only on a transition that screen saw live, so a
+ * verdict that landed while the participant was on the home screen, or after a
+ * reload, changed a pill nobody was looking at. Now every receipt this device
+ * saw in flight is remembered until its verdict has been shown:
+ *
+ *   · approved → the full celebration (points on the pump, the brand's
+ *     character, what was read on the ticket);
+ *   · needs a new image / rejected → a plain notice with the reason and the
+ *     way forward. Nobody should have to find out from the panel.
+ *
+ * Only receipts seen in flight HERE count: opening the app on a second phone
+ * does not replay old verdicts — the panel already tells that story.
+ */
+export function ApprovalCelebration() {
   const { campaign, t, base, money } = useTickets();
-  const [show, setShow] = useState<Celebration | null>(null);
-  const prev = useRef<{ open: Set<string>; points: number; rewards: number } | null>(null);
+  const { me } = useSession();
+  const [show, setShow] = useState<Verdict | null>(null);
+  const watched = useRef<{ key: string; ids: Set<string> } | null>(null);
+  // In-session balance, for one race only: see `credited` below.
+  const lastPoints = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!me) return;
-    const open = new Set(
-      me.receipts
-        .filter((r) => r.status === "received" || r.status === "in_review")
-        .map((r) => r.id),
-    );
-    const snapshot = { open, points: me.points, rewards: me.rewards.length };
+    const participantId = me?.participant?.id;
+    if (!me || !participantId) return;
 
-    if (prev.current) {
-      const approvedNow = me.receipts.some(
-        (r) => prev.current!.open.has(r.id) && r.status === "approved",
-      );
-      if (approvedNow) {
-        const flipped = me.receipts.filter(
-          (r) => prev.current!.open.has(r.id) && r.status === "approved",
-        );
-        // The balance difference is the usual answer, but the ledger row and the
-        // receipt's status are not written in one instant: a poll can land
-        // between them and see the new balance before it sees the approval,
-        // which printed "+0". The receipts carry what each one credited, so
-        // fall back to that and derive the starting balance from it.
-        const credited = flipped.reduce((sum, r) => sum + (r.points ?? 0), 0);
-        const gained = Math.max(0, me.points - prev.current.points) || credited;
-        setShow({
-          points: gained,
-          fromPoints: Math.max(0, me.points - gained),
-          gotReward: me.rewards.length > prev.current.rewards,
-          products: [...new Set(flipped.flatMap((r) => r.products ?? []))],
-        });
-        // A short double tap on phones that support it: the win is felt, not
-        // just seen. Silently ignored elsewhere (iOS Safari has no vibrate).
-        try {
-          navigator.vibrate?.([30, 60, 30]);
-        } catch {
-          /* decorative */
-        }
+    const key = watchKey(campaign.slug, participantId);
+    if (watched.current?.key !== key) watched.current = { key, ids: readWatched(key) };
+    const ids = watched.current.ids;
+
+    const flipped = me.receipts.filter((r) => ids.has(r.id) && !isOpen(r));
+    const present = new Set(me.receipts.map((r) => r.id));
+    for (const id of [...ids]) if (!present.has(id)) ids.delete(id);
+    for (const r of flipped) ids.delete(r.id);
+    for (const r of me.receipts) if (isOpen(r)) ids.add(r.id);
+    writeWatched(key, ids);
+
+    const before = lastPoints.current;
+    lastPoints.current = me.points;
+    if (flipped.length === 0) return;
+
+    const approved = flipped.filter((r) => r.status === "approved");
+    if (approved.length > 0) {
+      // Each receipt carries what it credited. The in-session balance difference
+      // is only the fallback for the poll that sees the approval a beat before
+      // its ledger row, which printed "+0".
+      const credited = approved.reduce((sum, r) => sum + (r.points ?? 0), 0);
+      const gained = credited || (before !== null ? Math.max(0, me.points - before) : 0);
+      setShow({
+        kind: "approved",
+        points: gained,
+        fromPoints: Math.max(0, me.points - gained),
+        gotReward: me.rewards.some((rw) => approved.some((r) => r.id === rw.receipt_id)),
+        products: [...new Set(approved.flatMap((r) => r.products ?? []))],
+      });
+      // A short double tap on phones that support it: the win is felt, not
+      // just seen. Silently ignored elsewhere (iOS Safari has no vibrate).
+      try {
+        navigator.vibrate?.([30, 60, 30]);
+      } catch {
+        /* decorative */
       }
+      return;
     }
-    prev.current = snapshot;
-  }, [me]);
+
+    const latest = flipped[0];
+    setShow({
+      kind: latest.status === "rejected" ? "rejected" : "needs_new_image",
+      reason: latest.reject_reason,
+    });
+  }, [me, campaign.slug]);
 
   if (!show) return null;
 
+  const { cast } = campaign.theme;
+  const own = castMember(campaign.theme, me?.participant?.avatar);
+  const host = cast.find((m) => m.brand === null) ?? cast[0] ?? null;
+
+  // ---- not approved: say so, say why, and show the way forward -------------
+  if (show.kind !== "approved") {
+    const member = own ?? host;
+    const retry = show.kind === "needs_new_image";
+    return (
+      <div className="tk-overlay" role="dialog" aria-modal="true" aria-labelledby="tk-verdict-title">
+        <div className="tk-modal tk-verdict">
+          {member ? (
+            <CastFigure member={member} height={112} bob={false} className="tk-verdict-cast" alt="" />
+          ) : (
+            campaign.theme.mascots.ticket && <Mascot pose="ticket" bob={false} />
+          )}
+          <h2 id="tk-verdict-title" className="tk-h" style={{ fontSize: 21, marginTop: 10 }}>
+            {retry ? t("vrdNewImageTitle") : t("vrdRejectedTitle")}
+          </h2>
+          <p className="tk-body" style={{ fontSize: 14, marginTop: 8 }}>
+            {show.reason ? t("pnRejected", { reason: show.reason }) : t("pnNeedsNewImage")}
+          </p>
+          <Link
+            href={retry ? `${base}subir/` : `${base}panel/`}
+            className="tk-btn"
+            style={{ marginTop: 16, width: "100%" }}
+            onClick={() => setShow(null)}
+          >
+            {retry ? t("vrdNewImageCta") : t("clbCta")} →
+          </Link>
+          <button type="button" className="jr-party-close" onClick={() => setShow(null)}>
+            {t("close")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ---- approved: the party -------------------------------------------------
   const { dominant, byLabel } = dominantBrand(show.products, campaign.brands);
   // Whose celebration it is: the character who holds the brand that earned the
-  // most on this ticket; if the basket had no brand we know, the host of the
-  // cast; with no cast at all (a single-mascot tenant), the mascot as before.
-  const member =
-    castForBrand(campaign.theme, dominant?.name) ??
-    campaign.theme.cast.find((m) => m.brand === null) ??
-    campaign.theme.cast[0] ??
-    null;
+  // most on this ticket; with no brand we know, the participant's own
+  // character, then the host of the cast; with no cast at all (a single-mascot
+  // tenant), the mascot as before.
+  const member = castForBrand(campaign.theme, dominant?.name) ?? own ?? host;
   const hasMascot = Boolean(campaign.theme.mascots.celebrate);
   const hasStore = campaign.mechanic === "accumulation";
 

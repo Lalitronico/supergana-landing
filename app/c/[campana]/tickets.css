@@ -232,6 +232,69 @@
   scrollbar-width: thin;
 }
 
+/* "More below" (ScrollCue.tsx). A zero-height sticky anchor at the end of the
+   scroller's content, so the pill rides the bottom edge of the visible area
+   for as long as the screen continues and takes no layout of its own. */
+.tk-scrollcue-anchor {
+  position: sticky;
+  bottom: 0;
+  height: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.tk-scrollcue {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px 8px 16px;
+  border: 3px solid var(--tk-ink);
+  border-radius: 999px;
+  background: var(--tk-yellow);
+  color: var(--tk-ink);
+  box-shadow: 3px 3px 0 0 var(--tk-ink);
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  opacity: 0;
+  transform: translate(-50%, 14px);
+  transition: opacity 220ms ease, transform 280ms cubic-bezier(0.34, 1.4, 0.64, 1);
+  pointer-events: none;
+}
+
+.tk-scrollcue[data-show] {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.tk-scrollcue[data-show]:active {
+  transform: translate(calc(-50% + 2px), 2px);
+  box-shadow: 1px 1px 0 0 var(--tk-ink);
+}
+
+.tk-scrollcue svg {
+  width: 16px;
+  height: 16px;
+  animation: tk-cue-bob 1.3s ease-in-out infinite;
+}
+
+@keyframes tk-cue-bob {
+  0%, 100% { transform: translateY(-2px); }
+  50% { transform: translateY(3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-scrollcue { transition: none; }
+  .tk-scrollcue svg { animation: none; }
+}
+
 .tk-pad {
   padding: 20px 18px 28px;
   display: flex;
@@ -1477,6 +1540,9 @@ a.tk-storedoor:active {
 /* Absolute, not fixed: it should cover the app shell, and on desktop the
    shell is a centered phone frame, not the whole page. .tk-phone is already
    position:relative (desktop) or fixed (mobile), so this fills exactly it. */
+/* A verdict that was not an approval (ApprovalCelebration.tsx). */
+.tk-verdict .jr-party-close { margin-top: 10px; }
+
 .tk-overlay {
   position: absolute;
   inset: 0;

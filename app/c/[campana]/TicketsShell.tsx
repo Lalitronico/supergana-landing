@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -11,6 +11,8 @@ import { useMe, type Me, type MeStatus } from "./useMe";
 import { useStore, type StoreStatus } from "./useStore";
 import { SafeImg } from "./showcase/SafeImg";
 import { SuperganaWordmark } from "./fiesta/Wordmark";
+import { ApprovalCelebration } from "./ApprovalCelebration";
+import { ScrollCue } from "./ScrollCue";
 import type { StoreSnapshot } from "@/lib/tickets/store";
 
 /**
@@ -126,6 +128,7 @@ export function TicketsShell({
   const pathname = usePathname();
   const base = `/c/${campaign.slug}/`;
   const { status, me, reload } = useMe(campaign.slug);
+  const screenRef = useRef<HTMLElement>(null);
 
   const setLocale = useCallback((next: Locale) => {
     setLocaleState(next);
@@ -297,7 +300,10 @@ export function TicketsShell({
             </div>
           </header>
 
-          <main className="tk-screen">{children}</main>
+          <main className="tk-screen" ref={screenRef}>
+            {children}
+            <ScrollCue screenRef={screenRef} label={t("scrollCue")} pathname={pathname} />
+          </main>
 
           <nav className="tk-nav" data-tabs={tabs.length}>
             {tabs.map((tab) => (
@@ -312,6 +318,9 @@ export function TicketsShell({
               </Link>
             ))}
           </nav>
+
+          {/* A verdict reaches the participant on whatever screen they are on. */}
+          {status === "ready" && <ApprovalCelebration />}
         </div>
       </div>
     </TicketsContext.Provider>

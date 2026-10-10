@@ -100,12 +100,15 @@ export function BrandParade({
                   </button>
                 </div>
                 <ul className={skus.length <= 2 ? "sh-skus few" : "sh-skus"}>
-                  {skus.map((p) => (
-                    <li key={`${p.name}-${p.size}`}>
-                      {p.imageUrl && <SafeImg src={p.imageUrl} alt="" fallback={null} />}
-                      <span>{productLabel(p, { withBrand: false })}</span>
-                    </li>
-                  ))}
+                  {skus.map((p) => {
+                    const emptySlot = <span className="sh-sku-ph" aria-hidden="true" />;
+                    return (
+                      <li key={`${p.name}-${p.size}`}>
+                        {p.imageUrl ? <SafeImg src={p.imageUrl} alt="" fallback={emptySlot} /> : emptySlot}
+                        <span>{productLabel(p, { withBrand: false })}</span>
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             </div>

@@ -362,3 +362,90 @@ export async function settleAutomatically({
     console.error("[tickets auto] threw", receiptId, e);
   }
 }
+
+// ---------------------------------------------------------------------------
+// Modo demo
+// ---------------------------------------------------------------------------
+//
+// Todo lo de arriba se salta a propósito: en una demo no hay veredicto. La
+// lectura sí corre —es lo que vale la pena enseñar— y lo que reconoció se
+// guarda como en una aprobación real, para que la celebración y la pantalla en
+// vivo muestren las marcas del ticket cuando las hay. Ver `DemoConfig`.
+
+/**
+ * Aprueba un ticket de una campaña en modo demo, haya o no lectura.
+ *
+ * `extraction` llega en null cuando la lectura falló o tardó demasiado: el
+ * ticket se aprueba igual, sin productos. Nunca lanza, por la misma razón que
+ * `settleAutomatically`: corre en `after()` y no hay a quién avisarle.
+ */
+export async function settleDemo({
+  db,
+  campaign,
+  receiptId,
+  extraction,
+}: {
+  db: SupabaseClient;
+  campaign: Campaign;
+  receiptId: string;
+  extraction: ExtractionResult | null;
+}): Promise<void> {
+  const demo = campaign.config.demo;
+  if (!demo) return;
+
+  try {
+    const read = extraction?.status === "ok" ? extraction : null;
+    const items: AutoCapture["items"] = [];
+    let eligibleCents = 0;
+
+    if (read) {
+      const { data: rows, error } = await db
+        .from("products")
+        .select("id, brand, name, product_aliases(alias_text)")
+        .eq("campaign_id", campaign.id)
+        .eq("active", true);
+      // Sin catálogo se aprueba sin productos: la demo no se detiene por esto.
+      if (error) console.error("[tickets demo] catalogue unavailable", receiptId, error);
+      const products = (rows ?? []).map((row) =>
+        toMatchable(row as Parameters<typeof toMatchable>[0]),
+      );
+      for (const line of read.lines) {
+        const amountCents = line.amountCents ?? 0;
+        const found = matchLine(line.text, products, campaign.config.eligibility);
+        if (found) eligibleCents += amountCents;
+        items.push({
+          productId: found?.productId ?? null,
+          aliasMatched: found?.alias ?? (found?.matchedBy === "brand" ? found.label : null),
+          lineText: line.text,
+          amountCents,
+        });
+      }
+    }
+
+    const storeName = read ? autoStoreName(read, campaign.config.stores) : "";
+    const { error: approveError } = await db.rpc("tickets_approve_demo", {
+      p_receipt_id: receiptId,
+      p_store_name: storeName || null,
+      p_purchase_date: read?.purchaseDate ?? null,
+      p_total_cents: read?.totalCents ?? null,
+      p_eligible_cents: read && eligibleCents > 0 ? eligibleCents : null,
+      p_items: items.map((i) => ({
+        product_id: i.productId,
+        alias_matched: i.aliasMatched,
+        line_text: i.lineText,
+        amount_cents: i.amountCents,
+      })),
+      p_note: `Modo demo: +${demo.fixedPoints} pts fijos${
+        read ? ` (lectura de ${read.model})` : " (sin lectura)"
+      }.`,
+    });
+
+    if (approveError) {
+      console.error("[tickets demo] approval refused", receiptId, approveError.message?.trim());
+      return;
+    }
+    console.info("[tickets demo] approved", receiptId, demo.fixedPoints);
+  } catch (e) {
+    console.error("[tickets demo] threw", receiptId, e);
+  }
+}

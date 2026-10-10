@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { resolveParticipant } from "@/lib/tickets/access";
 import { acceptsReceipts, getCampaign, isVisible, mayRehearse } from "@/lib/tickets/campaigns";
 import { MAX_RECEIPT_BYTES, RECEIPTS_BUCKET } from "@/lib/tickets/config";
-import { settleAutomatically } from "@/lib/tickets/autoreview";
+import { settleAutomatically, settleDemo } from "@/lib/tickets/autoreview";
 import { sendReceiptReceived } from "@/lib/tickets/email";
 import { runAndStoreExtraction } from "@/lib/tickets/ocr";
 import { receiptSubmitSchema } from "@/lib/tickets/schema";
@@ -22,6 +22,11 @@ export const runtime = "nodejs";
  * pierde es la lectura, que es justo lo que vino a ahorrar trabajo.
  */
 export const maxDuration = 60;
+
+/** Lo más que espera una demo a la lectura antes de aprobar sin ella. Un ticket
+ *  real tarda 8–15 s con el modelo de la demo; esto deja margen sin dejar a
+ *  nadie mirando un escáner medio minuto. */
+const DEMO_READ_CAP_MS = 20_000;
 
 /**
  * Registers a receipt the browser has already uploaded to Supabase Storage.
@@ -154,7 +159,31 @@ export async function POST(
    * Se reusan los bytes que ya se descargaron para el hash. Volver a bajar el
    * objeto sería pagar dos veces por el mismo archivo.
    */
-  if (campaign.config.ocr.enabled) {
+  if (campaign.config.demo) {
+    /**
+     * Modo demo: se lee, pero el veredicto ya está dado. La lectura tiene un
+     * tope de tiempo porque aquí no hay revisor esperando sino una persona
+     * mirando la pantalla de "leyendo"; si el modelo no contesta a tiempo, el
+     * ticket se aprueba sin productos y la junta sigue. Ver `DemoConfig`.
+     */
+    after(async () => {
+      const extraction = campaign.config.ocr.enabled
+        ? await Promise.race([
+            runAndStoreExtraction({
+              db,
+              receiptId: receipt.id,
+              campaignId: campaign.id,
+              bytes,
+              contentType: parsed.data.contentType,
+              timezone: campaign.config.timezone,
+              model: campaign.config.ocr.model,
+            }),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), DEMO_READ_CAP_MS)),
+          ])
+        : null;
+      await settleDemo({ db, campaign, receiptId: receipt.id, extraction });
+    });
+  } else if (campaign.config.ocr.enabled) {
     after(async () => {
       const extraction = await runAndStoreExtraction({
         db,
