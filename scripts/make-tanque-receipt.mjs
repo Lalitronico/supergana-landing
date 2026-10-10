@@ -2,7 +2,7 @@
  * Demo receipts for the "Ticket al Tanque" campaign (Novamex x Supergana).
  *
  * A US-Hispanic supermarket thermal receipt, 80 mm wide (rendered at ~300 dpi),
- * printed with EXACTLY the alias strings seeded in migration 0033, so the OCR
+ * printed with EXACTLY the alias strings seeded in migration 0042 (catalogue swap), so the OCR
  * gate can read it and approve it on its own. The two stores are fictional on
  * purpose ("Supergana Market", "Mercado El Tanque").
  *
@@ -10,7 +10,7 @@
  *   node scripts/make-tanque-receipt.mjs --out ticket.jpg --seed 7 \
  *        --date 2026-10-11 [--store "Mercado El Tanque"] [--eligible-min 30 --eligible-max 45]
  *
- * A whole set (also writes manifest.json with expected totals and points):
+ * A whole set (A pruebas, B demo, E personal; also writes manifest-*.json):
  *   node scripts/make-tanque-receipt.mjs --set A --dir out/pruebas
  *   node scripts/make-tanque-receipt.mjs --set B --dir out
  *
@@ -23,7 +23,7 @@
  * Points = floor(eligible_cents * 10 / 100), eligible = sum of participating
  * lines (pre-tax), exactly like tickets_approve_receipt (migration 0011).
  */
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
@@ -45,14 +45,35 @@ export const STORES = {
   },
 };
 
-// Participating products: [upc, alias printed by store style, base price list]
-// Aliases are copied verbatim from 0033_demo_tanque_novamex.sql.
+// Participating products, seeded by 0042_demo_tanque_catalog_swap.sql. `full` and
+// `short` are alias strings copied VERBATIM from that migration (each store
+// prints one style). Prices are plausible US shelf prices; maxQty keeps a basket
+// believable. Jarritos and Mineragua were removed from the campaign: they must
+// never appear on a ticket.
+const gel = (flavor, upcTail, fullFlavor, shortFlavor) => ({
+  brand: "D'Gari", upc: `7352570131${upcTail}`, full: `DGARI GEL ${fullFlavor} 4.2OZ`, short: `D GARI GELATINA ${shortFlavor}`,
+  prices: [0.99, 1.09, 1.29], maxQty: 6, taxable: false,
+});
 const PRODUCTS = [
-  { key: "tamarindo", upc: "090478216225", full: "JARRITOS TAMARINDO 1.5L", short: "JARRITOS TAMAR 1.5L", prices: [2.49, 2.79, 2.99] },
-  { key: "pina", upc: "090478216270", full: "JARRITOS PINA 1.5L", short: "JARRITOS PINEAP 1.5L", prices: [2.49, 2.79, 2.99] },
-  { key: "fresa", upc: "090478216287", full: "JARRITOS FRESA 1.5L", short: "JARRITOS STRAWB 1.5L", prices: [2.49, 2.79, 2.99] },
-  { key: "min500", upc: "090478415512", full: "MINERAGUA 500ML", short: "MINERAGUA 16.9OZ", prices: [1.29, 1.39] },
-  { key: "min15", upc: "090478216805", full: "MINERAGUA 1.5L", short: "MINERAGUA 1.5L", prices: [1.99, 2.29, 2.49] },
+  { brand: "Sangría Señorial", upc: "090478321004", full: "SANGRIA SENORIAL 330ML", short: "SANGRIA SEN 330ML", prices: [1.79, 1.99], maxQty: 5, taxable: true },
+  { brand: "Sangría Señorial", upc: "090478321103", full: "SANGRIA SENORIAL 1.5L", short: "SANGRIA SEN 1.5L", prices: [2.99], maxQty: 3, taxable: true },
+  { brand: "Sidral Mundet", upc: "090478331003", full: "SIDRAL MUNDET 355ML", short: "SIDRAL MUNDET APPLE 12OZ", prices: [1.49, 1.79, 1.99], maxQty: 6, taxable: true },
+  { brand: "Sidral Mundet", upc: "090478331300", full: "SIDRAL MUNDET VERDE 355ML", short: "SIDRAL VERDE 355", prices: [1.49, 1.79, 1.99], maxQty: 6, taxable: true },
+  { brand: "Sidral Mundet", upc: "090478331102", full: "SIDRAL MUNDET 1.5L", short: "SIDRAL MUNDET 50.7OZ", prices: [2.99], maxQty: 3, taxable: true },
+  { brand: "Chocolate Ibarra", upc: "030467000015", full: "CHOCOLATE IBARRA", short: "IBARRA CHOC MESA", prices: [4.99, 5.49, 6.49], maxQty: 3, taxable: false },
+  { brand: "Camaronazo", upc: "899541001016", full: "CAMARONAZO PICANTE 32OZ", short: "CAMARONAZO 32OZ", prices: [4.99], maxQty: 3, taxable: false },
+  gel("fresa agua", "06", "FRESA AGUA", "FRESA AGUA"),
+  gel("limon", "37", "LIMON", "LIMON"),
+  gel("naranja", "51", "NARANJA", "NARANJA"),
+  gel("pina", "68", "PINA", "PINA"),
+  gel("mango", "44", "MANGO", "MANGO"),
+  gel("uva", "75", "UVA", "UVA"),
+  { brand: "D'Gari", upc: "735257005057", full: "DGARI FLAN CARAMELO 4.7OZ", short: "D GARI FLAN CARAMELO", prices: [1.29], maxQty: 4, taxable: false },
+  { brand: "La Perrona", upc: "7503016555074", full: "LA PERRONA SALSA ROJA", short: "LA PERRONA ORIGINAL 5OZ", prices: [2.49, 2.99, 3.49], maxQty: 3, taxable: false },
+  { brand: "La Perrona", upc: "7503016555098", full: "LA PERRONA SALSA VERDE", short: "LA PERRONA VERDE 5OZ", prices: [2.49, 2.99, 3.49], maxQty: 3, taxable: false },
+  { brand: "La Perrona", upc: "7503016555111", full: "LA PERRONA SALSA NEGRA", short: "LA PERRONA NEGRA 5OZ", prices: [2.49, 2.99, 3.49], maxQty: 3, taxable: false },
+  { brand: "Tepachito", upc: "831384002102", full: "TEPACHITO PINA 12OZ", short: "TEPACHITO PINA ORIG", prices: [1.99], maxQty: 5, taxable: true },
+  { brand: "Tepachito", upc: "831384002300", full: "TEPACHITO PINA MANGO 12OZ", short: "TEPACHITO MANGO 355ML", prices: [1.99], maxQty: 5, taxable: true },
 ];
 
 // Generic non-participating items. Must never contain a brand or product name
@@ -69,7 +90,7 @@ const FILLER = [
   { upc: "004664", name: "CEBOLLA BLANCA LB", price: 1.29, taxable: false, maxQty: 2 },
 ];
 
-const TX_SOFT_DRINK_TAX = 0.0825; // TX taxes soda and bottled water, not groceries
+const TX_SOFT_DRINK_TAX = 0.0825; // TX taxes soft drinks (T flag), not groceries
 
 /** mulberry32: tiny seeded PRNG, enough for reproducible receipts. */
 const prng = (seed) => {
@@ -98,20 +119,27 @@ export function buildReceipt({ seed, date, store, eligibleMin = 30, eligibleMax 
   let lines = [];
   let eligibleCents = 0;
   for (let attempt = 0; attempt < 500; attempt++) {
-    const kinds = 2 + Math.floor(rand() * 3); // 2-4 distinct products
+    // 2-4 distinct brands, 1-2 products each.
+    const brands = [...new Set(PRODUCTS.map((p) => p.brand))];
+    const nBrands = 2 + Math.floor(rand() * 3);
     const chosen = [];
-    const pool = [...PRODUCTS];
-    for (let k = 0; k < kinds; k++) chosen.push(pool.splice(Math.floor(rand() * pool.length), 1)[0]);
+    for (let k = 0; k < nBrands; k++) {
+      const brand = brands.splice(Math.floor(rand() * brands.length), 1)[0];
+      const pool = PRODUCTS.filter((p) => p.brand === brand);
+      const nProducts = Math.min(pool.length, 1 + Math.floor(rand() * 2));
+      for (let j = 0; j < nProducts; j++) chosen.push(pool.splice(Math.floor(rand() * pool.length), 1)[0]);
+    }
     lines = chosen.map((p) => {
-      const qty = 1 + Math.floor(rand() * 5); // 1-5
+      const qty = 1 + Math.floor(rand() * p.maxQty);
       const unit = cents(pick(p.prices));
       return {
+        brand: p.brand,
         upc: p.upc,
         desc: spec.style === "full" ? p.full : p.short,
         qty,
         unit,
         amount: qty * unit,
-        taxable: true,
+        taxable: p.taxable,
         participant: true,
       };
     });
@@ -170,7 +198,7 @@ export function buildReceipt({ seed, date, store, eligibleMin = 30, eligibleMax 
 // Drawing: 640 x H units, mono 20px (12 px/char => 46 columns inside margins).
 // ---------------------------------------------------------------------------
 const W = 640;
-const COLS = 46;
+const COLS = 48;
 const LEFT = 36;
 const SCALE = 1.5;
 
@@ -218,7 +246,7 @@ export function renderSvg(r) {
   y += 4;
 
   for (const l of r.lines) {
-    const desc = padR(`${l.upc} ${l.desc}`, 37);
+    const desc = padR(`${l.upc} ${l.desc}`, 40);
     text(`${desc}${padL(money(l.amount), 6)} ${l.taxable ? "T" : " "}`);
     if (l.qty > 1) text(`    ${l.qty} @ ${money(l.unit)}`, "s", -3);
   }
@@ -253,8 +281,8 @@ export function renderSvg(r) {
     height: H,
     svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${W * SCALE}" height="${H * SCALE}" viewBox="0 0 ${W} ${H}">
   <style>
-    .m { font-family: 'Courier New', Courier, monospace; font-size: 20px; fill: #1b1b1b; }
-    .s { font-family: 'Courier New', Courier, monospace; font-size: 17px; fill: #3a3a3a; }
+    .m { font-family: 'Courier New', Courier, monospace; font-size: 19px; fill: #1b1b1b; }
+    .s { font-family: 'Courier New', Courier, monospace; font-size: 16px; fill: #3a3a3a; }
     .b { font-family: 'Courier New', Courier, monospace; font-size: 30px; font-weight: bold; fill: #111; }
     .r { text-anchor: end; }
     .c { text-anchor: middle; }
@@ -283,12 +311,13 @@ export const metaOf = (r, file) => ({
   total: r.total / 100,
   eligible: r.eligibleCents / 100,
   points: r.points,
+  brands: [...new Set(r.lines.filter((l) => l.participant).map((l) => l.brand))],
   lines: r.lines.map((l) => `${l.upc} ${l.desc} ${l.qty}x${money(l.unit)}=${money(l.amount)}${l.participant ? " *" : ""}`),
 });
 
 /** A set: sequential seeds, half per store, unique (store|date|total). */
-export function buildSet({ date, count, startSeed, eligibleMin, eligibleMax }) {
-  const seen = new Set();
+export function buildSet({ date, count, startSeed, eligibleMin, eligibleMax, avoid = [] }) {
+  const seen = new Set(avoid);
   const receipts = [];
   let seed = startSeed;
   while (receipts.length < count) {
@@ -321,10 +350,15 @@ if (process.argv[1]?.endsWith("make-tanque-receipt.mjs")) {
     const plan = {
       A: { date: "2026-10-10", count: 6, startSeed: 1000, prefix: "prueba" },
       B: { date: "2026-10-11", count: 16, startSeed: 2000, prefix: "demo" },
+      E: { date: "2026-10-10", count: 6, startSeed: 3000, prefix: "eduardo" }, // personal set, same day as A: pass --avoid manifest-A.json
     }[set];
-    if (!plan) throw new Error("--set debe ser A o B");
+    if (!plan) throw new Error("--set debe ser A, B o E");
     const dir = get("--dir", ".");
-    const receipts = buildSet({ ...plan, eligibleMin, eligibleMax });
+    const avoidFile = get("--avoid");
+    const avoid = avoidFile
+      ? JSON.parse(readFileSync(avoidFile, "utf8")).map((m) => `${m.store.toLowerCase()}|${m.date}|${Math.round(m.total * 100)}`)
+      : [];
+    const receipts = buildSet({ ...plan, eligibleMin, eligibleMax, avoid });
     const manifest = [];
     for (const [i, r] of receipts.entries()) {
       const file = `${plan.prefix}-${String(i + 1).padStart(2, "0")}.jpg`;
