@@ -168,7 +168,7 @@ const es = {
   // es adorno: que abre el lunes, que el inventario es real y que el primero
   // que canjea se lo lleva. Prometer un premio que ya no está es peor que
   // decir "agotado".
-  stTitle: "Tienda de Premios",
+  stTitle: "Premios",
   stSub:
     "Cada lunes abre un Drop nuevo con premios limitados. El primero que canjea, se lo lleva.",
   stNoDrop: "El próximo Drop abre el lunes.",
@@ -183,7 +183,7 @@ const es = {
   // One unit per prize per participant per Drop, which the redeem RPC enforces.
   // The shelf has to say so, or it offers something that would be refused.
   stMine: "Ya es tuyo",
-  stMineNote: "Lo canjeaste en este Drop. Vuelve el lunes por el siguiente.",
+  stMineNote: "Ya lo canjeaste esta semana. Vuelve el lunes por el siguiente.",
   stAvailable: "Disponible",
   // The stamp for a prize within reach. Not a number — the number is right
   // above it on the bar, and repeating it twice in two type sizes is noise.
@@ -230,7 +230,7 @@ const es = {
   stripRedeem: "Elige tu premio",
   ctaUploadTitle: "Subir ticket",
   ctaUploadSub: "Captura tu ticket y gana puntos",
-  stUnavailable: "La Tienda de Premios todavía no está abierta en esta campaña.",
+  stUnavailable: "Los premios todavía no están abiertos en esta campaña.",
   stCost: "{points} pts",
   stLeft: "quedan {left}",
   stSoldOut: "Agotado",
@@ -447,6 +447,15 @@ const es = {
   shHidePw: "Ocultar",
   shPwHint: "Mínimo 8 caracteres.",
   shGalleryAria: "Productos participantes",
+  shChkAgeOpen: "Confirmo que tengo 18 años o más.",
+  shFaqTitle: "Preguntas rápidas",
+  shFaqEarnQ: "¿Cuántos puntos gano?",
+  shFaqEarnA: "{rate} puntos por cada $1 en productos participantes, según tu ticket.",
+  shFaqWhenQ: "¿Cuándo llegan mis puntos?",
+  shFaqWhenA: "En cuanto validamos tu ticket.",
+  shFaqRedeemQ: "¿Dónde los canjeo? ¿Se reinician?",
+  shFaqRedeemA:
+    "En la pestaña Premios de esta app. Tus puntos no se reinician: se acumulan compra tras compra.",
 
   // ---- journey: reading, celebration, tank, prizes ------------------------
   jrFuelEyebrow: "Tu tanque",
@@ -455,11 +464,14 @@ const es = {
   jrFuelReadyGift: "¡Tanque lleno! Tu gift card de {value} ya es tuya",
   jrFuelReadyItem: "¡Tanque lleno! Ya puedes canjear {name}",
   jrFuelCta: "Ir a canjear",
-  jrFuelCanRedeem: "Ya te alcanza para canjear un premio hoy.",
+  jrFuelNowMain: "¡Ya te alcanza para {name}!",
+  jrFuelNextGift: "Siguiente meta: gift card de {value} · te faltan {points} pts",
+  jrFuelNextItem: "Siguiente meta: {name} · te faltan {points} pts",
+  jrFuelRedeemNow: "Canjear ahora",
   jrReadTitle: "Leyendo tu ticket",
-  jrRead1: "Leyendo tu ticket…",
+  jrRead1: "Leyendo el ticket…",
   jrRead2: "Buscando productos participantes…",
-  jrRead3: "Validando compra y total…",
+  jrRead3: "Sumando tus puntos…",
   jrReadLong: "Ya casi. Revisando los últimos detalles…",
   jrReadHonest:
     "Si algo no cuadra, una persona del equipo lo revisa. Puedes salir de esta pantalla: tu ticket sigue en proceso.",
@@ -476,7 +488,17 @@ const es = {
   jrCodeCopy: "Copiar código",
   jrCodeCopied: "¡Código copiado!",
   jrCodeHowTitle: "Cómo la recibes",
-  jrCodeGiftTitle: "¡Tu gift card va en camino!",
+  jrCodeDone: "¡Listo, ya es tuyo!",
+  jrRedPickup: "Listo para recoger",
+  jrRedGift: "En camino a tu correo",
+  jrRedProcessing: "En proceso",
+  jrMore: "más",
+  jrAllPrizes: "Ver todos los premios",
+  // Short, but it keeps the one clause privacyNoteOcr exists for: a third-party
+  // reading service sees the photo. Dropping it would make the promise false
+  // again on exactly the campaigns where the OCR is on.
+  jrPrivacyShort:
+    "Tu ticket se guarda cifrado; un servicio de lectura automática lo procesa solo para validar tu compra.",
   jrHistPoints: "+{points} pts",
   jrHistProducts: "Productos: {list}",
 
@@ -547,7 +569,7 @@ const en: Dict = {
   accProductsNote: "Any {org} size counts toward your points.",
   accLegalHome:
     "Terms apply: points are credited on the participating-product amount once we validate your receipt. Must be 18 or older.",
-  accAcSub: "This email is how you reach your panel and track your points — type it carefully.",
+  accAcSub: "This email is how you reach your panel and track your points, so type it carefully.",
   accRegSub: "We only ask for what's needed to credit your points.",
   accPtsRate: "You earn {rate} points for every $1 of participating products.",
 
@@ -610,7 +632,7 @@ const en: Dict = {
   clbReward: "And your {amount} reward is reserved.",
   clbCta: "See my panel",
 
-  stTitle: "Prize Store",
+  stTitle: "Prizes",
   stSub:
     "A new Drop opens every Monday with limited prizes. First to redeem takes it.",
   stNoDrop: "The next Drop opens Monday.",
@@ -618,7 +640,7 @@ const en: Dict = {
   stDropCadence: "New prizes every Monday",
   stFeatured: "Featured",
   stMine: "Already yours",
-  stMineNote: "You claimed it in this Drop. Come back Monday for the next one.",
+  stMineNote: "You already claimed this one this week. Come back Monday for the next one.",
   stAvailable: "Available",
   stAlmost: "Almost there",
   stKindPhysical: "Physical prize",
@@ -652,7 +674,7 @@ const en: Dict = {
   stripRedeem: "Pick a prize",
   ctaUploadTitle: "Upload receipt",
   ctaUploadSub: "Snap your receipt and earn points",
-  stUnavailable: "The Prize Store isn't open in this campaign yet.",
+  stUnavailable: "Prizes aren't open in this campaign yet.",
   stCost: "{points} pts",
   stLeft: "{left} left",
   stSoldOut: "Sold out",
@@ -839,6 +861,15 @@ const en: Dict = {
   shHidePw: "Hide",
   shPwHint: "At least 8 characters.",
   shGalleryAria: "Participating products",
+  shChkAgeOpen: "I confirm I am 18 or older.",
+  shFaqTitle: "Quick questions",
+  shFaqEarnQ: "How many points do I earn?",
+  shFaqEarnA: "{rate} points for every $1 on participating products, based on your receipt.",
+  shFaqWhenQ: "When do my points arrive?",
+  shFaqWhenA: "As soon as we validate your receipt.",
+  shFaqRedeemQ: "Where do I redeem them? Do they reset?",
+  shFaqRedeemA:
+    "In the Prizes tab of this app. Your points never reset: they add up purchase after purchase.",
 
   // ---- journey: reading, celebration, tank, prizes ------------------------
   jrFuelEyebrow: "Your tank",
@@ -847,11 +878,14 @@ const en: Dict = {
   jrFuelReadyGift: "Tank full! Your {value} gift card is yours",
   jrFuelReadyItem: "Tank full! You can redeem {name} now",
   jrFuelCta: "Go redeem",
-  jrFuelCanRedeem: "You already have enough to redeem a prize today.",
+  jrFuelNowMain: "You've got enough for {name}!",
+  jrFuelNextGift: "Next goal: {value} gift card · {points} pts to go",
+  jrFuelNextItem: "Next goal: {name} · {points} pts to go",
+  jrFuelRedeemNow: "Redeem now",
   jrReadTitle: "Reading your receipt",
-  jrRead1: "Reading your receipt…",
+  jrRead1: "Reading the receipt…",
   jrRead2: "Looking for participating products…",
-  jrRead3: "Checking purchase and total…",
+  jrRead3: "Adding up your points…",
   jrReadLong: "Almost there. Checking the last details…",
   jrReadHonest:
     "If something doesn't add up, a person on the team takes a look. You can leave this screen: your receipt keeps processing.",
@@ -868,7 +902,14 @@ const en: Dict = {
   jrCodeCopy: "Copy code",
   jrCodeCopied: "Code copied!",
   jrCodeHowTitle: "How you get it",
-  jrCodeGiftTitle: "Your gift card is on its way!",
+  jrCodeDone: "Done, it's yours!",
+  jrRedPickup: "Ready for pickup",
+  jrRedGift: "On its way to your inbox",
+  jrRedProcessing: "Processing",
+  jrMore: "more",
+  jrAllPrizes: "See all prizes",
+  jrPrivacyShort:
+    "Your receipt is stored encrypted; an automated reading service processes it only to validate your purchase.",
   jrHistPoints: "+{points} pts",
   jrHistProducts: "Products: {list}",
 

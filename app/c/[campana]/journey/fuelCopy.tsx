@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import type { Locale } from "@/lib/tickets/config";
 import type { Translate } from "@/lib/tickets/i18n";
-import { prizeDetail, prizeName, type NextPrize } from "@/lib/tickets/store";
+import { prizeDetail, prizeName, type NextPrize, type StorePrize } from "@/lib/tickets/store";
 
 const MARK = "\u2063"; // invisible separator: never appears in real copy
 
@@ -17,12 +17,74 @@ export function emphasize(text: string): ReactNode {
   return parts.map((part, i) => (i % 2 === 1 ? <b key={i}>{part}</b> : part));
 }
 
+type Money = (cents: number) => string;
+
+/** "gift card de $10" is how a person says a gift card; everything else by name. */
+const targetOf = (prize: StorePrize, locale: Locale, money: Money) => {
+  const { valueCents } = prizeDetail(prize, locale);
+  const gift = prize.kind === "giftcard" && valueCents !== null;
+  return { gift, value: valueCents !== null ? money(valueCents) : "", name: prizeName(prize, locale) };
+};
+
 /**
- * "Te faltan 120 pts para tu gift card de $5" — from the real next prize.
- * Gift cards are named by their face value (that is how a person says it);
- * everything else by its name.
+ * The two sentences under the gauge, and the rule that keeps them from
+ * contradicting each other.
+ *
+ * The needle always measures toward the NEXT goal (the cheapest prize still out
+ * of reach), but the copy leads with whatever is claimable today. Saying "te
+ * faltan 227 pts para tu gift card de $10" while the same card says "ya te
+ * alcanza para canjear" was the bug: both true, read as opposites. So:
+ *   · something claimable now → main: "¡Ya te alcanza para X!" (the best one),
+ *     secondary: "Siguiente meta: Y · te faltan N pts";
+ *   · nothing claimable yet   → main: "Te faltan N pts para Y", no secondary;
+ *   · the goal itself is reachable → main: it is ready, no secondary.
  */
-export function fuelGoal({
+export function fuelLines({
+  next,
+  claimable,
+  t,
+  locale,
+  money,
+}: {
+  next: NextPrize;
+  /** `bestAffordablePrize` — null when the balance reaches nothing. */
+  claimable: StorePrize | null;
+  t: Translate;
+  locale: Locale;
+  money: Money;
+}): { main: ReactNode; secondary: ReactNode | null; canRedeem: boolean } {
+  const goal = targetOf(next.prize, locale, money);
+  const pts = `${MARK}${next.missing.toLocaleString(locale === "en" ? "en-US" : "es-MX")}${MARK}`;
+
+  if (next.affordable) {
+    return {
+      main: emphasize(t(goal.gift ? "jrFuelReadyGift" : "jrFuelReadyItem", { value: goal.value, name: goal.name })),
+      secondary: null,
+      canRedeem: true,
+    };
+  }
+
+  if (claimable) {
+    return {
+      main: t("jrFuelNowMain", { name: prizeName(claimable, locale) }),
+      secondary: emphasize(
+        t(goal.gift ? "jrFuelNextGift" : "jrFuelNextItem", { points: pts, value: goal.value, name: goal.name }),
+      ),
+      canRedeem: true,
+    };
+  }
+
+  return {
+    main: emphasize(
+      t(goal.gift ? "jrFuelMissingGift" : "jrFuelMissingItem", { points: pts, value: goal.value, name: goal.name }),
+    ),
+    secondary: null,
+    canRedeem: false,
+  };
+}
+
+/** "Siguiente meta: gift card de $10 · te faltan 72 pts", standing alone. */
+export function fuelNextLine({
   next,
   t,
   locale,
@@ -31,16 +93,11 @@ export function fuelGoal({
   next: NextPrize;
   t: Translate;
   locale: Locale;
-  money: (cents: number) => string;
+  money: Money;
 }): ReactNode {
-  const { valueCents } = prizeDetail(next.prize, locale);
-  const gift = next.prize.kind === "giftcard" && valueCents !== null;
-  const name = prizeName(next.prize, locale);
-  const value = valueCents !== null ? money(valueCents) : "";
+  const goal = targetOf(next.prize, locale, money);
   const pts = `${MARK}${next.missing.toLocaleString(locale === "en" ? "en-US" : "es-MX")}${MARK}`;
-
-  if (next.affordable) {
-    return emphasize(t(gift ? "jrFuelReadyGift" : "jrFuelReadyItem", { value, name }));
-  }
-  return emphasize(t(gift ? "jrFuelMissingGift" : "jrFuelMissingItem", { points: pts, value, name }));
+  return emphasize(
+    t(goal.gift ? "jrFuelNextGift" : "jrFuelNextItem", { points: pts, value: goal.value, name: goal.name }),
+  );
 }

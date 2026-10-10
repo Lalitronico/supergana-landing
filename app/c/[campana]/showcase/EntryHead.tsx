@@ -19,7 +19,8 @@ export function EntryHead({
   title,
   sub,
 }: {
-  step: number;
+  /** null: not a step of the sign-up (a login for somebody who already has an account). */
+  step: number | null;
   title: ReactNode;
   sub: ReactNode;
 }) {
@@ -29,12 +30,14 @@ export function EntryHead({
   return (
     <div className={hasArt ? "sh-entry-head art" : "sh-entry-head"}>
       <div className="sh-entry-text">
-        <div className="sh-steps" aria-label={t("regStep", { n: step })}>
-          {[1, 2, 3].map((n) => (
-            <span key={n} className={n <= step ? "on" : undefined} />
-          ))}
-          <span className="tk-eyebrow">{t("regStep", { n: step })}</span>
-        </div>
+        {step !== null && (
+          <div className="sh-steps" aria-label={t("regStep", { n: step })}>
+            {[1, 2, 3].map((n) => (
+              <span key={n} className={n <= step ? "on" : undefined} />
+            ))}
+            <span className="tk-eyebrow">{t("regStep", { n: step })}</span>
+          </div>
+        )}
         <h1 className="tk-h sh-entry-title">{title}</h1>
         <p className="tk-body sh-entry-sub">{sub}</p>
       </div>

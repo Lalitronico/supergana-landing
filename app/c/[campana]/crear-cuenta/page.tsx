@@ -15,7 +15,7 @@ import { PasswordField } from "../showcase/PasswordField";
  * person signed in and heading to the profile step.
  */
 export default function CreateAccountPage() {
-  const { campaign, t, base, privacyNote } = useTickets();
+  const { campaign, t, base } = useTickets();
   const router = useRouter();
 
 /**
@@ -142,7 +142,7 @@ export default function CreateAccountPage() {
           hint={t("shPwHint")}
         />
         <button className="tk-btn" type="submit" disabled={busy}>
-          {busy ? t("acCreating") : t("acBtn")} →
+          {busy ? t("acCreating") : t("acBtn")}&nbsp;→
         </button>
         {exists && (
           <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
@@ -162,7 +162,6 @@ export default function CreateAccountPage() {
         </Link>
       )}
 
-      <p className="tk-foot">{privacyNote}</p>
     </div>
   );
 }

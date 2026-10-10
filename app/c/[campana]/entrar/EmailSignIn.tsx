@@ -27,7 +27,7 @@ type Mode = "password" | "otp-email" | "otp-code";
 const POST_LOGIN = new Set(["panel", "premios", "subir"]);
 
 export function EmailSignIn() {
-  const { t, base, privacyNote } = useTickets();
+  const { t, base } = useTickets();
   const router = useRouter();
 
   // Resolved at navigation time rather than held in state: reading it here
@@ -162,7 +162,7 @@ export function EmailSignIn() {
 
   return (
     <div className="tk-pad">
-      <EntryHead step={1} title={heading[0]} sub={heading[1]} />
+      <EntryHead step={null} title={heading[0]} sub={heading[1]} />
 
       {error && <p className="tk-error">{error}</p>}
 
@@ -194,7 +194,7 @@ export function EmailSignIn() {
             autoComplete="current-password"
           />
           <button className="tk-btn" type="submit" disabled={busy}>
-            {busy ? t("authSigningIn") : t("authSignIn")} →
+            {busy ? t("authSigningIn") : t("authSignIn")}&nbsp;→
           </button>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
             <Link className="tk-linkbtn" href={`${base}recuperar/`}>
@@ -233,7 +233,7 @@ export function EmailSignIn() {
             />
           </label>
           <button className="tk-btn" type="submit" disabled={busy}>
-            {busy ? t("authSending") : t("authSend")} →
+            {busy ? t("authSending") : t("authSend")}&nbsp;→
           </button>
           <button
             type="button"
@@ -266,7 +266,7 @@ export function EmailSignIn() {
             />
           </label>
           <button className="tk-btn" type="submit" disabled={busy}>
-            {busy ? t("authVerifying") : t("authVerify")} →
+            {busy ? t("authVerifying") : t("authVerify")}&nbsp;→
           </button>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
             <button type="button" className="tk-linkbtn" onClick={() => switchMode("otp-email")}>
@@ -290,11 +290,10 @@ export function EmailSignIn() {
           href={`${base}crear-cuenta/`}
           style={{ textAlign: "center" }}
         >
-          {t("authNoAccount")} →
+          {t("authNoAccount")}&nbsp;→
         </Link>
       )}
 
-      <p className="tk-foot">{privacyNote}</p>
     </div>
   );
 }

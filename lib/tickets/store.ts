@@ -134,6 +134,26 @@ export const nextPrize = (snapshot: StoreSnapshot | null): NextPrize | null => {
   };
 };
 
+/**
+ * The best thing the balance can claim RIGHT NOW: the most valuable prize that
+ * is in stock, not yet taken in this Drop, and affordable. `nextPrize` looks
+ * forward (the next thing out of reach); this looks at the shelf as it stands,
+ * so a screen can lead with what is claimable and demote the goal beyond it.
+ * Same three exclusions as `nextPrize`, for the same reason: never advertise
+ * what the redeem RPC would refuse.
+ */
+export const bestAffordablePrize = (snapshot: StoreSnapshot | null): StorePrize | null => {
+  if (!snapshot?.drop) return null;
+  const claimed = new Set(
+    snapshot.redemptions.filter((r) => redemptionHoldsStock(r.status)).map((r) => r.dropItemId),
+  );
+  return (
+    snapshot.drop.items
+      .filter((i) => i.remaining > 0 && !claimed.has(i.id) && i.pointsCost <= snapshot.points)
+      .sort((a, b) => b.pointsCost - a.pointsCost)[0] ?? null
+  );
+};
+
 /** The name to print, honouring campaigns that only wrote one language. */
 export const prizeName = (
   prize: { nameEs: string; nameEn: string | null },

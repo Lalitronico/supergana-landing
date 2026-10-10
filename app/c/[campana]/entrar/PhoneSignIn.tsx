@@ -42,7 +42,7 @@ const RESEND_COOLDOWN_S = 45;
 type Step = "phone" | "code";
 
 export function PhoneSignIn() {
-  const { t, base, campaign, privacyNote } = useTickets();
+  const { t, base, campaign } = useTickets();
 
   const destination = () => {
     const target =
@@ -172,7 +172,7 @@ export function PhoneSignIn() {
   return (
     <div className="tk-pad">
       <EntryHead
-        step={step === "phone" ? 1 : 2}
+        step={1}
         title={step === "phone" ? t("waTitle") : t("waCodeTitle")}
         sub={
           step === "phone"
@@ -220,7 +220,7 @@ export function PhoneSignIn() {
           </p>
 
           <button className="tk-btn" type="submit" disabled={busy}>
-            {busy ? t("authSending") : t("waSend")} →
+            {busy ? t("authSending") : t("waSend")}&nbsp;→
           </button>
         </form>
       ) : (
@@ -258,7 +258,7 @@ export function PhoneSignIn() {
           </label>
 
           <button className="tk-btn" type="submit" disabled={busy || code.length !== 4}>
-            {busy ? t("authVerifying") : t("waConfirm")} →
+            {busy ? t("authVerifying") : t("waConfirm")}&nbsp;→
           </button>
 
           <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
@@ -287,7 +287,6 @@ export function PhoneSignIn() {
         </form>
       )}
 
-      <p className="tk-foot">{privacyNote}</p>
     </div>
   );
 }

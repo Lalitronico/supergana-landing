@@ -224,8 +224,13 @@ export default function UploadPage() {
       if (sentRef.current) URL.revokeObjectURL(sentRef.current);
       sentRef.current = URL.createObjectURL(upload);
       setSentPhoto(sentRef.current);
-      choose(null);
+      // Reload FIRST, clear the photo after. Clearing it first left a ~1s
+      // flash of the empty "take a photo" screen between "Uploading…" and
+      // the reading state, because the receipt does not exist in `me` until
+      // the reload lands. The busy button and the photo stay up until the
+      // screen can switch straight to the in-flight branch.
       await reload();
+      choose(null);
     } catch {
       setError(t("errNetwork"));
     } finally {
@@ -336,7 +341,9 @@ export default function UploadPage() {
         ) : (
           <div className="tk-guide" />
         )}
-        <div className="tk-hint">{preview ? (file?.name ?? "") : t("capEmpty")}</div>
+        {/* The file name is a technical detail that sat on top of the receipt's
+            barcode; once there is a photo, the photo is the whole message. */}
+        {!preview && <div className="tk-hint">{t("capEmpty")}</div>}
       </div>
 
       {/*
@@ -369,12 +376,22 @@ export default function UploadPage() {
       {file ? (
         <>
           <button
-            className="tk-btn"
+            className={["tk-btn", busy ? "busy" : null].filter(Boolean).join(" ")}
             type="button"
             onClick={submit}
             disabled={busy || !canSubmit}
+            aria-busy={busy}
           >
-            {busy ? t("capSending") : t("capSend")} →
+            {busy ? (
+              // Full-strength yellow with a spinner: a pale, disabled-looking
+              // button mid-upload reads as "something broke".
+              <span className="jr-sending">
+                <span className="jr-spinner" aria-hidden="true" />
+                {t("capSending")}
+              </span>
+            ) : (
+              <>{t("capSend")} →</>
+            )}
           </button>
           <button
             className="tk-btn ghost sm"

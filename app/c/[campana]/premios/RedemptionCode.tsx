@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { nextPrize, prizeDetail, prizeName, type StorePrize } from "@/lib/tickets/store";
+import { fuelNextLine } from "../journey/fuelCopy";
 import { Confetti } from "../Confetti";
 import { Mascot } from "../Mascot";
 import { useStoreState, useTickets } from "../TicketsShell";
@@ -36,7 +37,7 @@ export function RedemptionCode({
   prize: StorePrize;
   onBack: () => void;
 }) {
-  const { campaign, locale, t } = useTickets();
+  const { campaign, locale, t, money } = useTickets();
   const { snapshot } = useStoreState();
 
   const kind = won.kind;
@@ -70,7 +71,7 @@ export function RedemptionCode({
       <div className="tk-codewrap">
         <div className="tk-codehead">
           <h1 className="tk-h" style={{ fontSize: 30 }}>
-            {t(gift ? "jrCodeGiftTitle" : "stRedeemedTitle")}
+            {t("jrCodeDone")}
           </h1>
           <Mascot pose="celebrate" className="tk-codemascot" />
         </div>
@@ -98,14 +99,19 @@ export function RedemptionCode({
 
         <div className="tk-goldticket-rip" />
 
-        <div className="tk-eyebrow" style={{ textAlign: "center" }}>{t(gift ? "jrCodeEyebrow" : "stCodeLabel")}</div>
+        <div className="tk-eyebrow" style={{ textAlign: "center" }}>{t(physical ? "stCodeLabel" : "jrCodeEyebrow")}</div>
 
         {/* One element carries the whole code for a screen reader; the tiles are
             decoration around it. Read character by character it would be
             dictated as six unrelated letters. */}
         <div className="tk-code" role="img" aria-label={t("stCodeAria", { code })}>
           {[...code].map((char, i) => (
-            <span className="tk-code-tile" key={`${i}-${char}`} aria-hidden="true">
+            <span
+              className="tk-code-tile"
+              key={`${i}-${char}`}
+              aria-hidden="true"
+              style={{ animationDelay: `${0.35 + i * 0.08}s` }}
+            >
               {char}
             </span>
           ))}
@@ -149,12 +155,11 @@ export function RedemptionCode({
             <span className="tk-amount" style={{ fontSize: 32 }}>{fmt(balance)}</span>
             <b style={{ fontFamily: "var(--tk-display)", fontSize: 13 }}>{t("pointsUnit")}</b>
           </div>
+          {/* The next goal, as the quiet last line: the celebration above is
+              about what was just won, not about what is still missing. */}
           {next && !next.affordable && (
             <p className="tk-foot" style={{ marginTop: 6 }}>
-              {t("npMissingLead")}{" "}
-              <b style={{ color: "var(--tk-brand-ink)" }}>
-                {t("npMissingPts", { points: fmt(next.missing) })}
-              </b>
+              {fuelNextLine({ next, t, locale, money })}
             </p>
           )}
         </div>

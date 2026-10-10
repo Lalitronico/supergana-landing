@@ -224,25 +224,41 @@ export function TicketsShell({
             <div className="tk-ribbon">{t("draftRibbon")}</div>
           )}
           <header className="tk-head" data-cobrand={cobrand ? "true" : undefined}>
-            {cobrand ? (
-              <SafeImg
-                className="tk-cobrand"
-                src={theme.logoUrl ?? ""}
-                alt={theme.logoAlt ?? campaign.orgName}
-                onFail={() => setLogoFailed(true)}
-                fallback={
-                  <div className="tk-logo">
+            {/* The lockup is the same on every screen, signed or not: the client's
+                logo with the platform's signature tucked underneath. It used to
+                share a slot with the points chip, which made "powered by" vanish
+                the moment somebody signed in. Stacking it under the logo gives
+                the balance its own place on the right. */}
+            <div className="tk-brandstack">
+              {cobrand ? (
+                <SafeImg
+                  className="tk-cobrand"
+                  src={theme.logoUrl ?? ""}
+                  alt={theme.logoAlt ?? campaign.orgName}
+                  onFail={() => setLogoFailed(true)}
+                  fallback={
+                    <div className="tk-logo">
+                      <span className="dot" />
+                      {t("appName")}
+                    </div>
+                  }
+                />
+              ) : (
+                <div className="tk-logo">
+                  <span className="dot" />
+                  {t("appName")}
+                </div>
+              )}
+              {cobrand && theme.poweredBy && (
+                <span className="tk-powered">
+                  <span className="by">{t("headPoweredBy")}</span>
+                  <span className="tk-logo">
                     <span className="dot" />
                     {t("appName")}
-                  </div>
-                }
-              />
-            ) : (
-              <div className="tk-logo">
-                <span className="dot" />
-                {t("appName")}
-              </div>
-            )}
+                  </span>
+                </span>
+              )}
+            </div>
 
             <div className="tk-headright">
               {/* Only the languages this campaign actually ships. A one-locale
@@ -263,27 +279,12 @@ export function TicketsShell({
                 </div>
               )}
 
-              {/* One slot, two jobs, and the right one wins by who is looking:
-                  a visitor arriving from the QR needs to know whose app this is,
-                  a participant needs their balance. The platform's signature
-                  keeps its permanent home in the footer of every screen. */}
-              {points !== null ? (
+              {points !== null && (
                 <Link href={`${base}panel/`} className="tk-points" aria-label={t("pointsAria")}>
                   <span className="tk-star">{STAR}</span>
                   <b>{points.toLocaleString(locale === "en" ? "en-US" : "es-MX")}</b>
                   <span className="unit">{t("pointsUnit")}</span>
                 </Link>
-              ) : (
-                cobrand &&
-                theme.poweredBy && (
-                  <span className="tk-powered">
-                    <span className="by">{t("headPoweredBy")}</span>
-                    <span className="tk-logo">
-                      <span className="dot" />
-                      {t("appName")}
-                    </span>
-                  </span>
-                )
               )}
             </div>
           </header>

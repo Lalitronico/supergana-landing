@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { REDEMPTION_STATUS_KEY } from "@/lib/tickets/i18n";
 import {
   prizeDetail,
   prizeName,
@@ -14,6 +13,7 @@ import { Mascot } from "../Mascot";
 import { useStoreState, useTickets } from "../TicketsShell";
 import { ConfirmRedeem } from "./ConfirmRedeem";
 import { PrizeArt } from "./PrizeArt";
+import { redemptionLabelKey } from "./redemptionStatus";
 import { RedemptionCode } from "./RedemptionCode";
 
 const REDEMPTION_PILL: Record<RedemptionStatus, string> = {
@@ -158,9 +158,11 @@ function PrizeCard({
       </div>
 
       {mine ? (
-        <button type="button" className="tk-btn sm" disabled>
-          {t("stMine")}
-        </button>
+        // A settled, good state — not a disabled control. A greyed-out button
+        // reads as "you can't"; this reads as "you did".
+        <div className="jr-claimed" role="status">
+          <span aria-hidden="true">✓</span> {t("stMine")}
+        </div>
       ) : soldOut ? (
         <button type="button" className="tk-btn sm" disabled>
           {t("stSoldOut")}
@@ -394,7 +396,7 @@ export function PrizeStore({
                   <span className="tk-histcode">{row.code}</span>
                 </div>
                 <span className={`tk-pill ${REDEMPTION_PILL[row.status]}`}>
-                  {t(REDEMPTION_STATUS_KEY[row.status])}
+                  {t(redemptionLabelKey(row))}
                 </span>
               </div>
             ))}

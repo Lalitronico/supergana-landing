@@ -81,6 +81,11 @@ interface MeState {
 
 const FAST_POLL_MS = 2_500;
 const FAST_POLL_WINDOW_MS = 90_000;
+// After the fast window a ticket is probably with a person, who may approve it
+// minutes later while the phone is still in the participant's hand: keep
+// checking every 5 s for ten minutes, then settle to the gentle 20 s.
+const MID_POLL_MS = 5_000;
+const MID_POLL_WINDOW_MS = 600_000;
 const SLOW_POLL_MS = 20_000;
 
 export function useMe(slug: string) {
@@ -164,8 +169,10 @@ export function useMe(slug: string) {
         (r) => r.status === "received" || r.status === "in_review",
       );
       for (const r of open) if (!firstSeen.current.has(r.id)) firstSeen.current.set(r.id, now);
-      const fast = open.some((r) => now - (firstSeen.current.get(r.id) ?? now) < FAST_POLL_WINDOW_MS);
-      if (!fast && now - lastFetch < SLOW_POLL_MS) return;
+      const age = Math.min(...open.map((r) => now - (firstSeen.current.get(r.id) ?? now)));
+      const wait =
+        age < FAST_POLL_WINDOW_MS ? 0 : age < MID_POLL_WINDOW_MS ? MID_POLL_MS : SLOW_POLL_MS;
+      if (now - lastFetch < wait) return;
       lastFetch = now;
       fetchMe().then((next) => {
         if (!alive) return;

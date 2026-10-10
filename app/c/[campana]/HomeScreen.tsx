@@ -101,7 +101,7 @@ function AccountDoors() {
           className="tk-linkbtn"
           style={{ textAlign: "center" }}
         >
-          {t("homeGoPanel")} →
+          {t("homeGoPanel")}&nbsp;→
         </Link>
       )}
     </>
@@ -172,7 +172,7 @@ function ThresholdHome({
         <div className="rip" />
         <div className="bottom">
           <Link href={`${base}subir/`} className="tk-btn ink">
-            {t("heroCta")} →
+            {t("heroCta")}&nbsp;→
           </Link>
         </div>
       </div>
@@ -381,27 +381,26 @@ function AccumulationHome({
         )
       )}
 
-      <div className="tk-card">
-        <h2 className="tk-h" style={{ fontSize: 19, marginBottom: 12 }}>
-          {t("accHowTitle")}
+      {/* Replaces the "how it works" card: the strip above already says buy,
+          upload, earn, redeem, and repeating it as three paragraphs made the
+          page say the same thing twice. These answer what the strip cannot. */}
+      <section className="sh-faq">
+        <h2 className="tk-h" style={{ fontSize: 19 }}>
+          {t("shFaqTitle")}
         </h2>
-        <div className="tk-steps">
-          {(
-            [
-              [t("acc1Lead", { org: eligible }), t("acc1Rest")],
-              [t("acc2Lead"), t("acc2Rest")],
-              [t("acc3Lead", { rate }), t("acc3Rest")],
-            ] as const
-          ).map(([lead, rest], i) => (
-            <div className="tk-step" key={lead}>
-              <span className="n">{i + 1}</span>
-              <p>
-                <b>{lead}</b> {rest}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
+        {(
+          [
+            ["shFaqEarnQ", "shFaqEarnA"],
+            ["shFaqWhenQ", "shFaqWhenA"],
+            ["shFaqRedeemQ", "shFaqRedeemA"],
+          ] as const
+        ).map(([q, a]) => (
+          <details key={q}>
+            <summary>{t(q)}</summary>
+            <p>{t(a, { rate })}</p>
+          </details>
+        ))}
+      </section>
 
       {campaign.eligibleStates.length > 0 && (
         <div className="tk-card flat">

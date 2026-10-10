@@ -314,7 +314,10 @@ function ProfileForm({
             checked={ageState}
             onChange={(e) => setAgeState(e.target.checked)}
           />
-          <span>{t("chkAge")}</span>
+          {/* "Resido en un estado elegible" is only true to say when the campaign
+              restricts states; otherwise it asks people to confirm a rule that
+              does not exist. The server only requires the consent flag. */}
+          <span>{t(campaign.eligibleStates.length > 0 ? "chkAge" : "shChkAgeOpen")}</span>
         </label>
         <label className="tk-check">
           <input type="checkbox" checked={rules} onChange={(e) => setRules(e.target.checked)} />
@@ -340,7 +343,7 @@ function ProfileForm({
         </label>
 
         <button className="tk-btn" type="submit" disabled={busy}>
-          {busy ? t("regSaving") : t("regBtn")} →
+          {busy ? t("regSaving") : t("regBtn")}&nbsp;→
         </button>
         <p className="tk-foot">{t("regNote")}</p>
       </form>

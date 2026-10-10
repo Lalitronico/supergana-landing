@@ -20,24 +20,58 @@
 
 /* ---- header: the co-brand lockup ---------------------------------------- */
 
-.tk-app .tk-head { padding: 12px 16px 11px; min-height: 64px; }
+.tk-app .tk-head { padding: 10px 14px 9px 16px; min-height: 64px; gap: 8px; }
 
-/* Co-branded: client logo on the left, the platform's signature on the right,
-   separated by the same 3px rule as everything else. The logo is capped by height
-   AND width so a very wide or very tall lockup both land in the same visual slot. */
+/* The lockup: client logo with the platform's signature underneath. Left-aligned
+   so the logo's edge and the signature's edge share one line, which is what
+   makes it read as one mark and not as two things competing for the corner. */
+.tk-brandstack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
 .tk-app .tk-head[data-cobrand] .tk-cobrand {
-  height: 40px;
-  max-width: 48%;
+  height: 34px;
+  max-width: 100%;
   object-position: left center;
-  /* Browsers downscale large PNGs with their default resampler; this asks for the
-     smoother one so a 2x/3x source stays crisp instead of shimmering. */
   image-rendering: auto;
   -webkit-user-drag: none;
   user-select: none;
 }
 
-.tk-app .tk-powered { align-items: flex-end; gap: 3px; padding-left: 12px; border-left: 2px solid rgba(10, 10, 10, 0.14); }
-.tk-app .tk-powered .by { font-size: 8.5px; letter-spacing: 0.16em; }
+.tk-app .tk-powered {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  white-space: nowrap;
+}
+.tk-app .tk-powered .by { font-size: 8.5px; letter-spacing: 0.16em; color: var(--tk-ink-soft); }
+.tk-app .tk-powered .tk-logo { font-size: 12.5px; gap: 5px; }
+.tk-app .tk-powered .tk-logo .dot { width: 8px; height: 8px; border-width: 2px; }
+
+.tk-app .tk-headright { flex: none; gap: 8px; }
+
+/* Language toggle: compact to look at, 44px tall to touch. The visible pill stays
+   30px so the lockup keeps its room at 360px; the hit area is extended with a
+   pseudo-element, which is why the group may no longer clip its overflow. */
+.tk-app .tk-lang { overflow: visible; }
+.tk-app .tk-lang button {
+  position: relative;
+  min-width: 38px;
+  height: 30px;
+  padding: 0 8px;
+  font-size: 12px;
+  line-height: 1;
+}
+.tk-app .tk-lang button:first-child { border-radius: 999px 0 0 999px; }
+.tk-app .tk-lang button:last-child { border-radius: 0 999px 999px 0; }
+.tk-app .tk-lang button::after { content: ""; position: absolute; inset: -8px -1px; }
+.tk-app .tk-points { padding: 6px 10px 6px 7px; min-height: 34px; }
 
 /* ---- bottom tabs --------------------------------------------------------- */
 
@@ -110,7 +144,7 @@
 
 /* ---- home: the rate ticket ----------------------------------------------- */
 
-.sh-ticket .top { position: relative; padding-right: 86px; }
+.sh-ticket .top { position: relative; padding-right: 74px; }
 
 /* A sticker on the corner of the ticket: the star is the platform's mark for
    points, and the slight tilt is what makes it read as stuck on rather than laid
@@ -119,8 +153,8 @@
   position: absolute;
   top: 14px;
   right: 14px;
-  width: 58px;
-  height: 58px;
+  width: 50px;
+  height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -130,9 +164,11 @@
   box-shadow: 3px 3px 0 0 var(--tk-ink);
   transform: rotate(10deg);
 }
-.sh-stamp svg { width: 28px; height: 28px; }
+.sh-stamp svg { width: 24px; height: 24px; }
 
-.sh-rate { line-height: 1.02; text-wrap: balance; }
+/* The equation is one unit and never breaks across lines: the size follows the
+   viewport instead (34px on a 390+ phone, a little less on 360). */
+.tk-app .sh-rate { line-height: 1.02; white-space: nowrap; font-size: clamp(25px, 8.2vw, 34px) !important; }
 
 .sh-ticket .tk-ctaline { transition: background 120ms ease, transform 120ms ease; }
 .sh-ticket .tk-ctaline-ico { transition: transform 160ms cubic-bezier(0.3, 1.6, 0.5, 1); }
@@ -364,23 +400,28 @@
 .tk-app .sh-form .tk-check {
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  /* The whole row is the <label>, so the whole row is the target; 56px tall
+     clears the 44px minimum with room for a thumb that lands off-centre. */
+  min-height: 56px;
+  padding: 10px 14px;
   border: 2.5px solid var(--tk-ink);
   border-radius: 14px;
   background: #fff;
-  font-size: 13px;
+  font-size: 13.5px;
+  cursor: pointer;
 }
-.tk-app .sh-form .tk-check input { width: 24px; height: 24px; }
+.tk-app .sh-form .tk-check input { width: 26px; height: 26px; margin-top: 0; }
 
 .sh-pw { position: relative; display: block; }
-.sh-pw input { padding-right: 84px !important; }
+.sh-pw input { padding-right: 82px !important; min-height: 56px; }
 
 .sh-pw-toggle {
   position: absolute;
   top: 50%;
-  right: 8px;
+  right: 5px;
   transform: translateY(-50%);
-  min-height: 38px;
+  min-height: 44px;
+  min-width: 64px;
   padding: 0 12px;
   border: 2.5px solid var(--tk-ink);
   border-radius: 10px;
@@ -462,3 +503,72 @@
 .sh-reward-text .sh-prize-cost { min-width: 0; }
 
 @media (prefers-reduced-motion: reduce) { .sh-reward { animation: none; } }
+
+/* ---- low-contrast hints in forms (AA on white: ink-soft is 11:1) ----------- */
+
+.tk-app .sh-form .tk-foot,
+.tk-app .sh-form .tk-field .tk-foot { color: var(--tk-ink-soft); font-size: 12.5px; }
+
+/* ---- typography across the module ------------------------------------------ */
+
+/* Balanced headings and labels stop a single word from living alone on a line;
+   "pretty" does the same for the last line of running text and button labels
+   (it also keeps a trailing arrow from wrapping by itself). */
+.tk-app :is(h1, h2, h3, .tk-h, .tk-eyebrow, .tk-linkbtn, .sh-prize-name) { text-wrap: balance; }
+.tk-app :is(p, li, summary, label, .tk-body, .tk-foot, .tk-btn, .tk-step) { text-wrap: pretty; }
+
+/* ---- home: one beat on the call to action --------------------------------- */
+
+@keyframes sh-beat {
+  0%, 100% { transform: scale(1); }
+  45% { transform: scale(1.03); }
+}
+/* Once, after the page has risen into place: enough to say "this one", not
+   enough to nag. */
+.sh-ticket .tk-ctaline { animation: sh-beat 900ms ease-in-out 1100ms 1; }
+
+/* ---- home: quick questions ------------------------------------------------- */
+
+.sh-faq { display: flex; flex-direction: column; gap: 8px; }
+
+.sh-faq details {
+  background: #fff;
+  border: 3px solid var(--tk-ink);
+  border-radius: 14px;
+}
+
+.sh-faq summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 10px 14px;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 14.5px;
+  letter-spacing: -0.01em;
+}
+.sh-faq summary::-webkit-details-marker { display: none; }
+.sh-faq summary::after {
+  content: "+";
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 50%;
+  background: var(--tk-yellow);
+  font-size: 17px;
+  line-height: 1;
+}
+.sh-faq details[open] summary::after { content: "2"; }
+.sh-faq details p { padding: 0 14px 14px; font-size: 13.5px; line-height: 1.5; color: var(--tk-ink-soft); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sh-ticket .tk-ctaline { animation: none; }
+}

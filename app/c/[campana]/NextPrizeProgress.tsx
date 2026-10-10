@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { nextPrize, prizeName, redemptionHoldsStock } from "@/lib/tickets/store";
+import { bestAffordablePrize, nextPrize, prizeName } from "@/lib/tickets/store";
 import { useStoreState, useTickets } from "./TicketsShell";
 import { FuelGauge } from "./journey/FuelGauge";
-import { fuelGoal } from "./journey/fuelCopy";
+import { fuelLines } from "./journey/fuelCopy";
 
 /**
  * How far the balance is from the next prize it can actually claim.
@@ -58,17 +58,13 @@ export function NextPrizeProgress({
         ? Math.min(100, Math.round((fromPoints / next.prize.pointsCost) * 100))
         : undefined;
 
-    // The tank points at the next prize the balance does NOT reach yet, so a
-    // person who already affords something would read "te faltan 222 pts" and
-    // miss that the shelf has something for them today. Say so.
-    const claimed = new Set(
-      (snapshot?.redemptions ?? []).filter((r) => redemptionHoldsStock(r.status)).map((r) => r.dropItemId),
-    );
-    const redeemableNow =
-      !next.affordable &&
-      (snapshot?.drop?.items ?? []).some(
-        (item) => item.remaining > 0 && !claimed.has(item.id) && item.pointsCost <= next.points,
-      );
+    const lines = fuelLines({
+      next,
+      claimable: bestAffordablePrize(snapshot),
+      t,
+      locale,
+      money,
+    });
 
     const fuel = (
       <>
@@ -79,13 +75,17 @@ export function NextPrizeProgress({
           compact={compact}
           ariaLabel={t("npAria", { name, pct: next.pct })}
         />
-        <p className="tk-fuel-goal">{fuelGoal({ next, t, locale, money })}</p>
-        {redeemableNow && <p className="tk-fuel-now">{t("jrFuelCanRedeem")}</p>}
+        <p className={["tk-fuel-goal", lines.canRedeem ? "ready" : null].filter(Boolean).join(" ")}>
+          {lines.main}
+        </p>
+        {lines.secondary && <p className="tk-fuel-next">{lines.secondary}</p>}
         <p className="tk-fuel-of">
           {t("npOf", { points: fmt(next.points), cost: fmt(next.prize.pointsCost) })}
         </p>
         {!compact && (
-          <span className="tk-fuel-go">{t("jrFuelCta")} →</span>
+          <span className="tk-fuel-go">
+            {t(lines.canRedeem ? "jrFuelRedeemNow" : "jrFuelCta")} →
+          </span>
         )}
       </>
     );

@@ -11,6 +11,8 @@ import { useSession, useStoreState, useTickets } from "../TicketsShell";
 import { StatusTimeline } from "../StatusTimeline";
 import { ApprovalCelebration } from "../ApprovalCelebration";
 import { NextPrizeProgress } from "../NextPrizeProgress";
+import { redemptionLabelKey } from "../premios/redemptionStatus";
+import { prizeName } from "@/lib/tickets/store";
 import type { MeReceipt } from "../useMe";
 
 const RECEIPT_PILL: Record<ReceiptStatus, string> = {
@@ -341,6 +343,7 @@ export default function PanelPage() {
   const { campaign, locale, t, base, money, privacyNote } = useTickets();
   const router = useRouter();
   const { status, me, reload } = useSession();
+  const store = useStoreState();
 
   useEffect(() => {
     if (status === "anon") router.replace(`${base}entrar/?next=panel`);
@@ -366,6 +369,9 @@ export default function PanelPage() {
       .filter(Boolean)
       .join(" · ");
 
+  const redemptions = store.snapshot?.redemptions ?? [];
+  const identity = me.email || me.phone ? displayIdentity(me.email, me.phone) : null;
+
   const reward = me.rewards.find((r) => r.status !== "canceled") ?? null;
   const open = me.receipts.find(
     (r: MeReceipt) => r.status === "received" || r.status === "in_review",
@@ -384,8 +390,10 @@ export default function PanelPage() {
         <div>
           <h1 className="tk-h" style={{ fontSize: 30 }}>{t("pnTitle")}</h1>
           <p className="tk-foot" style={{ marginTop: 4 }}>
-            {t("pnHello", { name: me.participant?.firstName ?? "" })} ·{" "}
-            {displayIdentity(me.email, me.phone)}
+            {t("pnHello", { name: me.participant?.firstName ?? "" })}
+            {/* Phone campaigns without a readable number have no identity to
+                show, and a lone dash after a separator reads as a bug. */}
+            {identity && <> · {identity}</>}
           </p>
         </div>
       </div>
@@ -415,6 +423,31 @@ export default function PanelPage() {
           </div>
           <span className="tk-storedoor-go" aria-hidden="true">→</span>
         </Link>
+      )}
+
+      {/* "Lo encontrarás en tu historial": the history lives here too, so the
+          sentence is true wherever it is read. Latest three, code included —
+          it is the string somebody needs at a counter. */}
+      {redemptions.length > 0 && (
+        <div className="tk-card">
+          <h2 className="tk-h" style={{ fontSize: 18, marginBottom: 4 }}>{t("stHistTitle")}</h2>
+          <div className="tk-hist">
+            {redemptions.slice(0, 3).map((row) => (
+              <div className="tk-hist-item" key={row.id}>
+                <div className="meta">
+                  <b>{prizeName({ nameEs: row.prizeNameEs, nameEn: row.prizeNameEn }, locale)}</b>
+                  <span className="tk-histcode">{row.code}</span>
+                </div>
+                <span className={`tk-pill ${row.status === "fulfilled" ? "ok" : row.status === "canceled" ? "bad" : "wait"}`}>
+                  {t(redemptionLabelKey(row))}
+                </span>
+              </div>
+            ))}
+          </div>
+          <Link href={`${base}premios/`} className="tk-linkbtn" style={{ display: "inline-block", marginTop: 8, minHeight: 44, lineHeight: "44px" }}>
+            {t("jrAllPrizes")} →
+          </Link>
+        </div>
       )}
 
       <LeaderboardCard slug={campaign.slug} />
@@ -508,7 +541,7 @@ export default function PanelPage() {
         </div>
       )}
 
-      <p className="tk-foot">{privacyNote}</p>
+      <p className="tk-foot">{campaign.ocrEnabled ? t("jrPrivacyShort") : privacyNote}</p>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
         {/* Also the migration path for OTP-era accounts that have no password
             yet: updateUser works from any signed-in session. Absent where the

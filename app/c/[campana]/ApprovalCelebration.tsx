@@ -148,11 +148,13 @@ export function ApprovalCelebration({ me }: { me: Me | null }) {
             <div className="tk-eyebrow">{t("jrClbFound")}</div>
             <ul>
               {show.products.slice(0, 3).map((name, i) => (
-                <li key={name} style={{ animationDelay: `${0.9 + i * 0.18}s` }}>{name}</li>
+                <li key={name} style={{ animationDelay: `${0.9 + i * 0.12}s` }}>{name}</li>
               ))}
               {/* A long basket must not push the buttons off the screen. */}
               {show.products.length > 3 && (
-                <li className="more" style={{ animationDelay: "1.5s" }}>+{show.products.length - 3}</li>
+                <li className="more" style={{ animationDelay: "1.3s" }}>
+                  +{show.products.length - 3} {t("jrMore")}
+                </li>
               )}
             </ul>
           </div>
@@ -171,16 +173,6 @@ export function ApprovalCelebration({ me }: { me: Me | null }) {
         >
           {hasStore && !show.gotReward ? t("jrClbStore") : t("clbCta")} →
         </Link>
-        {hasStore && !show.gotReward && (
-          <Link
-            href={`${base}panel/`}
-            className="tk-linkbtn"
-            style={{ marginTop: 10 }}
-            onClick={() => setShow(null)}
-          >
-            {t("clbCta")}
-          </Link>
-        )}
         <button type="button" className="tk-linkbtn" style={{ marginTop: 6 }} onClick={() => setShow(null)}>
           {t("close")}
         </button>
