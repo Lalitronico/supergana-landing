@@ -1,5 +1,7 @@
 "use client";
 
+import { ISSUE_MESSAGE } from "./ocrIssues";
+import { productLabel } from "@/lib/tickets/productLabel";
 import { useEffect, useMemo, useState } from "react";
 import { formatUsdCents, isFuturePurchaseDate, todayInTz } from "@/lib/tickets/config";
 import type { CampaignMechanic } from "@/lib/tickets/config";
@@ -70,18 +72,6 @@ const newLine = (index: number): Line => ({
 
 /** Valor del select para "cuenta, pero no sabemos qué presentación es". */
 const BRAND_ONLY = "__brand__";
-
-// Lo que el modelo puede reportar de una foto, en el idioma del revisor.
-const ISSUE_MESSAGE: Record<string, string> = {
-  cut_off: "La foto corta parte del ticket",
-  blurry: "La foto está borrosa",
-  screen_photo: "Parece la foto de una pantalla, no del papel",
-  handwritten: "Hay texto escrito a mano",
-  no_total: "No se ve el total",
-  no_date: "No se ve la fecha",
-  not_a_receipt: "Esto no parece un ticket de compra",
-  suspicious_text: "El ticket trae texto que intenta dar instrucciones — revísalo con cuidado",
-};
 
 /**
  * La caja de "tienda" a partir de lo leído.
@@ -356,7 +346,7 @@ export function ReviewPanel({
   const lineHint = useMemo(() => {
     const sample = products.find((p) => p.product_aliases.length > 0);
     if (sample) return sample.product_aliases[0].alias_text.toUpperCase();
-    return products[0] ? `${products[0].brand} ${products[0].name}`.toUpperCase() : "";
+    return products[0] ? productLabel(products[0]).toUpperCase() : "";
   }, [products]);
 
   // A store the campaign actually lists, or nothing. Never another client's.
@@ -817,7 +807,7 @@ export function ReviewPanel({
                       )}
                       {products.map((product) => (
                         <option key={product.id} value={product.id}>
-                          {product.brand} {product.name}
+                          {productLabel(product)}
                         </option>
                       ))}
                     </select>

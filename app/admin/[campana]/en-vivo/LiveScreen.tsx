@@ -64,21 +64,24 @@ function Counter({
   suffix,
   className,
   hint,
+  empty,
 }: {
   label: string;
   value: number;
   suffix?: string;
   className?: string;
   hint?: string;
+  /** Neutral "nothing yet" state: a dash instead of a discouraging zero. */
+  empty?: boolean;
 }) {
   const shown = useCountUp(value);
   return (
     <div className={`lv-card lv-counter ${className ?? ""}`}>
       <div className="lv-counter-label">{label}</div>
       {/* `key` restarts the pop animation each time the real value changes. */}
-      <div key={value} className="lv-counter-value">
-        {int(shown)}
-        {suffix && <span className="lv-counter-suffix">{suffix}</span>}
+      <div key={value} className={`lv-counter-value ${empty ? "empty" : ""}`}>
+        {empty ? "—" : int(shown)}
+        {!empty && suffix && <span className="lv-counter-suffix">{suffix}</span>}
       </div>
       {hint && <div className="lv-counter-hint">{hint}</div>}
     </div>
@@ -140,7 +143,10 @@ function FeedRow({
         <Icon kind={isTicket ? "ticket" : "gift"} />
       </span>
       <div className="lv-feed-body">
-        <div className="lv-feed-who">{item.alias}</div>
+        <div className="lv-feed-who">
+          <span className="lv-feed-name">{item.alias}</span>
+          {item.kind === "ticket" && item.auto && <span className="lv-auto">AUTO</span>}
+        </div>
         <div className="lv-feed-what">
           {item.kind === "ticket"
             ? item.products.length > 0
@@ -156,11 +162,53 @@ function FeedRow({
           <span className="lv-feed-pts redeem">Premio</span>
         )}
         <span className="lv-feed-ago">
-          {item.kind === "ticket" && item.auto && <span className="lv-auto">AUTO</span>}
           {ago(nowMs, item.at)}
         </span>
       </div>
     </li>
+  );
+}
+
+/** Real facts computed from the snapshot; nothing here is filler. */
+function buildFacts(data: LiveData): { kicker: string; text: string }[] {
+  const facts: { kicker: string; text: string }[] = [];
+  if (data.topProduct) {
+    facts.push({
+      kicker: "Lo más comprado",
+      text: `${data.topProduct.label} · ${int(data.topProduct.units)} ${data.topProduct.units === 1 ? "pieza" : "piezas"}`,
+    });
+  }
+  const total = data.mix.reduce((sum, b) => sum + b.cents, 0);
+  const leader = [...data.mix].sort((a, b) => b.cents - a.cents)[0];
+  if (leader && total > 0) {
+    facts.push({
+      kicker: "Marca líder",
+      text: `${leader.brand} · ${Math.round((leader.cents / total) * 100)}% del gasto elegible`,
+    });
+  }
+  if (data.counters.approved > 0) {
+    facts.push({
+      kicker: "Ticket promedio",
+      text: `${int(data.counters.points / data.counters.approved)} puntos por ticket aprobado`,
+    });
+  }
+  return facts;
+}
+
+/** One fact at a time, swapped every few seconds. Hidden when there are none. */
+function FactStrip({ facts }: { facts: { kicker: string; text: string }[] }) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 6000);
+    return () => clearInterval(id);
+  }, []);
+  if (facts.length === 0) return null;
+  const fact = facts[tick % facts.length];
+  return (
+    <div className="lv-fact" key={fact.kicker}>
+      <span className="lv-fact-kicker">{fact.kicker}</span>
+      <span className="lv-fact-text">{fact.text}</span>
+    </div>
   );
 }
 
@@ -312,6 +360,10 @@ export function LiveScreen({ slug }: { slug: string }) {
     theme.mascots[pose] ?? DEFAULT_CHARACTERS[pose];
   const nowAdjusted = nowMs - clockSkew;
   const mixTotal = data.mix.reduce((sum, b) => sum + b.cents, 0);
+  // Seconds while it is quick, minutes once it is not: "8 s" is the pitch.
+  const avg = counters.autoAvgSeconds ?? 0;
+  const autoTime = avg < 90 ? { value: Math.max(1, Math.round(avg)), unit: " s" } : { value: Math.round(avg / 60), unit: " min" };
+  const facts = buildFacts(data);
   const empty = counters.tickets === 0 && data.feed.length === 0;
   const origin = data.joinUrl.replace(/^https?:\/\//, "");
 
@@ -396,10 +448,10 @@ export function LiveScreen({ slug }: { slug: string }) {
                 </span>
                 Los 5 primeros
               </div>
-              {/* Always five rows: empty seats are drawn as dashed ghosts so the
-                  ranking visibly has room to fill during the demo. */}
+              {/* The real rows plus ONE dashed ghost: a column of five empty
+                  seats with a single player reads as a dead room. */}
               <ol className="lv-rank">
-                {Array.from({ length: 5 }, (_, i) => data.top[i] ?? null).map((row, i) =>
+                {Array.from({ length: Math.min(5, data.top.length + 1) }, (_, i) => data.top[i] ?? null).map((row, i) =>
                   row ? (
                     <li key={row.rank} className={`pos-${row.rank}`}>
                       <span className="lv-rank-n">{row.rank}</span>
@@ -409,7 +461,7 @@ export function LiveScreen({ slug }: { slug: string }) {
                   ) : (
                     <li key={`ghost-${i}`} className="ghost">
                       <span className="lv-rank-n">{i + 1}</span>
-                      <span className="lv-rank-who">Lugar libre</span>
+                      <span className="lv-rank-who">¿Quién sigue?</span>
                       <span className="lv-rank-pts">—</span>
                     </li>
                   ),
@@ -426,13 +478,14 @@ export function LiveScreen({ slug }: { slug: string }) {
             </div>
             <div className="lv-row lv-row-small">
               <Counter
-                label="Aprobados por la máquina"
-                value={counters.autoPct ?? 0}
-                suffix="%"
+                label="Validación automática"
+                value={autoTime.value}
+                suffix={autoTime.unit}
+                empty={counters.autoAvgSeconds === null}
                 hint={
-                  counters.approved > 0
-                    ? `${counters.autoApproved} de ${counters.approved} sin revisión humana`
-                    : "ningún ticket aprobado aún"
+                  counters.autoAvgSeconds === null
+                    ? "esperando el primero"
+                    : `${counters.autoApproved} de ${counters.approved} tickets aprobados solos`
                 }
               />
               <Counter label="Puntos repartidos" value={counters.points} />
@@ -486,6 +539,8 @@ export function LiveScreen({ slug }: { slug: string }) {
                 })}
               </div>
             </div>
+
+            <FactStrip facts={facts} />
           </section>
 
           {/* ---- column C: live feed -------------------------------------- */}
@@ -524,27 +579,28 @@ export function LiveScreen({ slug }: { slug: string }) {
                 </ul>
               )}
             </div>
+
+            {/* Celebration toast, over the feed so it never covers numbers. */}
+            {banner && (
+              <div key={banner.id} className="lv-banner" role="status">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={mascot("celebrate")} alt="" aria-hidden="true" />
+                <div className="lv-banner-text">
+                  <div className="lv-banner-kicker">
+                    {banner.kind === "ticket" ? "Ticket aprobado" : "Premio canjeado"}
+                  </div>
+                  <div className="lv-banner-main">
+                    <b>{banner.alias}</b>
+                    <span>
+                      {banner.kind === "ticket" ? `+${int(banner.points)} pts` : banner.prize}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
           </section>
         </main>
 
-        {/* ---- celebration banner for the newest event ------------------- */}
-        {banner && (
-          <div key={banner.id} className="lv-banner" role="status">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={mascot("celebrate")} alt="" aria-hidden="true" />
-            <div>
-              <div className="lv-banner-kicker">
-                {banner.kind === "ticket" ? "Ticket aprobado" : "Premio canjeado"}
-              </div>
-              <div className="lv-banner-main">
-                {banner.alias}
-                <span>
-                  {banner.kind === "ticket" ? `+${int(banner.points)} pts` : banner.prize}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

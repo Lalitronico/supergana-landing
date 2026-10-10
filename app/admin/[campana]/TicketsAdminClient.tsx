@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CSSProperties } from "react";
 import { authThrottleKind, supabaseBrowser } from "@/lib/supabase/browser";
 import { formatUsdCents, mechanicOf } from "@/lib/tickets/config";
+import { productLabel } from "@/lib/tickets/productLabel";
 import { canPayout, canReview } from "@/lib/tickets/roles";
 import { ReadingsView } from "./ReadingsView";
 import { PAYOUT_TRANSITIONS } from "@/lib/tickets/payouts";
@@ -1166,10 +1167,7 @@ function CatalogView({
               {products.map((product) => (
                 <tr key={product.id}>
                   <td><b>{product.brand}</b></td>
-                  <td>
-                    {product.name}
-                    {product.size ? ` ${product.size}` : ""}
-                  </td>
+                  <td>{productLabel(product, { withBrand: false })}</td>
                   <td className="tka-mono">
                     {product.product_aliases.length === 0
                       ? "— sin alias —"

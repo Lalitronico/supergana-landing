@@ -184,6 +184,8 @@ export interface AdminDrop {
   createdAt: string;
   /** The RPC refuses everything else, whatever the status says. */
   isCurrentWeek: boolean;
+  /** A scheduled week that has not started yet: not "previous", just not here. */
+  isFuture: boolean;
   items: AdminDropItem[];
 }
 

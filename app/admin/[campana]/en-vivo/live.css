@@ -82,9 +82,9 @@
 .lv-sg small {
   font-family: var(--lv-body);
   font-weight: 600;
-  font-size: 15px;
+  font-size: 18px;
   letter-spacing: 0.02em;
-  color: var(--lv-ink-mute);
+  color: var(--lv-ink-soft);
   margin-right: -6px;
 }
 .lv-sg-dot {
@@ -256,7 +256,7 @@
 .lv-qr-kicker {
   font-family: var(--lv-display);
   font-weight: 800;
-  font-size: 46px;
+  font-size: 42px;
   letter-spacing: -0.04em;
   line-height: 1;
 }
@@ -295,14 +295,18 @@
   white-space: nowrap;
 }
 .lv-peek {
+  /* A die-cut sticker stuck on the card corner: white outline, hard shadow,
+     tilted, and deliberately breaking the border. */
   position: absolute;
-  right: -34px;
-  top: -52px;
-  width: 104px;
+  right: -16px;
+  top: -70px;
+  width: 112px;
   height: auto;
-  transform: rotate(10deg);
-  filter: drop-shadow(4px 4px 0 var(--lv-ink));
-  animation: lv-bob 3.2s ease-in-out infinite;
+  transform: rotate(9deg);
+  filter:
+    drop-shadow(3px 0 0 #fff) drop-shadow(-3px 0 0 #fff)
+    drop-shadow(0 3px 0 #fff) drop-shadow(0 -3px 0 #fff)
+    drop-shadow(6px 7px 0 var(--lv-ink));
   pointer-events: none;
 }
 
@@ -381,7 +385,7 @@
 }
 .lv-row-small {
   grid-template-columns: repeat(3, 1fr);
-  height: 204px;
+  height: 218px;
 }
 .lv-counter {
   padding: 18px 24px;
@@ -419,14 +423,15 @@
 .lv-row-small .lv-counter-value {
   font-size: 68px;
 }
+.lv-counter-value.empty { color: var(--lv-ink-mute); }
 .lv-counter-suffix {
   font-size: 0.55em;
   margin-left: 4px;
 }
 .lv-counter-hint {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
-  color: var(--lv-ink-mute);
+  color: var(--lv-ink-soft);
   line-height: 1.15;
   margin-top: 4px;
 }
@@ -435,9 +440,10 @@
 .lv-mix {
   flex: 1;
   min-height: 0;
-  padding: 22px 28px;
+  padding: 18px 28px 16px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .lv-bars {
   flex: 1;
@@ -450,7 +456,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .lv-bar-name {
   display: inline-flex;
@@ -468,9 +474,9 @@
   border: 3px solid var(--lv-ink);
 }
 .lv-bar-name img {
-  height: 54px;
+  height: 46px;
   width: auto;
-  max-width: 220px;
+  max-width: 200px;
   object-fit: contain;
 }
 .lv-bar-num {
@@ -481,18 +487,18 @@
 .lv-bar-num strong {
   font-family: var(--lv-display);
   font-weight: 800;
-  font-size: 44px;
+  font-size: 40px;
   letter-spacing: -0.03em;
   font-variant-numeric: tabular-nums;
 }
 .lv-bar-num em {
   font-style: normal;
   font-weight: 600;
-  font-size: 19px;
-  color: var(--lv-ink-mute);
+  font-size: 20px;
+  color: var(--lv-ink-soft);
 }
 .lv-bar-track {
-  height: 44px;
+  height: 34px;
   background: var(--lv-cream);
   border: 4px solid var(--lv-ink);
   border-radius: 999px;
@@ -512,6 +518,7 @@
 /* ---- feed ------------------------------------------------------------ */
 .lv-col-c {
   min-height: 0;
+  position: relative;
 }
 .lv-feed {
   flex: 1;
@@ -581,9 +588,11 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.lv-feed-who { display: flex; align-items: center; gap: 10px; }
+.lv-feed-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .lv-feed-what {
   margin-top: 3px;
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--lv-ink-soft);
   overflow: hidden;
@@ -614,14 +623,14 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
+  font-size: 19px;
   font-weight: 700;
-  color: var(--lv-ink-mute);
+  color: var(--lv-ink-soft);
 }
 .lv-auto {
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  padding: 1px 6px;
+  font-size: 18px;
+  letter-spacing: 0.06em;
+  padding: 0 7px;
   border: 2px solid var(--lv-ink);
   border-radius: 6px;
   background: #fff;
@@ -667,27 +676,31 @@
 
 /* ---- celebration banner ---------------------------------------------- */
 .lv-banner {
+  /* Toast over the bottom of the feed column: the feed is the one place
+     where covering older rows costs nothing. */
   position: absolute;
-  left: 50%;
-  bottom: 54px;
+  left: 14px;
+  right: 14px;
+  bottom: 18px;
   display: flex;
   align-items: center;
-  gap: 22px;
-  padding: 14px 40px 14px 22px;
+  gap: 16px;
+  padding: 12px 22px 12px 16px;
   background: var(--lv-yellow);
   border: 5px solid var(--lv-ink);
-  border-radius: 28px;
-  box-shadow: 9px 9px 0 0 var(--lv-ink);
+  border-radius: 24px;
+  box-shadow: 8px 8px 0 0 var(--lv-ink);
   animation: lv-banner 4.2s cubic-bezier(0.2, 1.2, 0.3, 1) both;
   z-index: 20;
-  white-space: nowrap;
 }
 .lv-banner img {
-  width: 108px;
+  width: 96px;
   height: auto;
-  margin-top: -64px;
-  filter: drop-shadow(4px 4px 0 var(--lv-ink));
+  margin: -46px 0 -4px;
+  filter: drop-shadow(3px 3px 0 var(--lv-ink));
+  flex: none;
 }
+.lv-banner-text { min-width: 0; }
 .lv-banner-kicker {
   font-weight: 800;
   font-size: 20px;
@@ -697,18 +710,58 @@
 .lv-banner-main {
   font-family: var(--lv-display);
   font-weight: 800;
-  font-size: 54px;
+  font-size: 40px;
   letter-spacing: -0.04em;
-  line-height: 1;
+  line-height: 1.05;
   display: flex;
-  align-items: center;
-  gap: 24px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.lv-banner-main b {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .lv-banner-main span {
   background: var(--lv-ink);
   color: var(--lv-yellow);
-  padding: 2px 20px 6px;
+  font-size: 34px;
+  padding: 0 18px 3px;
   border-radius: 999px;
+}
+
+/* ---- rotating fact strip ---------------------------------------------- */
+.lv-fact {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 26px 12px;
+  background: var(--lv-ink);
+  color: var(--lv-cream);
+  border-radius: 22px;
+  box-shadow: 6px 6px 0 0 var(--lv-yellow);
+  animation: lv-fact-in 0.6s cubic-bezier(0.2, 1, 0.3, 1) both;
+}
+.lv-fact-kicker {
+  font-weight: 800;
+  font-size: 18px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--lv-yellow);
+}
+.lv-fact-text {
+  font-family: var(--lv-display);
+  font-weight: 800;
+  font-size: 34px;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ---- gate ------------------------------------------------------------ */
@@ -759,10 +812,14 @@
   100% { opacity: 1; transform: none; }
 }
 @keyframes lv-banner {
-  0% { opacity: 0; transform: translate(-50%, 120px) scale(0.8); }
-  10% { opacity: 1; transform: translate(-50%, 0) scale(1); }
-  88% { opacity: 1; transform: translate(-50%, 0) scale(1); }
-  100% { opacity: 0; transform: translate(-50%, 60px) scale(0.96); }
+  0% { opacity: 0; transform: translateY(90px) scale(0.9); }
+  10% { opacity: 1; transform: none; }
+  88% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(40px); }
+}
+@keyframes lv-fact-in {
+  0% { opacity: 0; transform: translateY(14px); }
+  100% { opacity: 1; transform: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

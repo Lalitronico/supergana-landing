@@ -1,3 +1,4 @@
+import { productLabel } from "@/lib/tickets/productLabel";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { resolveParticipant } from "@/lib/tickets/access";
@@ -79,15 +80,7 @@ export async function GET(
       products: { brand: string; name: string; size: string | null } | null;
     }[]) {
       if (!row.products) continue;
-      const { brand, name, size } = row.products;
-      // "Jarritos Tamarindo 1.5 L" — brand and size are each dropped when the
-      // catalog name already carries them, so the label is never "Jarritos
-      // Jarritos Tamarindo 1.5 L 1.5 L".
-      const has = (needle: string | null) =>
-        needle !== null && name.toLowerCase().includes(needle.toLowerCase());
-      const label = [has(brand) ? null : brand, name, has(size) ? null : size]
-        .filter(Boolean)
-        .join(" ");
+      const label = productLabel(row.products);
       const list = productsByReceipt.get(row.receipt_id) ?? [];
       if (!list.includes(label)) list.push(label);
       productsByReceipt.set(row.receipt_id, list);

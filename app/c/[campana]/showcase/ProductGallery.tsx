@@ -1,5 +1,6 @@
 "use client";
 
+import { productLabel } from "@/lib/tickets/productLabel";
 import type { CSSProperties } from "react";
 import type { Brand } from "@/lib/tickets/config";
 import { useTickets } from "../TicketsShell";
@@ -34,9 +35,9 @@ export function ProductGallery({
   return (
     <ul className="sh-gallery" aria-label={t("shGalleryAria")}>
       {products.map((p, i) => {
-        // Names often already carry the presentation ("Fresa 1.5 L"); repeating
-        // it as a second line would read as a stutter.
-        const showSize = p.size && !p.name.toLowerCase().includes(p.size.toLowerCase());
+        // Names often already carry the presentation ("Fresa 1.5 L"); the shared
+        // helper decides whether the size line adds anything.
+        const showSize = p.size && productLabel(p, { withBrand: false }) !== p.name.trim();
         const initial = (
           <span className="sh-prod-initial" aria-hidden="true">
             {p.brand.charAt(0)}

@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { resolveStaff, staffDenialStatus } from "@/lib/tickets/access";
 import { getCampaign } from "@/lib/tickets/campaigns";
 import { POINTS_SPEND_KINDS } from "@/lib/tickets/config";
+import { productLabel } from "@/lib/tickets/productLabel";
 
 export const runtime = "nodejs";
 
@@ -58,6 +59,8 @@ interface ReceiptRow {
   id: string;
   status: string;
   reviewed_by: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
 }
 interface PointsRow {
   participant_id: string;
@@ -76,7 +79,7 @@ interface ItemRow {
   receipt_id: string;
   amount_cents: number;
   alias_matched: string | null;
-  products: { brand: string } | null;
+  products: { brand: string; name: string; size: string | null } | null;
 }
 
 export type LiveFeedItem =
@@ -108,11 +111,17 @@ export interface LiveData {
     tickets: number;
     approved: number;
     autoApproved: number;
-    /** 0–100, of approved tickets; null until there is one. */
-    autoPct: number | null;
+    /**
+     * Mean seconds from upload to approval across the tickets the machine
+     * approved; null until there is one. A time reads as capability where a
+     * small-sample percentage reads as "it mostly didn't work".
+     */
+    autoAvgSeconds: number | null;
     points: number;
     redemptions: number;
   };
+  /** Most-bought product among approved lines; null until there is one. */
+  topProduct: { label: string; units: number } | null;
   feed: LiveFeedItem[];
   top: { rank: number; alias: string; points: number }[];
   mix: {
@@ -178,7 +187,7 @@ export async function GET(
       fetchAll<ReceiptRow>((a, b) =>
         db
           .from("receipts")
-          .select("id, status, reviewed_by")
+          .select("id, status, reviewed_by, submitted_at, reviewed_at")
           .eq("campaign_id", campaign.id)
           .order("id")
           .range(a, b),
@@ -208,7 +217,7 @@ export async function GET(
         db
           .from("receipt_items")
           .select(
-            "receipt_id, amount_cents, alias_matched, products(brand), receipts!inner(campaign_id, status)",
+            "receipt_id, amount_cents, alias_matched, products(brand, name, size), receipts!inner(campaign_id, status)",
           )
           .eq("receipts.campaign_id", campaign.id)
           .eq("receipts.status", "approved")
@@ -226,6 +235,13 @@ export async function GET(
     const autoReceiptIds = new Set(
       approved.filter((r) => r.reviewed_by === null).map((r) => r.id),
     );
+    const autoDurations = approved
+      .filter((r) => r.reviewed_by === null && r.reviewed_at)
+      .map((r) => (Date.parse(r.reviewed_at as string) - Date.parse(r.submitted_at)) / 1000)
+      .filter((secs) => secs >= 0);
+    const autoAvgSeconds = autoDurations.length
+      ? autoDurations.reduce((a, b) => a + b, 0) / autoDurations.length
+      : null;
     const spendKinds = new Set<string>(POINTS_SPEND_KINDS);
     const earned = points.filter((p) => !spendKinds.has(p.kind) && p.points > 0);
 
@@ -247,6 +263,7 @@ export async function GET(
 
     // --- brand mix --------------------------------------------------------
     const brandsByReceipt = new Map<string, Map<string, number>>();
+    const productUnits = new Map<string, number>();
     const brandTotals = new Map<string, { cents: number; units: number }>();
     for (const item of items) {
       // A SKU match carries the catalogue product. A brand-level match (the
@@ -260,12 +277,16 @@ export async function GET(
       acc.cents += item.amount_cents;
       acc.units += 1;
       brandTotals.set(key, acc);
+      const unitLabel = item.products ? productLabel(item.products) : brandName;
+      productUnits.set(unitLabel, (productUnits.get(unitLabel) ?? 0) + 1);
       // Per receipt, count lines per brand: "Jarritos ×3 · Mineragua" reads from
       // across a room, a catalogue SKU with its size does not.
       const perBrand = brandsByReceipt.get(item.receipt_id) ?? new Map<string, number>();
       perBrand.set(brandName, (perBrand.get(brandName) ?? 0) + 1);
       brandsByReceipt.set(item.receipt_id, perBrand);
     }
+    const best = [...productUnits.entries()].sort((x, y) => y[1] - x[1])[0];
+    const topProduct = best ? { label: best[0], units: best[1] } : null;
     // Brands come from the campaign config (colour + logo); a catalogue brand
     // missing from the config still shows, on a neutral palette, instead of
     // silently vanishing from the chart.
@@ -334,10 +355,11 @@ export async function GET(
         tickets: receipts.length,
         approved: approved.length,
         autoApproved: autoReceiptIds.size,
-        autoPct: approved.length ? Math.round((autoReceiptIds.size / approved.length) * 100) : null,
+        autoAvgSeconds,
         points: earned.reduce((sum, p) => sum + p.points, 0),
         redemptions: redemptions.length,
       },
+      topProduct,
       feed,
       top,
       mix,

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { formatUsdCents } from "@/lib/tickets/config";
+import { issueMessage } from "./ocrIssues";
 
 /**
  * What the model read, beside what was decided.
@@ -52,6 +53,13 @@ const STATUS_PILL: Record<string, string> = {
 };
 
 /** Motivos que escribe la compuerta, en castellano de operación. */
+const DECISION_LABEL: Record<string, string> = {
+  approved: "Aprobado",
+  rejected: "Rechazado",
+  needs_new_image: "Se pidió otra imagen",
+  reopened: "Reabierto",
+};
+
 const REASON_LABEL: Record<string, string> = {
   auto_approve_off: "aprobación automática apagada",
   campaign_has_no_stores: "la campaña no tiene tiendas listadas",
@@ -67,7 +75,11 @@ const REASON_LABEL: Record<string, string> = {
 const readReason = (reason: string | null): string => {
   if (!reason) return "—";
   if (reason.startsWith("issues:")) {
-    return `observaciones: ${reason.slice("issues:".length).replace(/,/g, ", ")}`;
+    return `observaciones: ${reason
+      .slice("issues:".length)
+      .split(",")
+      .map((key) => issueMessage(key.trim()))
+      .join("; ")}`;
   }
   return REASON_LABEL[reason] ?? reason;
 };
@@ -298,7 +310,7 @@ export function ReadingsView({ slug }: { slug: string }) {
                     {x.issues.length > 0 && (
                       <div className="tka-flags">
                         {x.issues.map((issue) => (
-                          <span className="tka-flag" key={issue}>{issue}</span>
+                          <span className="tka-flag" key={issue}>{issueMessage(issue)}</span>
                         ))}
                       </div>
                     )}
@@ -331,7 +343,7 @@ export function ReadingsView({ slug }: { slug: string }) {
                 {row.decision && (
                   <div className="tka-kv">
                     <span>Decisión</span>
-                    <b>{row.decision.decision}</b>
+                    <b>{DECISION_LABEL[row.decision.decision] ?? row.decision.decision}</b>
                     <span>Quién</span>
                     <b>{row.decision.byMachine ? "la máquina" : "una persona"}</b>
                     <span>Motivo</span>

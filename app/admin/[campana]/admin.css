@@ -450,3 +450,30 @@
  * mínima que la cola necesita para que el panel no salte sobra cuando lo único
  * que hay que hacer es que el ticket quepa entero. */
 .rd-cols img.tka-shot { min-height: 0; max-width: 100%; height: auto; display: block; padding: 6px; }
+
+/* ---- round-2 console fixes --------------------------------------------- */
+
+/* "Cerrar sesión" lives on the dark sidebar: `.tka-side button` forced a pale
+   grey text colour over the white ghost button, which read as disabled. Cream on
+   ink with a visible border is AA and still looks like a button. */
+.tka-side .foot .tka-btn {
+  background: transparent;
+  color: var(--a-cream);
+  border: 2px solid var(--a-cream);
+  box-shadow: none;
+  font-size: 12px;
+  padding: 6px 12px;
+}
+.tka-side .foot .tka-btn:hover:not(:disabled) {
+  background: var(--a-cream);
+  color: var(--a-ink);
+  transform: none;
+  box-shadow: none;
+}
+.tka-side .foot { color: #b9b4a6; font-size: 11.5px; }
+
+/* Per-line product select: the assigned product must read in full. The select
+   gets the room (and wraps its own text onto the next row below 760px) instead
+   of a 120px column that cut "Jarritos Tamarindo 1.5 L" to "Jarritos Tama". */
+.tka-line { grid-template-columns: minmax(0, 1fr) 96px minmax(0, 1.25fr) 34px; }
+.tka-line select { text-overflow: ellipsis; min-width: 0; font-size: 13px; }

@@ -175,6 +175,7 @@ export async function GET(
       status: d.status,
       createdAt: d.created_at,
       isCurrentWeek: new Date(d.week_start).getTime() === new Date(week).getTime(),
+      isFuture: new Date(d.week_start).getTime() > new Date(week).getTime(),
       items: items
         .filter((i) => i.drop_id === d.id)
         .map((i) => ({

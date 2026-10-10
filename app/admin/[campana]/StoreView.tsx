@@ -149,7 +149,11 @@ export function StoreView({
   }
 
   const current = data.drops.find((d) => d.isCurrentWeek) ?? null;
-  const past = data.drops.filter((d) => !d.isCurrentWeek);
+  const past = data.drops.filter((d) => !d.isCurrentWeek && !d.isFuture);
+  // Soonest first: the next Drop to turn over is the one an operator looks for.
+  const upcoming = data.drops
+    .filter((d) => d.isFuture)
+    .sort((a, b) => a.weekStart.localeCompare(b.weekStart));
   const pending = data.redemptions.filter((r) => r.status === "confirmed");
 
   return (
@@ -305,11 +309,45 @@ export function StoreView({
         )}
       </div>
 
+      {upcoming.length > 0 && (
+        <div className="tka-card tka-scroll">
+          <h3>Próximos Drops</h3>
+          <span className="tka-note">
+            Semanas programadas que aún no empiezan: no se pueden canjear hasta que
+            les toque.
+          </span>
+          <table style={{ marginTop: 10 }}>
+            <thead>
+              <tr>
+                <th>Semana</th>
+                <th>Status</th>
+                <th>Premios</th>
+                <th>Canjeados</th>
+              </tr>
+            </thead>
+            <tbody>
+              {upcoming.map((drop) => (
+                <tr key={drop.id}>
+                  <td className="tka-mono">{day(drop.weekStart)}</td>
+                  <td>
+                    <span className={`tka-pill ${DROP_PILL[drop.status]}`}>
+                      {DROP_LABEL[drop.status]}
+                    </span>
+                  </td>
+                  <td>{drop.items.length}</td>
+                  <td>{drop.items.reduce((s, i) => s + i.claimed, 0)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {past.length > 0 && (
         <div className="tka-card tka-scroll">
           <h3>Drops anteriores</h3>
           <span className="tka-note">
-            Solo lectura: un Drop de otra semana ya no puede canjearse, aunque su status
+            Solo lectura: un Drop de una semana pasada ya no puede canjearse, aunque su status
             diga lo contrario.
           </span>
           <table style={{ marginTop: 10 }}>
