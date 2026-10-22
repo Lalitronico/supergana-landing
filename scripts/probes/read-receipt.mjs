@@ -1,7 +1,7 @@
 /**
  * Offline OCR + auto-approval gate, against the REAL `tanque` catalogue/config.
  *
- *   node --experimental-strip-types scripts/probes/read-receipt.mjs <img|dir>... [--manifest m.json] [--json out.json] [--concurrency 3] [--model qwen-...] [--as-of 2026-10-12]
+ *   node --experimental-strip-types scripts/probes/read-receipt.mjs <img|dir>... [--manifest m.json] [--json out.json] [--concurrency 3] [--model qwen-...] [--as-of 2026-10-12] [--slug tanque]
  *
  * Reads (SELECT only) the campaign config and product aliases with the service
  * client, calls the same `extractReceipt` the app uses (Qwen via DashScope; it
@@ -23,7 +23,7 @@ const flag = (name, fallback) => {
   const i = args.indexOf(name);
   return i >= 0 ? args[i + 1] : fallback;
 };
-const flagValues = new Set(["--manifest", "--json", "--concurrency", "--model", "--as-of"].flatMap((f) => (args.includes(f) ? [args[args.indexOf(f) + 1]] : [])));
+const flagValues = new Set(["--manifest", "--json", "--concurrency", "--model", "--as-of", "--slug"].flatMap((f) => (args.includes(f) ? [args[args.indexOf(f) + 1]] : [])));
 const inputs = args.filter((a) => !a.startsWith("--") && !flagValues.has(a));
 const manifestPath = flag("--manifest");
 const concurrency = Number(flag("--concurrency", 3));
@@ -53,7 +53,7 @@ if (files.length === 0) {
 const expected = manifestPath ? Object.fromEntries(JSON.parse(readFileSync(manifestPath, "utf8")).map((m) => [m.file, m])) : {};
 
 const db = admin();
-const { data: campaign, error } = await db.from("campaigns").select("id, config").eq("slug", "tanque").single();
+const { data: campaign, error } = await db.from("campaigns").select("id, config").eq("slug", flag("--slug", "tanque")).single();
 if (error) throw error;
 const config = parseCampaignConfig(campaign.config);
 const { data: rows, error: pErr } = await db
