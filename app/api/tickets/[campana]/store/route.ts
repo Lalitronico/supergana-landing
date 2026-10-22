@@ -99,10 +99,18 @@ export async function GET(
   // timestamptz through the query string means trusting two serialisations to
   // agree. The week is decided here, in one place, against the same instant the
   // RPC will use.
+  //
+  // Bounded above by the current week (plus a day of slack for the same
+  // serialisation reason): without it, "the six latest" are the six FUTURE
+  // weeks of a campaign that scheduled its Drops in advance, and this week's
+  // Drop — the only one the store sells from — fell off the list. Love &
+  // Kitchen scheduled ten weeks and its store said "next Drop opens Monday".
+  const weekMs = new Date(week).getTime();
   const { data: dropRows, error: dropError } = await db
     .from("prize_drops")
     .select("id, week_start, status")
     .eq("campaign_id", campaign.id)
+    .lte("week_start", new Date(weekMs + 86_400_000).toISOString())
     .order("week_start", { ascending: false })
     .limit(6);
 
@@ -116,7 +124,6 @@ export async function GET(
     return NextResponse.json({ error: "db_error" }, { status: 500 });
   }
 
-  const weekMs = new Date(week).getTime();
   const drop =
     ((dropRows ?? []) as DropRow[]).find(
       (d) => d.status === "open" && new Date(d.week_start).getTime() === weekMs,

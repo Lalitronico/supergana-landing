@@ -39,6 +39,9 @@ const ago = (nowMs: number, atIso: string): string => {
   return `hace ${Math.floor(s / 3600)} h`;
 };
 
+/** Lanes the brand-mix card has room for at 1080p. */
+const MIX_LANES = 7;
+
 /**
  * Counts toward `target` instead of jumping to it. The number rolls up like a
  * pump display: a room notices "that was us" far more than a silent change.
@@ -460,6 +463,13 @@ export function LiveScreen({ slug }: { slug: string }) {
   const padPx = compact ? 56 : 90;
   const ticks = [0.25, 0.5, 0.75];
   const maxCents = Math.max(1, ...data.mix.map((b) => b.cents));
+  // The card holds seven lanes. A campaign with more lines (Love & Kitchen has
+  // eleven) shows the seven selling most, leader on top, ties in the order the
+  // campaign lists them — so before the first ticket it is simply its first seven.
+  const topMix = data.mix
+    .map((b, i) => ({ ...b, order: i }))
+    .sort((a, b) => b.cents - a.cents || a.order - b.order)
+    .slice(0, MIX_LANES);
 
   return (
     <div className={`lv-root ${theme.brandLight ? "brand-light" : ""}`} style={brandStyle}>
@@ -555,7 +565,7 @@ export function LiveScreen({ slug }: { slug: string }) {
               <div className="lv-card-title small">Qué se está comprando</div>
               <div className="lv-bars">
                 {data.mix.length === 0 && <p className="lv-muted">Sin marcas configuradas.</p>}
-                {data.mix.map((b) => {
+                {topMix.map((b) => {
                   // Normalised against the leader: the biggest brand fills the lane.
                   const share = b.cents / maxCents;
                   return (

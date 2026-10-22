@@ -485,14 +485,17 @@ const es = {
     "En la pestaña Premios de esta app. Tus puntos no se reinician: se acumulan compra tras compra.",
 
   // ---- journey: reading, celebration, tank, prizes ------------------------
-  jrFuelEyebrow: "Tu tanque",
-  jrFuelMissingGift: "Te faltan {points} pts para tu tarjeta de gasolina de {value}",
+  // Neutral on purpose. The fuel wording ("Tu tanque", "tarjeta de gasolina")
+  // is Ticket al Tanque's and lives in its own `config.copy` (migration 0049);
+  // the `jrFuel*` key names are history, not a promise about the metaphor.
+  jrFuelEyebrow: "Tu progreso",
+  jrFuelMissingGift: "Te faltan {points} pts para tu tarjeta de {value}",
   jrFuelMissingItem: "Te faltan {points} pts para {name}",
-  jrFuelReadyGift: "¡Tanque lleno! Tu tarjeta de gasolina de {value} ya es tuya",
-  jrFuelReadyItem: "¡Tanque lleno! Ya puedes canjear {name}",
+  jrFuelReadyGift: "¡Meta cumplida! Tu tarjeta de {value} ya es tuya",
+  jrFuelReadyItem: "¡Meta cumplida! Ya puedes canjear {name}",
   jrFuelCta: "Ir a canjear",
   jrFuelNowMain: "¡Ya te alcanza para {name}!",
-  jrFuelNextGift: "Siguiente meta: tarjeta de gasolina de {value} · te faltan {points} pts",
+  jrFuelNextGift: "Siguiente meta: tarjeta de {value} · te faltan {points} pts",
   jrFuelNextItem: "Siguiente meta: {name} · te faltan {points} pts",
   jrFuelRedeemNow: "Canjear ahora",
   jrReadTitle: "Leyendo tu ticket",
@@ -504,7 +507,7 @@ const es = {
     "Si algo no cuadra, una persona del equipo lo revisa. Puedes salir de esta pantalla: tu ticket sigue en proceso.",
   jrReadInReviewTitle: "Tu ticket está con el equipo",
   jrReadInReview:
-    "Lo está revisando una persona. Te avisamos en menos de {hours} horas; tu tanque se llena en cuanto lo aprueben.",
+    "Lo está revisando una persona. Te avisamos en menos de {hours} horas; tus puntos llegan en cuanto lo aprueben.",
   jrReadAlt: "Tu ticket enviado",
   jrClbFound: "Encontramos en tu ticket",
   jrClbStore: "Ir a canjear",
@@ -925,11 +928,11 @@ const en: Dict = {
     "In the Prizes tab of this app. Your points never reset: they add up purchase after purchase.",
 
   // ---- journey: reading, celebration, tank, prizes ------------------------
-  jrFuelEyebrow: "Your tank",
+  jrFuelEyebrow: "Your progress",
   jrFuelMissingGift: "{points} pts to go for your {value} gift card",
   jrFuelMissingItem: "{points} pts to go for {name}",
-  jrFuelReadyGift: "Tank full! Your {value} gift card is yours",
-  jrFuelReadyItem: "Tank full! You can redeem {name} now",
+  jrFuelReadyGift: "Goal reached! Your {value} gift card is yours",
+  jrFuelReadyItem: "Goal reached! You can redeem {name} now",
   jrFuelCta: "Go redeem",
   jrFuelNowMain: "You've got enough for {name}!",
   jrFuelNextGift: "Next goal: {value} gift card · {points} pts to go",
@@ -944,7 +947,7 @@ const en: Dict = {
     "If something doesn't add up, a person on the team takes a look. You can leave this screen: your receipt keeps processing.",
   jrReadInReviewTitle: "Your receipt is with the team",
   jrReadInReview:
-    "A person is reviewing it. We'll let you know within {hours} hours; your tank fills the moment it's approved.",
+    "A person is reviewing it. We'll let you know within {hours} hours; your points arrive the moment it's approved.",
   jrReadAlt: "Your submitted receipt",
   jrClbFound: "We found on your receipt",
   jrClbStore: "Go redeem",

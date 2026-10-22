@@ -87,10 +87,14 @@ export async function GET(
   const week = await currentWeekStart(campaign);
   const db = supabaseAdmin();
 
+  // This week, next week and history — not "the latest N", which for a
+  // campaign with its Drops scheduled weeks ahead is N future weeks and hides
+  // the one being sold right now (same bug as the participant store route).
   const { data: dropRows, error: dropError } = await db
     .from("prize_drops")
     .select("id, week_start, status, created_at")
     .eq("campaign_id", campaign.id)
+    .lte("week_start", new Date(new Date(week).getTime() + 8 * 86_400_000).toISOString())
     .order("week_start", { ascending: false })
     .limit(DROPS_SHOWN);
 

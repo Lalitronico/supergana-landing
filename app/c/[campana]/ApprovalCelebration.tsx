@@ -220,6 +220,7 @@ export function ApprovalCelebration() {
               value={show.points}
               title={t("jrPumpLabel")}
               label={`+${show.points} ${t("pointsUnit")}`}
+              icon={campaign.progressMeter === "fuel" ? "nozzle" : "drop"}
             />
           )}
 

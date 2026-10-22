@@ -26,6 +26,9 @@
 .tk-tank-handle { fill: none; stroke: var(--sg-yellow); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
 .tk-tank-neck { fill: #fff; stroke: var(--tk-ink); stroke-width: 3.5; }
 .tk-tank-cap { fill: var(--sg-red); stroke: var(--tk-ink); stroke-width: 3.5; }
+/* The bottle variant (progress_meter = "bottle"): a white flip-top lid. */
+.tk-bottle-cap { fill: #fff; stroke: var(--tk-ink); stroke-width: 3.5; }
+.tk-bottle-hinge { fill: none; stroke: var(--tk-ink); stroke-width: 2.5; stroke-linecap: round; }
 
 /* The level is a translateY on the liquid group: a transition with a springy
    landing, so each ticket visibly pours in. */
@@ -69,6 +72,7 @@
 .tk-tank-pointer path { fill: var(--sg-red); stroke: var(--tk-ink); stroke-width: 2; stroke-linejoin: round; }
 
 .tk-tank.full .tk-tank-cap { transform-box: fill-box; transform-origin: center; animation: tk-pulse 1.1s ease-in-out infinite; }
+.tk-tank.full .tk-bottle-cap { transform-box: fill-box; transform-origin: center; animation: tk-pulse 1.1s ease-in-out infinite; }
 
 /* The card around it: the system's blue with halftone, white type. Inside the
    celebration (compact) the card is the white one already, so it is plain. */
@@ -476,6 +480,7 @@ a.tk-fuelcard {
 }
 
 .jr-pump-reels { display: inline-flex; gap: 3px; }
+
 
 .jr-reel {
   display: block;
@@ -1062,7 +1067,7 @@ a.tk-fuelcard {
 
 @media (prefers-reduced-motion: reduce) {
   .tk-tank-liquid, .tk-tank-pointer { transition: none; }
-  .tk-tank-wave, .tk-tank-bubble, .tk-tank.full .tk-tank-cap { animation: none; }
+  .tk-tank-wave, .tk-tank-bubble, .tk-tank.full .tk-tank-cap, .tk-tank.full .tk-bottle-cap { animation: none; }
   .jr-party-rays, .jr-scan, .jr-lens { animation: none; }
   .jr-scan { top: 40%; }
   .jr-lens { left: 30%; top: 30%; }
@@ -1303,6 +1308,8 @@ a.tk-fuelcard {
   transition: opacity 0.08s linear;
 }
 .jr-reel.on { opacity: 1; }
+/* The thousands separator ("15,000"): a fixed, narrow reel. */
+.jr-reel.sep { width: 0.28em; margin: 0 -0.04em; }
 .jr-reel-col { color: var(--sg-yellow); text-shadow: 0 0 10px rgba(255, 217, 61, 0.45); }
 .jr-pump-reels { gap: 2px; }
 

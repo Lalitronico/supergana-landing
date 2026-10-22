@@ -42,7 +42,12 @@ export function BrandParade({
         const skus = products.filter((p) => p.brand.toLowerCase() === brand.name.toLowerCase());
         const member = castForBrand(campaign.theme, brand.name);
         const open = flipped === brand.name;
-        const photos = skus.filter((p) => p.imageUrl).slice(0, 3);
+        const withPhoto = skus.filter((p) => p.imageUrl);
+        // No character for this brand: its own packshot stands in, big, and
+        // the side column keeps the rest. A giant initial is the last resort,
+        // for a brand with neither.
+        const hero = member ? null : (withPhoto[0] ?? null);
+        const photos = (hero ? withPhoto.slice(1) : withPhoto).slice(0, 3);
         const count = skus.length === 1 ? t("shParadeOne") : t("shParadeMany", { n: skus.length });
         const nameChip = <span className="sh-card-name">{brand.name}</span>;
 
@@ -72,6 +77,17 @@ export function BrandParade({
                 <div className="sh-card-art">
                   {member ? (
                     <CastFigure member={member} height="100%" delay={i * 280} alt="" />
+                  ) : hero ? (
+                    <SafeImg
+                      src={hero.imageUrl as string}
+                      alt=""
+                      className="sh-card-pack"
+                      fallback={
+                        <span className="sh-card-initial" aria-hidden="true">
+                          {brand.name.charAt(0)}
+                        </span>
+                      }
+                    />
                   ) : (
                     <span className="sh-card-initial" aria-hidden="true">
                       {brand.name.charAt(0)}

@@ -58,10 +58,44 @@ export interface Brand {
 /**
  * How progress towards the next prize is drawn. `bar` is the system default;
  * `fuel` draws it as a tank filling up, for campaigns whose prizes are fuel
- * (Ticket al Tanque). Presentation only: the number underneath is the same
- * `nextPrize` either way.
+ * (Ticket al Tanque); `bottle` as a squeeze bottle filling with the brand's
+ * colour, for food and drink brands (Love & Kitchen). Presentation only: the
+ * number underneath is the same `nextPrize` either way.
  */
-export type ProgressMeter = "bar" | "fuel";
+export type ProgressMeter = "bar" | "fuel" | "bottle";
+
+export const PROGRESS_METERS: readonly ProgressMeter[] = ["bar", "fuel", "bottle"];
+
+/**
+ * The sky behind the home's hero stage. A short list from the system palette
+ * on purpose: the tenant chooses the mood, not a hex — the same reason the
+ * theme can only repaint two colours. Each name maps to a ground colour and a
+ * lighter ray in showcase.css.
+ */
+export type StageBackdrop = "blue" | "red" | "orange" | "pink" | "purple" | "green";
+
+export const STAGE_BACKDROPS: readonly StageBackdrop[] = ["blue", "red", "orange", "pink", "purple", "green"];
+
+/**
+ * What stands in the middle of the hero stage, among the cast.
+ *
+ *  · `pump`  — the built-in fuel pump, whose dial shows the points per dollar
+ *              (Ticket al Tanque).
+ *  · `image` — a tenant's own prop (a grill, a fridge, a counter). `readout`
+ *              places the same "+N" dial over the picture, as fractions of its
+ *              box; without it the dial sits as a sticker on the top corner.
+ *  · null    — nothing: the cast stands alone.
+ */
+export type StageProp =
+  | { kind: "pump" }
+  | { kind: "image"; url: string; readout: { x: number; y: number; size: number } | null };
+
+export interface StageConfig {
+  prop: StageProp | null;
+  backdrop: StageBackdrop;
+}
+
+export const DEFAULT_STAGE: StageConfig = { prop: null, backdrop: "blue" };
 
 /**
  * Demo mode: `config.demo = { fixed_points: 1500 }`.
@@ -157,6 +191,22 @@ export interface CampaignConfig {
   eligibility: EligibilityMode;
   /** See `ProgressMeter`. */
   progressMeter: ProgressMeter;
+  /** See `StageConfig`. */
+  stage: StageConfig;
+  /**
+   * The name the participant sees, when it is not the organisation's.
+   *
+   * The organisation is who signs the contract (Grupo Bafar); the campaign may
+   * speak for one of its brands (Love & Kitchen). Null → the org's name.
+   */
+  sponsorName: string | null;
+  /**
+   * Raw `config.theme`: keys that override the organisation's theme for this
+   * campaign only, for a parent company running one campaign per brand. Merged
+   * over `organizations.theme` and validated by `parseOrgTheme` in the
+   * campaign loader, so it never reaches a screen unvalidated.
+   */
+  themeOverride: Record<string, unknown> | null;
   /** See `CopyOverrides`. */
   copy: CopyOverrides;
   /** See `DemoConfig`. Null = a real campaign, which is every campaign by default. */
@@ -365,10 +415,57 @@ const DEFAULTS: CampaignConfig = {
   // paying for products it never promoted.
   eligibility: "sku",
   progressMeter: "bar",
+  // No prop by default: the pump is Ticket al Tanque's, and a water or sauce
+  // campaign standing its cast around a fuel pump was a leak of one tenant's
+  // concept into everyone's home.
+  stage: DEFAULT_STAGE,
+  sponsorName: null,
+  themeOverride: null,
   copy: {},
   // Fails closed, like everything above: approving any photo has to be asked for.
   demo: null,
 };
+
+const fraction = (value: unknown): number | null =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1 ? value : null;
+
+/**
+ * `config.stage = { prop: "pump" | "/brands/.../x.webp" | null, backdrop: "red",
+ * readout: { x, y, size } }`. Unknown values fall back to the default rather
+ * than throwing: a typo here costs a plainer hero, never a broken home.
+ */
+export const asStage = (value: unknown): StageConfig => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return DEFAULT_STAGE;
+  const s = value as Record<string, unknown>;
+  const backdrop = STAGE_BACKDROPS.includes(s.backdrop as StageBackdrop)
+    ? (s.backdrop as StageBackdrop)
+    : DEFAULT_STAGE.backdrop;
+
+  let prop: StageProp | null = null;
+  if (s.prop === "pump") {
+    prop = { kind: "pump" };
+  } else {
+    const url = asAssetUrl(s.prop);
+    if (url) {
+      const r = (s.readout ?? null) as Record<string, unknown> | null;
+      const x = fraction(r?.x);
+      const y = fraction(r?.y);
+      const size = fraction(r?.size);
+      prop = {
+        kind: "image",
+        url,
+        readout: x !== null && y !== null && size !== null && size > 0 ? { x, y, size } : null,
+      };
+    }
+  }
+  return { prop, backdrop };
+};
+
+const asSponsorName = (value: unknown): string | null =>
+  typeof value === "string" && value.trim() ? value.trim().slice(0, 60) : null;
+
+const asThemeOverride = (value: unknown): Record<string, unknown> | null =>
+  value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
 
 const asDemo = (value: unknown): DemoConfig | null => {
   const d = (value ?? {}) as Record<string, unknown>;
@@ -536,7 +633,12 @@ export const parseCampaignConfig = (raw: unknown): CampaignConfig => {
     prizes: asPrizes(c.prizes),
     ocr: asOcr(c.ocr),
     eligibility: c.eligibility === "brand" ? "brand" : DEFAULTS.eligibility,
-    progressMeter: c.progress_meter === "fuel" ? "fuel" : DEFAULTS.progressMeter,
+    progressMeter: PROGRESS_METERS.includes(c.progress_meter as ProgressMeter)
+      ? (c.progress_meter as ProgressMeter)
+      : DEFAULTS.progressMeter,
+    stage: asStage(c.stage),
+    sponsorName: asSponsorName(c.sponsor_name),
+    themeOverride: asThemeOverride(c.theme),
     copy: parseCopyOverrides(c.copy),
     demo: asDemo(c.demo),
   };
@@ -594,6 +696,8 @@ export interface PublicCampaign {
   ocrEnabled: boolean;
   prizes: Prize[];
   progressMeter: ProgressMeter;
+  /** The hero's set dressing. Public by nature: it is on screen. */
+  stage: StageConfig;
   /** Wording overrides for this campaign. Public by nature: it is on screen. */
   copy: CopyOverrides;
   /**
@@ -627,6 +731,7 @@ export const toPublicCampaign = (campaign: Campaign): PublicCampaign => ({
   ocrEnabled: campaign.config.ocr.enabled,
   prizes: campaign.config.prizes,
   progressMeter: campaign.config.progressMeter,
+  stage: campaign.config.stage,
   copy: campaign.config.copy,
   demoPoints: campaign.config.demo?.fixedPoints ?? null,
 });

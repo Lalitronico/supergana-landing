@@ -284,7 +284,7 @@ function AccumulationHome({
   const galleryProducts = !parade && products.some((p) => p.imageUrl) ? products : [];
 
   return (
-    <div className="sh-home">
+    <div className="sh-home" data-backdrop={campaign.stage.backdrop}>
       <section className="sh-sec sh-sec-hero">
         <HeroStage org={org} />
       </section>

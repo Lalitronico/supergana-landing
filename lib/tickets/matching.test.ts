@@ -15,6 +15,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  isDistinctiveName,
   parseAmountToCents,
   matchLine,
   namesAListedStore,
@@ -101,6 +102,26 @@ test("a line naming nothing of ours never counts, in either mode", () => {
     assert.equal(matchLine("SABRITAS ORIGINAL 45G", products, mode), null, mode);
     assert.equal(matchLine("TOTAL", products, mode), null, mode);
   }
+});
+
+test("a catalogue named by line never lets a bare size match someone else's product", () => {
+  // Love & Kitchen names its products "Salsa BBQ" + "450 g". The bare "450 g"
+  // would otherwise match any 450 g item on the receipt.
+  const lk: MatchableProduct[] = [
+    { id: "bbq", brand: "Salsa BBQ", name: "450 g", aliases: ["SALSA BBQ L&K 450G"] },
+  ];
+  assert.equal(matchLine("FRIJOL BAYO ISADORA 450 G", lk, "sku"), null);
+  assert.equal(matchLine("SALSA BBQ L&K 450G", lk, "sku")?.productId, "bbq");
+  // Brand + name together is still a product name, and still matches.
+  assert.equal(matchLine("SALSA BBQ 450 G LK", lk, "sku")?.matchedBy, "name");
+});
+
+test("a name that says more than its size is still a name", () => {
+  assert.equal(isDistinctiveName("450 g"), false);
+  assert.equal(isDistinctiveName("1 L"), false);
+  assert.equal(isDistinctiveName("3.5 lts"), false);
+  assert.equal(isDistinctiveName("Vidrio 330 ml"), true);
+  assert.equal(isDistinctiveName("Galón 4 kg"), true);
 });
 
 // ---------------------------------------------------------------------------

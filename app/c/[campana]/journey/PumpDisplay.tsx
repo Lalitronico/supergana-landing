@@ -64,29 +64,61 @@ function Nozzle() {
   );
 }
 
+/** A drop: the head icon for campaigns whose meter fills with something to pour. */
+function Drop() {
+  return (
+    <svg className="jr-pump-nozzle" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3.2c3.6 4.6 6 7.9 6 11a6 6 0 0 1-12 0c0-3.1 2.4-6.4 6-11Z" />
+      <path d="M9.2 15.2a3 3 0 0 0 2.6 2.6" />
+    </svg>
+  );
+}
+
 export function PumpDisplay({
   value,
   title,
   label,
+  icon = "nozzle",
 }: {
   value: number;
   /** The head label: "PUNTOS" / "POINTS", the way a pump says "GALLONS". */
   title: string;
   label: string;
+  /** The nozzle belongs to the fuel campaign; anything else gets a drop. */
+  icon?: "nozzle" | "drop";
 }) {
-  const digits = String(Math.max(0, Math.round(value))).split("").map(Number);
+  // Thousands grouped the way the rest of the screen writes them ("15,000"):
+  // the separators are fixed glyphs between the reels, and only digits count
+  // toward the left-to-right stagger.
+  const raw = String(Math.max(0, Math.round(value)));
+  let seen = 0;
+  const cells = raw.split("").flatMap((ch, i) => {
+    const fromRight = raw.length - i;
+    const cell = { digit: Number(ch), index: seen++ };
+    return i > 0 && fromRight % 3 === 0 ? [null, cell] : [cell];
+  });
   return (
     <div className="jr-pump" role="img" aria-label={label}>
       <div className="jr-pump-head" aria-hidden="true">
-        <Nozzle />
+        {icon === "nozzle" ? <Nozzle /> : <Drop />}
         <span className="jr-pump-label">{title}</span>
       </div>
       <div className="jr-pump-window" aria-hidden="true">
         <span className="jr-pump-plus">+</span>
         <span className="jr-pump-reels">
-          {digits.map((d, i) => (
-            <Reel key={i} digit={d} index={i} />
-          ))}
+          {cells.map((cell, i) =>
+            cell ? (
+              <Reel key={i} digit={cell.digit} index={cell.index} />
+            ) : (
+              // A reel that never turns: it takes the reels' size, colour and
+              // glow at every breakpoint without restating any of them.
+              <span key={i} className="jr-reel on sep" aria-hidden="true">
+                <span className="jr-reel-col">
+                  <span>,</span>
+                </span>
+              </span>
+            ),
+          )}
         </span>
       </div>
     </div>

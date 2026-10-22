@@ -50,9 +50,10 @@ export function NextPrizeProgress({
   const name = prizeName(next.prize, locale);
   const fmt = (n: number) => n.toLocaleString(locale === "en" ? "en-US" : "es-MX");
 
-  // Opt-in by data (`config.progress_meter = "fuel"`): the same number, drawn
-  // as a dashboard gauge. Every other campaign keeps the bar below.
-  if (campaign.progressMeter === "fuel") {
+  // Opt-in by data (`config.progress_meter = "fuel" | "bottle"`): the same
+  // number, drawn as a container filling up. Every other campaign keeps the
+  // bar below.
+  if (campaign.progressMeter !== "bar") {
     const fromPct =
       fromPoints !== undefined && next.prize.pointsCost > 0
         ? Math.min(100, Math.round((fromPoints / next.prize.pointsCost) * 100))
@@ -73,6 +74,7 @@ export function NextPrizeProgress({
           fromPct={fromPct}
           compact={compact}
           ariaLabel={t("npAria", { name, pct: next.pct })}
+          shape={campaign.progressMeter === "bottle" ? "bottle" : "tank"}
         />
         <div className="tk-fuel-copy">
           <div className="tk-eyebrow">{t("jrFuelEyebrow")}</div>

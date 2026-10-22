@@ -159,6 +159,23 @@ export const parseOrgTheme = (raw: unknown): OrgTheme => {
 };
 
 /**
+ * A campaign's theme: the organisation's, with the campaign's own keys on top.
+ *
+ * For a parent company that runs one campaign per brand (Grupo Bafar → Love &
+ * Kitchen; Novamex → its seven brands). Shallow on purpose: a campaign that
+ * sets `cast` replaces the org's cast whole, because half of one company's
+ * characters mixed with half of another brand's is never what anyone meant.
+ * Both inputs are raw jsonb; the result goes through `parseOrgTheme`, so a
+ * campaign override is validated exactly like an org theme.
+ */
+export const campaignTheme = (orgTheme: unknown, override: unknown): OrgTheme => {
+  const isObject = (v: unknown): v is Record<string, unknown> =>
+    Boolean(v) && typeof v === "object" && !Array.isArray(v);
+  if (!isObject(override)) return parseOrgTheme(orgTheme);
+  return parseOrgTheme({ ...(isObject(orgTheme) ? orgTheme : {}), ...override });
+};
+
+/**
  * The character who holds a given brand, for "the cast member of what you
  * bought". Accent- and case-insensitive, because the brand name in the cast
  * and in `config.brands` / `products.brand` are typed by different people.

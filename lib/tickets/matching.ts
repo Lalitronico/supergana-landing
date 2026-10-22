@@ -49,6 +49,18 @@ export const normalize = (value: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+/** Unidades de presentación que un POS imprime pegadas o separadas del número. */
+const UNIT_WORDS = /\b(?:LTS|LTR|LT|ML|L|GRS|GR|G|KGS|KG|OZ|FL|LBS|LB|PZAS|PZA|PZ|PACK|CJ|CAJA)\b/g;
+
+/**
+ * Si un nombre de catálogo dice algo además de su presentación: al menos una
+ * palabra de tres letras que no sea una unidad. "Vidrio 330 ml" sí, "450 g" no.
+ * Lo usa el matcher para no tomar un nombre que es solo un tamaño como prueba
+ * de que el producto está en el ticket.
+ */
+export const isDistinctiveName = (name: string): boolean =>
+  /[A-Z]{3,}/.test(normalize(name).replace(UNIT_WORDS, " "));
+
 /**
  * Qué decide que una línea cuente.
  *
@@ -114,7 +126,14 @@ export function matchLine(
     // "Alaska Garrafón 19 L" le gane a un "Garrafón 19 L" pelón cuando los dos
     // podrían matchear.
     ...products.map((p) => ({ product: p, label: `${p.brand} ${p.name}`, fromAlias: false })),
-    ...products.map((p) => ({ product: p, label: p.name, fromAlias: false })),
+    // El nombre solo, pero únicamente si dice algo además de la presentación.
+    // Un catálogo que nombra sus productos por línea ("Salsa BBQ" + "450 g")
+    // tendría un nombre pelón "450 g", y "450 G" aparece en el frijol, el
+    // café y la mitad del ticket: matchearlo sería pagar por productos que la
+    // campaña nunca promovió.
+    ...products
+      .filter((p) => isDistinctiveName(p.name))
+      .map((p) => ({ product: p, label: p.name, fromAlias: false })),
   ].sort((a, b) => normalize(b.label).length - normalize(a.label).length);
 
   for (const candidate of candidates) {

@@ -11,7 +11,7 @@ import {
   type CampaignStatus,
   type Locale,
 } from "./config.ts";
-import { parseOrgTheme } from "./theme.ts";
+import { campaignTheme } from "./theme.ts";
 
 interface CampaignQueryRow {
   id: string;
@@ -41,6 +41,7 @@ export const getCampaign = async (slug: string): Promise<Campaign | null> => {
   }
   if (!data) return null;
 
+  const config = parseCampaignConfig(data.config);
   return {
     id: data.id,
     slug: data.slug,
@@ -49,12 +50,15 @@ export const getCampaign = async (slug: string): Promise<Campaign | null> => {
     locales: (data.locales ?? ["es"]).filter(
       (l): l is Locale => l === "es" || l === "en",
     ),
-    orgName: data.organizations?.name ?? data.name,
+    // The name on screen: the brand the campaign speaks for when it names one,
+    // else the organisation that signed. Display only — nothing keys on it.
+    orgName: config.sponsorName ?? data.organizations?.name ?? data.name,
     orgSlug: data.organizations?.slug ?? data.slug,
     // A campaign with no organization row is not themeable, which is the same
-    // as a campaign whose organization has no theme: the Supergana look.
-    theme: parseOrgTheme(data.organizations?.theme),
-    config: parseCampaignConfig(data.config),
+    // as a campaign whose organization has no theme: the Supergana look. A
+    // campaign's own `config.theme` keys win over the organisation's.
+    theme: campaignTheme(data.organizations?.theme, config.themeOverride),
+    config,
   };
 };
 
