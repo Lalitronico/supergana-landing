@@ -40,6 +40,12 @@ test("a picture prop carries its dial only when all three numbers are fractions"
   assert.equal(sloppy.prop?.kind === "image" && sloppy.prop.readout, null);
 });
 
+test("a picture prop with no readout carries no dial", () => {
+  // Love & Kitchen's grill stands alone: the "+10" floating over it read as noise.
+  const plain = parseCampaignConfig({ stage: { prop: "/brands/love-kitchen/props/asador.webp", backdrop: "red" } }).stage;
+  assert.deepEqual(plain.prop, { kind: "image", url: "/brands/love-kitchen/props/asador.webp", readout: null });
+});
+
 test("an unsafe or unknown prop is no prop, and an unknown sky is blue", () => {
   for (const prop of ["javascript:alert(1)", "//evil.example/x.png", "data:image/png;base64,AAA", "grill", 42]) {
     assert.equal(parseCampaignConfig({ stage: { prop } }).stage.prop, null, String(prop));

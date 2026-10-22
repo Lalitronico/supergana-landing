@@ -82,8 +82,10 @@ export const STAGE_BACKDROPS: readonly StageBackdrop[] = ["blue", "red", "orange
  *  · `pump`  — the built-in fuel pump, whose dial shows the points per dollar
  *              (Ticket al Tanque).
  *  · `image` — a tenant's own prop (a grill, a fridge, a counter). `readout`
- *              places the same "+N" dial over the picture, as fractions of its
- *              box; without it the dial sits as a sticker on the top corner.
+ *              lays the pump's "+N" dial over the picture, as fractions of its
+ *              box; without it the picture stands alone. Off by default: a
+ *              number floating over a grill reads as noise, not as a rate
+ *              (Love & Kitchen's client review, 2026-10-22).
  *  · null    — nothing: the cast stands alone.
  */
 export type StageProp =

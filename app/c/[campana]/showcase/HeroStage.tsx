@@ -11,32 +11,31 @@ import { stageCast } from "../fiesta/stage";
 import { SafeImg } from "./SafeImg";
 
 /**
- * The prop in the middle of the stage, and the "+N" dial that says how many
- * points a dollar earns.
+ * The prop in the middle of the stage.
  *
- * The pump draws its own dial. A tenant's picture gets the same dial laid over
- * it — where the campaign says (`stage.readout`, fractions of the picture's
- * box, e.g. the thermometer on a grill's lid) or, without that, as a sticker on
- * the top corner. Same number, same look, whatever the prop is.
+ * The pump draws its own "+N" dial (points per dollar). A tenant's picture
+ * stands alone unless the campaign places that dial over it (`stage.readout`,
+ * fractions of the picture's box, e.g. a thermometer drawn on a grill's lid).
  */
 function StageProp({ prop, rate }: { prop: StageProp; rate: number }) {
   if (prop.kind === "pump") return <GasPump digits={`+${rate}`} height={228} />;
 
-  const dial: CSSProperties = prop.readout
-    ? {
-        left: `${prop.readout.x * 100}%`,
-        top: `${prop.readout.y * 100}%`,
-        width: `${prop.readout.size * 100}%`,
-        transform: "translate(-50%, -50%)",
-      }
-    : {};
-
+  const { readout } = prop;
   return (
     <div className="sh-prop">
       <SafeImg src={prop.url} alt="" fallback={null} />
-      <span className={prop.readout ? "sh-dial placed" : "sh-dial"} style={dial}>
-        +{rate}
-      </span>
+      {readout && (
+        <span
+          className="sh-dial"
+          style={{
+            left: `${readout.x * 100}%`,
+            top: `${readout.y * 100}%`,
+            width: `${readout.size * 100}%`,
+          }}
+        >
+          +{rate}
+        </span>
+      )}
     </div>
   );
 }

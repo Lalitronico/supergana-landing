@@ -807,30 +807,27 @@
 .sh-slot.pump { left: 142px; bottom: 12px; z-index: 2; }
 /* A tenant's own prop (config.stage.prop = picture): same slot as the pump,
    sized by height like the cast so a wide grill and a tall fridge both stand
-   on the kerb. The dial is the pump's "+N" readout, laid over the picture. */
+   on the kerb. */
 .sh-slot.pump.image { left: 128px; bottom: 10px; }
 .sh-prop { position: relative; height: 214px; }
 .sh-prop img { display: block; height: 100%; width: auto; }
+/* The pump's "+N" readout laid over a dial the picture already draws
+   (config.stage.readout); the picture's own rim frames it. */
 .sh-dial {
   position: absolute;
-  top: -6px;
-  right: -10px;
+  transform: translate(-50%, -50%);
   display: grid;
   place-items: center;
-  width: 58px;
   aspect-ratio: 1;
   border-radius: 50%;
   background: #0A0A0A;
-  box-shadow: 0 0 0 4.5px var(--sg-cream), 0 0 0 8px var(--sg-ink);
   color: #2ECC71;
   font-family: var(--font-bricolage), system-ui, sans-serif;
   font-weight: 800;
-  font-size: 22px;
+  font-size: clamp(14px, 4.6vw, 22px);
   letter-spacing: -0.02em;
   line-height: 1;
 }
-/* Placed over a dial the picture already has: the picture's own rim frames it. */
-.sh-dial.placed { right: auto; box-shadow: none; font-size: clamp(14px, 4.6vw, 22px); }
 .sh-slot.s3 { left: 96px; z-index: 4; bottom: 10px; }
 .sh-slot.s2 { right: 4px; z-index: 3; }
 .sh-slot.s4 { display: none; }
