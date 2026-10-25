@@ -3,7 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import { formatMxPhone, normalizeMxPhone } from "@/lib/platform/phone";
 import { useTickets } from "../TicketsShell";
-import { EntryHead } from "../showcase/EntryHead";
+import { StartLineHead } from "./StartLineHead";
+import { RaceBib } from "./RaceBib";
+import { WhatsAppPreview } from "./WhatsAppPreview";
+import { StartLights, type LightsStatus } from "./StartLights";
 
 /**
  * Sign-in for campaigns whose identity channel is the phone (0030).
@@ -16,12 +19,20 @@ import { EntryHead } from "../showcase/EntryHead";
  * comes back: `start` replies identically either way, so the form cannot be
  * used to find out who plays.
  *
+ * THE STARTING LINE (2026-10-25). Every phone campaign is a race (Carrera
+ * Alaska, La Carrera del Sabor), so the door is drawn as the start of one: the
+ * number goes on a racing bib — the bib IS the runner, as the number IS the
+ * account — and the four digits are the four starting lights. All of it is
+ * drawing; this file keeps every rule it had, and the pieces in this folder
+ * only render what it tells them.
+ *
  * WHY IT ANNOUNCES THE MESSAGE BEFORE SENDING IT. Meta's authentication
  * templates carry fixed, unbranded text — "Tu código de verificación es 1234" —
  * and this number's display name is declined, so it arrives from a raw phone
- * number saying nothing about Alaska or Supergana. Without the warning first,
- * the message is indistinguishable from spam, and the people most careful about
- * their phone are exactly the ones who would ignore it.
+ * number saying nothing about the campaign or Supergana. Without the warning
+ * first, the message is indistinguishable from spam, and the people most
+ * careful about their phone are exactly the ones who would ignore it. That is
+ * `WhatsAppPreview`'s whole job.
  *
  * THE SESSION IS SET BY THE SERVER, so confirming navigates with a full page
  * load rather than `router.replace`. `supabase-js` never saw a sign-in happen,
@@ -38,6 +49,14 @@ const POST_LOGIN = new Set(["panel", "premios", "subir"]);
  *  conversation billed to the tenant, and the server caps them at three an hour
  *  regardless — this is only so the button does not invite the second one. */
 const RESEND_COOLDOWN_S = 45;
+
+/** How long the green lights stay on screen before the page leaves. Long
+ *  enough to register as "you're in", short enough not to feel like a wait. */
+const GO_HOLD_MS = 700;
+
+/** The code in the "this is what you'll get" bubble. An example, and it must
+ *  stay one: a fixed literal, never anything derived from a real send. */
+const EXAMPLE_CODE = "4821";
 
 type Step = "phone" | "code";
 
@@ -62,11 +81,19 @@ export function PhoneSignIn() {
   const [phone, setPhone] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  /** Busy with the CODE, as opposed to a resend: only this one may say
+   *  "Verificando…" on the button. */
+  const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   /** Only ever set outside production — see `codeSender` in lib/platform/otp. */
   const [rehearsalCode, setRehearsalCode] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0);
+  /** What the starting lights show: typing, a wrong code, or accepted. */
+  const [lights, setLights] = useState<LightsStatus>("idle");
   const codeInput = useRef<HTMLInputElement>(null);
+  /** Guards the auto-submit: the fourth digit and the Enter key can both fire
+   *  before React re-renders, and `busy` (state) is not visible to the second. */
+  const confirming = useRef(false);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -132,6 +159,7 @@ export function PhoneSignIn() {
       setPhone(normalized);
       setRehearsalCode(typeof data.rehearsalCode === "string" ? data.rehearsalCode : null);
       setCode("");
+      setLights("idle");
       setStep("code");
       setCooldown(RESEND_COOLDOWN_S);
     } catch {
@@ -141,92 +169,120 @@ export function PhoneSignIn() {
     }
   };
 
-  const confirm = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!phone || code.length !== 4) return;
+  const confirm = async (digits: string) => {
+    if (!phone || digits.length !== 4 || confirming.current) return;
+    confirming.current = true;
     setBusy(true);
+    setVerifying(true);
     setError(null);
     try {
-      const { res, data } = await post({ action: "confirm", phone, code });
+      const { res, data } = await post({ action: "confirm", phone, code: digits });
       if (!res.ok) {
         setError(errorFor(data.error));
+        setLights("error");
+        // The lights go dark again so the next try starts from an empty grid,
+        // which is what "that code was wrong" should look like.
+        setCode("");
         // An expired code has no second attempt worth offering here: the only
         // way forward is a new one, so send them back to ask for it.
         if (data.error === "code_expired") {
           setStep("phone");
           setCooldown(0);
+        } else {
+          codeInput.current?.focus();
         }
         setBusy(false);
+        setVerifying(false);
+        confirming.current = false;
         return;
       }
-      // Full navigation, not router.replace — see the header. `busy` is left on
-      // deliberately: the page is leaving, and re-enabling the button would
-      // only offer a second submit during the handover.
-      window.location.assign(destination());
+      // Full navigation, not router.replace — see the header. `busy` and the
+      // guard stay on deliberately: the page is leaving, and re-enabling the
+      // button would only offer a second submit during the handover. The hold
+      // is only so the green lights are seen; reduced motion skips it.
+      setLights("go");
+      const reduced =
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      window.setTimeout(() => window.location.assign(destination()), reduced ? 0 : GO_HOLD_MS);
     } catch {
+      // Same shape as a wrong code — empty lights, focus back in the box — so
+      // the next move is obvious: type it again (the code is still valid).
       setError(t("errNetwork"));
+      setLights("error");
+      setCode("");
+      codeInput.current?.focus();
       setBusy(false);
+      setVerifying(false);
+      confirming.current = false;
     }
+  };
+
+  const onCodeChange = (digits: string) => {
+    setCode(digits);
+    if (error) setError(null);
+    if (lights === "error") setLights("idle");
+    // The fourth light submits. WhatsApp's copy button and the keyboard's
+    // one-time-code suggestion both deliver all four at once, and making
+    // somebody then find a button is a step that buys nothing.
+    if (digits.length === 4) void confirm(digits);
   };
 
   return (
     <div className="tk-pad">
-      <EntryHead
+      <StartLineHead
         step={1}
-        title={step === "phone" ? t("waTitle") : t("waCodeTitle")}
+        phase={step === "phone" ? "bib" : lights === "go" ? "go" : "lights"}
+        title={step === "phone" ? t("waBibTitle") : t("waLightsTitle")}
+        mark={step === "phone" ? t("waBibMark") : t("waLightsMark")}
         sub={
           step === "phone"
-            ? t("waSub")
-            : t("waCodeSub", { phone: phone ? formatMxPhone(phone) : "" })
+            ? t("waBibSub")
+            : t("waLightsSub", { phone: phone ? formatMxPhone(phone) : "" })
         }
       />
 
-      {error && <p className="tk-error">{error}</p>}
+      {error && <p className="tk-error" role="alert">{error}</p>}
 
       {step === "phone" ? (
-        <form
-          className="tk-card sh-form"
-          onSubmit={sendCode}
-        >
-          <label className="tk-field">
-            {t("waLabel")}
-            <input
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              enterKeyHint="send"
-              autoFocus
-              value={typed}
-              onChange={(e) => {
-                setTyped(e.target.value);
-                if (error) setError(null);
-              }}
-              placeholder={t("waPlaceholder")}
-              required
-            />
-          </label>
-
+        <form className="tk-card sh-form wa-form" onSubmit={sendCode}>
           {/* Confirms what we will actually dial, the moment it stops being
-              ambiguous. Somebody who fat-fingered a digit sees it here rather
-              than after waiting for a message that went to a stranger. */}
-          {normalized && (
-            <p className="tk-body" style={{ fontSize: 13, marginTop: -6, opacity: 0.75 }}>
-              {formatMxPhone(normalized)}
-            </p>
-          )}
-
-          <p className="tk-body" style={{ fontSize: 12.5, opacity: 0.8 }}>
-            {t("waNote")}
-          </p>
+              ambiguous. Somebody who fat-fingered a digit sees it on the bib
+              rather than after waiting for a message that went to a stranger. */}
+          <RaceBib
+            value={typed}
+            onChange={(value) => {
+              setTyped(value);
+              if (error) setError(null);
+            }}
+            formatted={normalized ? formatMxPhone(normalized) : null}
+            label={t("waLabel")}
+            placeholder={t("waPlaceholder")}
+            raceName={campaign.name}
+            tag={t("waBibTag")}
+            invalid={Boolean(error)}
+            disabled={busy}
+          />
 
           <button className="tk-btn" type="submit" disabled={busy}>
             {busy ? t("authSending") : t("waSend")}&nbsp;→
           </button>
+
+          <WhatsAppPreview
+            label={t("waPreviewLabel")}
+            from={t("waPreviewFrom")}
+            body={t("waPreviewBody", { code: EXAMPLE_CODE })}
+            copy={t("waPreviewCopy")}
+            note={t("waPreviewNote")}
+          />
         </form>
       ) : (
         <form
-          className="tk-card sh-form"
-          onSubmit={confirm}
+          className="tk-card sh-form wa-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            void confirm(code);
+          }}
         >
           {/* The one place a code may appear on screen, and it is the SERVER
               that decides: `codeSender` cannot build a revealing sender on a
@@ -236,32 +292,21 @@ export function PhoneSignIn() {
             <p className="tk-rehearsal">{t("waRehearsal", { code: rehearsalCode })}</p>
           )}
 
-          <label className="tk-field">
-            {t("waCodeLabel")}
-            <input
-              ref={codeInput}
-              className="tk-otp"
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={4}
-              value={code}
-              onChange={(e) => {
-                // Digits only. WhatsApp's copy button pastes the code, and a
-                // stray character would fail a check the person cannot see.
-                setCode(e.target.value.replace(/\D/g, "").slice(0, 4));
-                if (error) setError(null);
-              }}
-              placeholder="————"
-              required
-            />
-          </label>
+          <StartLights
+            value={code}
+            onChange={onCodeChange}
+            label={t("waCodeLabel")}
+            status={lights}
+            goLabel={t("waLightsGo")}
+            disabled={busy && lights === "go"}
+            inputRef={codeInput}
+          />
 
           <button className="tk-btn" type="submit" disabled={busy || code.length !== 4}>
-            {busy ? t("authVerifying") : t("waConfirm")}&nbsp;→
+            {verifying ? t("authVerifying") : t("waConfirm")}&nbsp;→
           </button>
 
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+          <div className="wa-form-links">
             <button
               type="button"
               className="tk-linkbtn"
@@ -269,6 +314,7 @@ export function PhoneSignIn() {
               onClick={() => {
                 setStep("phone");
                 setCode("");
+                setLights("idle");
                 setRehearsalCode(null);
                 setError(null);
               }}
@@ -286,7 +332,6 @@ export function PhoneSignIn() {
           </div>
         </form>
       )}
-
     </div>
   );
 }

@@ -421,7 +421,7 @@ export function PrizeStore({
                       <span className="tk-histcode">{row.code}</span>
                     </div>
                     <span className={`tk-pill ${REDEMPTION_PILL[row.status]}`}>
-                      {t(redemptionLabelKey(row))}
+                      {t(redemptionLabelKey(row, campaign.authChannel))}
                     </span>
                   </div>
                 ))}

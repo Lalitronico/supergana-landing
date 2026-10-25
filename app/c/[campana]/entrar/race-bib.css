@@ -1,0 +1,265 @@
+/* ==========================================================================
+   RaceBib (phone field as a racing bib) + WhatsAppPreview (mock chat).
+   Global stylesheet: every selector is prefixed wa-bib- / wa-preview-.
+   Brand colour comes only from --tk-brand / --tk-brand-ink (tenant theme).
+   ========================================================================== */
+
+/* ---- bib ---------------------------------------------------------------- */
+
+.wa-bib {
+  --wa-bib-err: #d4202f;
+  position: relative;
+  margin: 6px 4px 4px;
+  border: 3px solid var(--tk-ink);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 5px 5px 0 0 var(--tk-ink);
+  transform: rotate(-1.5deg);
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  /* Pins sit on the corners and must not be clipped. */
+  overflow: visible;
+}
+.wa-bib:focus-within {
+  transform: rotate(0deg);
+  box-shadow: 6px 6px 0 0 var(--tk-ink);
+}
+
+/* Safety pins: pinned through the paper at each corner. */
+.wa-bib-pin {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  color: var(--tk-ink);
+  pointer-events: none;
+  z-index: 2;
+}
+.wa-bib-pin-tl { top: -7px; left: -7px; }
+.wa-bib-pin-tr { top: -7px; right: -7px; transform: scaleX(-1); }
+.wa-bib-pin-bl { bottom: -7px; left: -7px; transform: scaleY(-1); }
+.wa-bib-pin-br { bottom: -7px; right: -7px; transform: scale(-1, -1); }
+
+/* Band: tenant colour with the race name. Bold white at >= 18px is "large
+   text" (3:1 bar): fine on #FF0000. The ink text-shadow adds margin on lighter
+   brand colours such as #0098E0 without changing the look on dark ones. */
+.wa-bib-band {
+  padding: 7px 14px 6px;
+  border-bottom: 3px solid var(--tk-ink);
+  border-radius: 10px 10px 0 0;
+  background: var(--tk-brand);
+  color: #fff;
+}
+.wa-bib-race {
+  min-width: 0;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 19px;
+  line-height: 1.1;
+  letter-spacing: 0.01em;
+  text-shadow: 1.5px 1.5px 0 rgba(10, 10, 10, 0.55);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wa-bib-tag {
+  flex: none;
+  padding: 1px 8px;
+  border: 2px solid var(--tk-ink);
+  border-radius: 999px;
+  background: var(--tk-yellow);
+  color: var(--tk-ink);
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.wa-bib-body { padding: 8px 14px 0; }
+.wa-bib-meta { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.wa-bib-label {
+  display: block;
+  font-family: var(--tk-display);
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tk-ink-soft);
+}
+
+/* The real input, restyled as the printed number. Selector is long on purpose:
+   it must beat `.tk-app .sh-form input[type="tel"]` (and its :focus) in
+   showcase.css, which give it a cream box, border and shadow of its own. */
+.tk-app .wa-bib input.wa-bib-input,
+.tk-app .wa-bib input.wa-bib-input:focus {
+  display: block;
+  width: 100%;
+  min-height: 52px;
+  padding: 2px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  /* Fluid so "656 123 4567" typed WITH spaces still fits a 360px screen. */
+  font-size: clamp(26px, 8.2vw, 34px);
+  line-height: 1.15;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+  color: var(--tk-ink);
+  caret-color: var(--tk-brand);
+}
+.tk-app .wa-bib input.wa-bib-input::placeholder {
+  color: var(--tk-ink);
+  opacity: 0.16;
+}
+/* Focus cue: a yellow highlighter stripe under the number (outline removed). */
+.wa-bib-body:focus-within {
+  background: linear-gradient(transparent calc(100% - 5px), var(--tk-yellow) 0);
+}
+
+/* Footer strip: perforation line, confirmation echo, fake barcode. */
+.wa-bib-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 34px;
+  margin-top: 6px;
+  padding: 6px 14px 7px;
+  border-top: 2px dashed rgba(10, 10, 10, 0.4);
+}
+.wa-bib-confirm {
+  min-width: 0;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.03em;
+  color: var(--tk-brand-ink);
+  white-space: nowrap;
+}
+.wa-bib-barcode {
+  flex: 1 0 56px;
+  max-width: 96px;
+  height: 18px;
+  margin-left: auto;
+  opacity: 0.8;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--tk-ink) 0 2px, transparent 2px 4px,
+    var(--tk-ink) 4px 5px, transparent 5px 8px,
+    var(--tk-ink) 8px 11px, transparent 11px 12px,
+    var(--tk-ink) 12px 13px, transparent 13px 16px
+  );
+}
+
+/* Error: ink border stays (comic outline) but band and shadow turn red. */
+.wa-bib.is-invalid {
+  box-shadow: 5px 5px 0 0 var(--wa-bib-err);
+  animation: wa-bib-shake 380ms ease-in-out 1;
+}
+.wa-bib.is-invalid .wa-bib-band { background: var(--wa-bib-err); }
+.wa-bib.is-disabled { opacity: 0.7; }
+
+@keyframes wa-bib-shake {
+  0%, 100% { translate: 0 0; }
+  20% { translate: -6px 0; }
+  40% { translate: 5px 0; }
+  60% { translate: -4px 0; }
+  80% { translate: 3px 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wa-bib { transition: none; }
+  .wa-bib.is-invalid { animation: none; }
+}
+
+/* ---- WhatsApp preview ---------------------------------------------------- */
+
+.wa-preview { display: flex; flex-direction: column; gap: 6px; }
+.wa-preview-label { margin: 0; }
+
+.wa-preview-chat {
+  overflow: hidden;
+  border: 2.5px solid var(--tk-ink);
+  border-radius: 14px;
+  background: #e9e1d3;
+}
+.wa-preview-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #075e54;
+  color: #fff;
+}
+.wa-preview-avatar { flex: none; width: 24px; height: 24px; }
+.wa-preview-from {
+  min-width: 0;
+  font-family: var(--tk-body);
+  font-weight: 600;
+  font-size: 12.5px;
+  line-height: 1.25;
+}
+
+/* Beige wallpaper: two offset dot grids read as the doodle texture. */
+.wa-preview-wall {
+  padding: 10px 12px 12px;
+  background-color: #ece5d8;
+  background-image:
+    radial-gradient(rgba(7, 94, 84, 0.1) 1.5px, transparent 1.6px),
+    radial-gradient(rgba(7, 94, 84, 0.07) 1.5px, transparent 1.6px);
+  background-size: 18px 18px;
+  background-position: 0 0, 9px 9px;
+}
+
+.wa-preview-bubble {
+  position: relative;
+  max-width: 88%;
+  margin-left: 7px;
+  padding: 7px 10px 0;
+  border-radius: 0 10px 10px 10px;
+  background: #fff;
+  box-shadow: 0 1px 0 rgba(10, 10, 10, 0.18);
+  color: #111b21;
+}
+/* The tail: a small triangle at the top-left corner. */
+.wa-preview-bubble::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -7px;
+  border-top: 8px solid #fff;
+  border-left: 8px solid transparent;
+}
+.wa-preview-text {
+  margin: 0 0 6px;
+  font-family: var(--tk-body);
+  font-size: 14px;
+  line-height: 1.35;
+}
+.wa-preview-text strong { font-weight: 800; letter-spacing: 0.04em; }
+
+.wa-preview-copy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 0 8px;
+  border-top: 1px solid rgba(10, 10, 10, 0.12);
+  color: #0a7d6e;
+  font-family: var(--tk-body);
+  font-weight: 600;
+  font-size: 13.5px;
+  user-select: none;
+}
+.wa-preview-copy svg { width: 15px; height: 15px; }
+
+.wa-preview-note {
+  margin: 0;
+  font-family: var(--tk-body);
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--tk-ink-soft);
+}

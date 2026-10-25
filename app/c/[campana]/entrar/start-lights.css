@@ -1,0 +1,210 @@
+/* start-lights.css — WhatsApp sign-in, see entrar/. Global (imported by layout.tsx), so every selector is prefixed. */
+
+.wa-lights { display: flex; flex-direction: column; gap: 8px; }
+
+.wa-lights-label {
+  font-family: var(--tk-display);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--tk-ink);
+}
+
+.wa-lights-gantry { position: relative; padding-top: 14px; }
+
+/* Two posts holding the housing up, like a real gantry. */
+.wa-lights-post {
+  position: absolute;
+  top: 0;
+  width: 12px;
+  height: 22px;
+  background: var(--tk-ink);
+  border-radius: 3px 3px 0 0;
+}
+.wa-lights-post-l { left: 22px; }
+.wa-lights-post-r { right: 22px; }
+
+.wa-lights-housing {
+  position: relative;
+  overflow: hidden;
+  border: 3px solid var(--tk-ink);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #2a2a2a, #0a0a0a 60%);
+  box-shadow: 4px 4px 0 0 var(--tk-ink);
+}
+
+.wa-lights-strip { display: block; height: 10px; border-bottom: 3px solid var(--tk-ink); background-size: 10px 10px; }
+
+.wa-lights-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 14px 16px;
+}
+
+.wa-lights-bay {
+  position: relative;
+  flex: 1 1 0;
+  max-width: 64px;
+  aspect-ratio: 1;
+  padding: 4px;
+  border-radius: 50%;
+  background: #000;
+  box-shadow: inset 0 0 0 2px #3a3a3a;
+}
+
+.wa-lights-lens {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 60%, #1b1b1b, #090909 75%);
+  box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.9), inset 0 -2px 3px rgba(255, 255, 255, 0.06);
+}
+/* Glassy highlight on every lens. */
+.wa-lights-lens::after {
+  content: "";
+  position: absolute;
+  top: 9%;
+  left: 20%;
+  width: 42%;
+  height: 24%;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  transform: rotate(-20deg);
+  pointer-events: none;
+}
+
+.wa-lights-digit {
+  position: relative;
+  z-index: 1;
+  font-family: var(--tk-display);
+  font-weight: 900;
+  font-size: clamp(26px, 8.4vw, 34px);
+  line-height: 1;
+  color: #fff;
+  /* A thin ink outline under the drop shadow: the lens centre is the brand
+     colour mixed with white, which on a light brand leaves white digits weak. */
+  text-shadow:
+    -1px -1px 0 var(--tk-ink), 1px -1px 0 var(--tk-ink),
+    -1px 1px 0 var(--tk-ink), 1px 1px 0 var(--tk-ink),
+    0 3px 0 rgba(0, 0, 0, 0.45);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Lit lens: brand colour with a glow. */
+.wa-lights-bay[data-lit] .wa-lights-lens {
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--tk-brand) 70%, #fff), var(--tk-brand) 55%, color-mix(in srgb, var(--tk-brand) 70%, #000));
+  box-shadow: inset 0 -4px 8px rgba(0, 0, 0, 0.3), 0 0 14px 3px color-mix(in srgb, var(--tk-brand) 75%, transparent);
+  animation: wa-lights-pop 340ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+  animation-delay: calc(var(--wa-i) * 55ms);
+}
+.wa-lights-bay[data-lit] .wa-lights-lens::after { background: rgba(255, 255, 255, 0.4); }
+
+/* Where the next digit goes, only while focused. The static ring is the focus
+   indicator itself (the input has no outline); the pulse is extra, so reduced
+   motion still shows where the keyboard is. */
+.wa-lights-gantry:focus-within .wa-lights-bay[data-next]:not([data-lit]) {
+  box-shadow: inset 0 0 0 2px #3a3a3a, 0 0 0 4px color-mix(in srgb, var(--tk-brand) 60%, #fff);
+  animation: wa-lights-ring 1s ease-in-out infinite;
+}
+
+/* The real input: invisible, covers the gantry. The long selector out-ranks the .sh-form input rules. */
+.tk-app .sh-form input.wa-lights-input[type="text"],
+.wa-lights-input {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  box-shadow: none;
+  color: transparent;
+  caret-color: transparent;
+  font-size: 16px !important;
+  letter-spacing: 0;
+  outline: none;
+  cursor: text;
+  -webkit-text-fill-color: transparent;
+}
+.tk-app .sh-form input.wa-lights-input[type="text"]:focus {
+  background: transparent;
+  box-shadow: none;
+}
+.wa-lights-input::selection { background: transparent; }
+
+/* Go: all green, race-start banner. */
+.wa-lights[data-status="go"] .wa-lights-lens {
+  background: radial-gradient(circle at 50% 38%, #9af0bd, var(--sg-green) 55%, var(--sg-green-deep));
+  box-shadow: inset 0 -4px 8px rgba(0, 0, 0, 0.25), 0 0 18px 5px color-mix(in srgb, var(--sg-green) 80%, transparent);
+  animation: wa-lights-pop 380ms cubic-bezier(0.2, 1.4, 0.4, 1) both, wa-lights-pulse 520ms ease-in-out 2;
+  animation-delay: calc(var(--wa-i) * 55ms), calc(var(--wa-i) * 55ms + 380ms);
+}
+/* White on light green is ~1.5:1; ink reads, and matches the "¡Arranca!" flag. */
+.wa-lights[data-status="go"] .wa-lights-digit {
+  color: var(--tk-ink);
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.5);
+}
+
+.wa-lights-go { display: flex; justify-content: center; }
+.wa-lights-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+  padding: 6px 16px 6px 6px;
+  border: 3px solid var(--tk-ink);
+  border-radius: 12px;
+  background: var(--sg-green);
+  box-shadow: 4px 4px 0 0 var(--tk-ink);
+  font-family: var(--tk-display);
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--tk-ink);
+  transform: rotate(-2deg);
+  animation: wa-lights-stamp 420ms cubic-bezier(0.2, 1.5, 0.4, 1) 200ms both;
+}
+.wa-lights-flag-check { width: 32px; height: 32px; border: 2px solid var(--tk-ink); border-radius: 6px; background-size: 16px 16px; }
+
+/* Error: shake the whole gantry, flash the housing red. */
+.wa-lights[data-status="error"] .wa-lights-gantry { animation: wa-lights-shake 420ms ease-in-out; }
+.wa-lights[data-status="error"] .wa-lights-housing { animation: wa-lights-flash 900ms ease-out; }
+
+@keyframes wa-lights-pop {
+  0% { transform: scale(0.7); filter: brightness(2); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+@keyframes wa-lights-pulse {
+  50% { transform: scale(1.1); filter: brightness(1.25); }
+}
+@keyframes wa-lights-ring {
+  0%, 100% { box-shadow: inset 0 0 0 2px #3a3a3a, 0 0 0 2px color-mix(in srgb, var(--tk-brand) 40%, transparent); }
+  50% { box-shadow: inset 0 0 0 2px #3a3a3a, 0 0 0 6px color-mix(in srgb, var(--tk-brand) 60%, #fff); }
+}
+@keyframes wa-lights-stamp {
+  0% { transform: rotate(-2deg) scale(1.8); opacity: 0; }
+  100% { transform: rotate(-2deg) scale(1); opacity: 1; }
+}
+@keyframes wa-lights-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-8px); }
+  40% { transform: translateX(7px); }
+  60% { transform: translateX(-5px); }
+  80% { transform: translateX(3px); }
+}
+@keyframes wa-lights-flash {
+  0%, 35% { background: #c40000; box-shadow: 4px 4px 0 0 var(--tk-ink), 0 0 18px 4px rgba(255, 0, 0, 0.6); }
+  100% { background: #0a0a0a; box-shadow: 4px 4px 0 0 var(--tk-ink); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wa-lights *, .wa-lights *::before, .wa-lights *::after { animation: none !important; transition: none !important; }
+}

@@ -1,0 +1,172 @@
+/* start-line.css — WhatsApp sign-in, see entrar/. Global (imported by layout.tsx), so every selector is prefixed. */
+
+/* ---- header: the starting line ----------------------------------------- */
+
+.wa-line {
+  /* Same sky mapping as the home's hero (showcase.css), under our own prefix. */
+  --wa-sky: var(--sg-blue);
+  --wa-ray: #35a0ff;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--wa-sky);
+  border: 3px solid var(--sg-ink);
+  border-radius: 18px;
+  box-shadow: 4px 4px 0 0 var(--sg-ink);
+  /* bottom padding clears the checkered band */
+  padding: 10px 14px 28px;
+}
+.wa-line[data-backdrop="red"] { --wa-sky: var(--sg-red); --wa-ray: #ff6b78; }
+.wa-line[data-backdrop="orange"] { --wa-sky: var(--sg-orange); --wa-ray: #ffa264; }
+.wa-line[data-backdrop="pink"] { --wa-sky: var(--sg-pink); --wa-ray: #ff8db4; }
+.wa-line[data-backdrop="purple"] { --wa-sky: var(--sg-purple); --wa-ray: #a37cf9; }
+.wa-line[data-backdrop="green"] { --wa-sky: var(--sg-green); --wa-ray: #55d98c; }
+
+/* Sunburst centred behind the host, wider than the card so turning never shows an edge. */
+.wa-line::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  right: 10%;
+  bottom: 0;
+  width: 900px;
+  height: 900px;
+  margin: 0 -450px -450px 0;
+  background: repeating-conic-gradient(var(--wa-ray) 0 7.5deg, var(--wa-sky) 7.5deg 15deg);
+  animation: wa-line-spin 120s linear infinite;
+}
+
+.wa-line-text {
+  position: relative;
+  z-index: 2;
+  /* leave the right edge to the host */
+  padding-right: 78px;
+}
+
+.wa-line-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 9px 3px 7px;
+  background: var(--sg-cream);
+  border: 2px solid var(--sg-ink);
+  border-radius: 999px;
+}
+.wa-line-eyebrow .tk-eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--sg-ink);
+  white-space: nowrap;
+}
+.wa-line-pips { display: flex; gap: 3px; }
+.wa-line-pips i {
+  width: 12px;
+  height: 7px;
+  border: 2px solid var(--sg-ink);
+  border-radius: 999px;
+  background: #fff;
+}
+.wa-line-pips i.on { background: var(--sg-yellow); }
+
+/* Same type treatment as the home hero's title, one size down. */
+.tk-app .wa-line-title {
+  margin: 8px 0 0;
+  font-size: clamp(24px, 7vw, 28px);
+  line-height: 0.96;
+  letter-spacing: -0.03em;
+  color: #fff;
+  -webkit-text-stroke: 7px var(--sg-ink);
+  paint-order: stroke fill;
+  text-shadow: 3px 4px 0 var(--sg-ink);
+  text-wrap: balance;
+}
+.tk-app .wa-line-title .tk-mark {
+  color: var(--sg-ink);
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+  padding: 0 0.08em;
+  background-image: linear-gradient(transparent 50%, var(--sg-yellow) 50%, var(--sg-yellow) 96%, transparent 96%);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+.wa-line-sub {
+  margin: 8px 0 0;
+  padding: 6px 10px;
+  background: #fff;
+  border: 3px solid var(--sg-ink);
+  border-radius: 12px;
+  box-shadow: 3px 3px 0 0 var(--sg-ink);
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--sg-ink);
+}
+
+/* The line itself: checkered band across the bottom edge. */
+.wa-line-band {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 18px;
+  border-top: 3px solid var(--sg-ink);
+  background: conic-gradient(var(--sg-ink) 25%, var(--sg-cream) 0 50%, var(--sg-ink) 0 75%, var(--sg-cream) 0) 0 0 / 18px 18px;
+}
+
+/* The host stands on the band, overlapping it a little so the feet are planted. */
+.wa-line-host {
+  position: absolute;
+  z-index: 3;
+  right: 8px;
+  bottom: 6px;
+  pointer-events: none;
+}
+/* No cast: the mascot art is wider than a single character, so it gets a smaller
+   box and the text column a little more room to its right. */
+.wa-line-mascot .wa-line-text { padding-right: 96px; }
+.wa-line-mascot .wa-line-host { right: 6px; }
+.wa-line-mascot .wa-line-host .tk-mascot { max-height: 78px; max-width: 92px; }
+
+.wa-line-host img,
+.wa-line-host .tk-mascot { display: block; max-height: 118px; width: auto; }
+
+/* ---- phase motion (all of it off under reduced motion, below) ---------- */
+
+.wa-line[data-phase="bib"] .wa-line-host { transform-origin: 50% 100%; animation: wa-line-wave 3.6s ease-in-out infinite; }
+.wa-line[data-phase="lights"] .wa-line-host { transform-origin: 50% 100%; transform: rotate(-4deg); }
+.wa-line[data-phase="go"] .wa-line-host { animation: wa-line-jump 0.45s ease-out 2; }
+.wa-line[data-phase="go"] .wa-line-band { animation: wa-line-flag 0.35s linear infinite; }
+
+@keyframes wa-line-spin { to { transform: rotate(360deg); } }
+@keyframes wa-line-wave {
+  0%, 85%, 100% { transform: rotate(0); }
+  90% { transform: rotate(-3deg); }
+  95% { transform: rotate(3deg); }
+}
+@keyframes wa-line-jump {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+@keyframes wa-line-flag { to { background-position: 18px 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .wa-line::before,
+  .wa-line-host,
+  .wa-line-band { animation: none !important; }
+}
+
+/* ---- page layout: the form card under the header ----------------------- */
+
+.tk-app .wa-form { gap: 14px; }
+
+.wa-form-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2px 16px;
+}
+.wa-form-links .tk-linkbtn { flex: 0 1 auto; text-align: left; line-height: 1.25; }
+.wa-form-links .tk-linkbtn:last-child { text-align: right; margin-left: auto; }

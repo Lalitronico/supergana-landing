@@ -515,7 +515,7 @@ export default function PanelPage() {
                   <span className="tk-histcode">{row.code}</span>
                 </div>
                 <span className={`tk-pill ${row.status === "fulfilled" ? "ok" : row.status === "canceled" ? "bad" : "wait"}`}>
-                  {t(redemptionLabelKey(row))}
+                  {t(redemptionLabelKey(row, campaign.authChannel))}
                 </span>
               </div>
             ))}

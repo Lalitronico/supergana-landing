@@ -10,6 +10,9 @@ import "./tickets.css";
 import "./fiesta.css";
 import "./showcase.css";
 import "./journey.css";
+import "./entrar/start-line.css";
+import "./entrar/race-bib.css";
+import "./entrar/start-lights.css";
 
 export async function generateMetadata({
   params,
