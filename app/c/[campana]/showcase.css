@@ -891,6 +891,87 @@
 .sh-mq-name { font-family: var(--tk-display); font-weight: 800; font-size: 16px; letter-spacing: -0.02em; white-space: nowrap; color: var(--sg-ink); }
 @keyframes sh-marq { to { transform: translateX(-50%); } }
 
+/* ---- partner band (config.partners) ------------------------------------------ */
+
+/* Paper under the hero's kerb. The kerb already draws an ink line along its
+   bottom, so the band drops the section rule instead of doubling it. */
+.sh-partners {
+  border-top: 0;
+  background-color: var(--sg-cream);
+  background-image: radial-gradient(rgba(10, 10, 10, 0.08) 1.3px, transparent 1.6px);
+  background-size: 11px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px 20px;
+}
+
+.sh-partners-row { display: flex; flex-direction: column; gap: 8px; }
+
+/* The label runs into an ink rule, like the caption bar on a poster. */
+.sh-partners-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--sg-ink);
+}
+.sh-partners-label::after {
+  content: "";
+  flex: 1;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--sg-ink);
+}
+
+.sh-partners ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* Equal cards with the logo contained: every company gets the same box whatever
+   its artwork's proportions, which is what lets marks drawn by four different
+   designers sit together as one row. White, because logos are drawn for white. */
+.sh-partners li {
+  flex: 1 1 130px;
+  min-width: 0;
+  height: 78px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 10px;
+  background: #fff;
+  border: 3px solid var(--sg-ink);
+  border-radius: 14px;
+  box-shadow: 3px 3px 0 0 var(--sg-ink);
+}
+.sh-partners li img {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+}
+.sh-partners-name {
+  font-family: var(--tk-display);
+  font-weight: 800;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+  text-align: center;
+  color: var(--sg-ink);
+}
+
 /* ---- brand parade ------------------------------------------------------------- */
 
 .sh-parade {

@@ -7,7 +7,7 @@
 
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { DEFAULT_STAGE, parseCampaignConfig } from "./config.ts";
+import { DEFAULT_STAGE, NO_PARTNERS, parseCampaignConfig } from "./config.ts";
 import { campaignTheme } from "./theme.ts";
 
 test("a campaign that says nothing gets no prop and the blue sky", () => {
@@ -84,4 +84,41 @@ test("a campaign's theme keys win over its organisation's, and are validated the
   assert.equal(campaignTheme(org, { logo_url: "javascript:x" }).logoUrl, null);
   // No override: the organisation's theme as it always was.
   assert.equal(campaignTheme(org, null).brand, "#0055A4");
+});
+
+test("a campaign that names no partners has no partner band", () => {
+  assert.deepEqual(parseCampaignConfig({}).partners, NO_PARTNERS);
+  for (const partners of [null, "Bachi", ["Bachi"], 42]) {
+    assert.deepEqual(parseCampaignConfig({ partners }).partners, NO_PARTNERS, String(partners));
+  }
+});
+
+test("partners keep their order, need a name, and an unsafe logo falls back to the name", () => {
+  const p = parseCampaignConfig({
+    partners: {
+      brands: [
+        { name: " Love & Kitchen ", logo_url: "/brands/love-kitchen/monograma.png" },
+        { name: "Bachi", logo_url: "/brands/bafar/partners/bachi.png" },
+        { logo_url: "/brands/bafar/partners/nameless.png" },
+        "Sabori",
+      ],
+      stores: [
+        { name: "La Pastora", logo_url: "javascript:alert(1)" },
+        { name: "CarneMart", logo_url: "//evil.example/x.png" },
+      ],
+    },
+  }).partners;
+  assert.deepEqual(p.brands, [
+    { name: "Love & Kitchen", logoUrl: "/brands/love-kitchen/monograma.png" },
+    { name: "Bachi", logoUrl: "/brands/bafar/partners/bachi.png" },
+  ]);
+  assert.deepEqual(p.stores, [
+    { name: "La Pastora", logoUrl: null },
+    { name: "CarneMart", logoUrl: null },
+  ]);
+});
+
+test("a partner row is capped, so a pasted list cannot bury the home", () => {
+  const many = Array.from({ length: 20 }, (_, i) => ({ name: `Tienda ${i}` }));
+  assert.equal(parseCampaignConfig({ partners: { stores: many } }).partners.stores.length, 6);
 });

@@ -8,6 +8,7 @@ import { SuperganaWordmark } from "./fiesta/Wordmark";
 import { BrandParade } from "./showcase/BrandParade";
 import { HeroStage } from "./showcase/HeroStage";
 import { LogoMarquee } from "./showcase/LogoMarquee";
+import { PartnerBand } from "./showcase/PartnerBand";
 import { RoadMap } from "./showcase/RoadMap";
 import { PrizeTeaser, type TeaserPrize } from "./showcase/PrizeTeaser";
 import { ProductGallery } from "./showcase/ProductGallery";
@@ -288,6 +289,9 @@ function AccumulationHome({
       <section className="sh-sec sh-sec-hero">
         <HeroStage org={org} />
       </section>
+
+      {/* Renders nothing unless the campaign names partners (config.partners). */}
+      <PartnerBand />
 
       <LogoMarquee brands={campaign.brands} />
 

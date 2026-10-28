@@ -100,6 +100,36 @@ export interface StageConfig {
 export const DEFAULT_STAGE: StageConfig = { prop: null, backdrop: "blue" };
 
 /**
+ * A company the promotion is run with: a sister brand of the sponsor, or a
+ * retail chain where it runs. Same asset validation as the theme; no logo (or
+ * one that fails to load) → its name, set in type.
+ */
+export interface Partner {
+  name: string;
+  logoUrl: string | null;
+}
+
+/**
+ * `config.partners = { brands: [{ name, logo_url }], stores: [...] }`.
+ *
+ * The home's partner band, under the hero: one row of logos per list, each
+ * with its own label (copy keys `shPartnersBrands` / `shPartnersStores`, so a
+ * campaign rewords them through `config.copy`). An empty list draws no row and
+ * two empty lists draw no band. Not the same thing as `brands`: those are the
+ * product lines that earn points (the parade, the marquee); a partner is who
+ * puts its name on the promotion (Bachi beside Love & Kitchen, La Pastora and
+ * CarneMart as the stores).
+ */
+export interface PartnersConfig {
+  brands: Partner[];
+  stores: Partner[];
+}
+
+export const NO_PARTNERS: PartnersConfig = { brands: [], stores: [] };
+
+const MAX_PARTNERS_PER_ROW = 6;
+
+/**
  * Demo mode: `config.demo = { fixed_points: 1500 }`.
  *
  * For a sales demo, where the people holding the phones carry no receipt with
@@ -195,6 +225,8 @@ export interface CampaignConfig {
   progressMeter: ProgressMeter;
   /** See `StageConfig`. */
   stage: StageConfig;
+  /** See `PartnersConfig`. */
+  partners: PartnersConfig;
   /**
    * The name the participant sees, when it is not the organisation's.
    *
@@ -421,6 +453,7 @@ const DEFAULTS: CampaignConfig = {
   // campaign standing its cast around a fuel pump was a leak of one tenant's
   // concept into everyone's home.
   stage: DEFAULT_STAGE,
+  partners: NO_PARTNERS,
   sponsorName: null,
   themeOverride: null,
   copy: {},
@@ -461,6 +494,27 @@ export const asStage = (value: unknown): StageConfig => {
     }
   }
   return { prop, backdrop };
+};
+
+const asPartnerRow = (value: unknown): Partner[] =>
+  Array.isArray(value)
+    ? value
+        .flatMap((entry) => {
+          if (!entry || typeof entry !== "object") return [];
+          const { name, logo_url } = entry as Record<string, unknown>;
+          // The name is required even with a logo: it is the image's alt text
+          // and the fallback if the file goes missing.
+          if (typeof name !== "string" || !name.trim()) return [];
+          return [{ name: name.trim().slice(0, 60), logoUrl: asAssetUrl(logo_url) }];
+        })
+        .slice(0, MAX_PARTNERS_PER_ROW)
+    : [];
+
+/** See `PartnersConfig`. A malformed value is no band, never a broken home. */
+export const asPartners = (value: unknown): PartnersConfig => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return NO_PARTNERS;
+  const p = value as Record<string, unknown>;
+  return { brands: asPartnerRow(p.brands), stores: asPartnerRow(p.stores) };
 };
 
 const asSponsorName = (value: unknown): string | null =>
@@ -639,6 +693,7 @@ export const parseCampaignConfig = (raw: unknown): CampaignConfig => {
       ? (c.progress_meter as ProgressMeter)
       : DEFAULTS.progressMeter,
     stage: asStage(c.stage),
+    partners: asPartners(c.partners),
     sponsorName: asSponsorName(c.sponsor_name),
     themeOverride: asThemeOverride(c.theme),
     copy: parseCopyOverrides(c.copy),
@@ -700,6 +755,8 @@ export interface PublicCampaign {
   progressMeter: ProgressMeter;
   /** The hero's set dressing. Public by nature: it is on screen. */
   stage: StageConfig;
+  /** The partner band's logos. Public by nature: it is on screen. */
+  partners: PartnersConfig;
   /** Wording overrides for this campaign. Public by nature: it is on screen. */
   copy: CopyOverrides;
   /**
@@ -734,6 +791,7 @@ export const toPublicCampaign = (campaign: Campaign): PublicCampaign => ({
   prizes: campaign.config.prizes,
   progressMeter: campaign.config.progressMeter,
   stage: campaign.config.stage,
+  partners: campaign.config.partners,
   copy: campaign.config.copy,
   demoPoints: campaign.config.demo?.fixedPoints ?? null,
 });
